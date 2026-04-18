@@ -113,6 +113,7 @@ import { createBudgetTracker, checkTokenBudget } from './query/tokenBudget.js'
 import { count } from './utils/array.js'
 import { createTrace, endTrace, isLangfuseEnabled } from './services/langfuse/index.js'
 import { getAPIProvider } from './utils/model/providers.js'
+import { jsonStringify } from './utils/slowOperations.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const snipModule = feature('HISTORY_SNIP')
@@ -696,8 +697,21 @@ async function* queryLoop(
         try {
           let streamingFallbackOccured = false
           queryCheckpoint('query_api_streaming_start')
+          const requestMessages = prependUserContext(messagesForQuery, userContext)
+          logForDebugging(
+            `[PromptDebug] full request snapshot before callModel: ${jsonStringify({
+              provider: getAPIProvider(),
+              querySource,
+              model: currentModel,
+              systemPrompt: fullSystemPrompt,
+              messages: requestMessages,
+              thinkingConfig: toolUseContext.options.thinkingConfig,
+              toolNames: toolUseContext.options.tools.map(tool => tool.name),
+            })}`,
+            { level: 'info' },
+          )
           for await (const message of deps.callModel({
-            messages: prependUserContext(messagesForQuery, userContext),
+            messages: requestMessages,
             systemPrompt: fullSystemPrompt,
             thinkingConfig: toolUseContext.options.thinkingConfig,
             tools: toolUseContext.options.tools,
