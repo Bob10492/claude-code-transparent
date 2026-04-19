@@ -8,6 +8,7 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from 'src/services/analytics/index.js'
+import { emitHarnessEvent } from 'src/observability/harness.js'
 import {
   extractMcpToolDetails,
   extractSkillName,
@@ -341,6 +342,7 @@ export async function* runToolUse(
   canUseTool: CanUseToolFn,
   toolUseContext: ToolUseContext,
 ): AsyncGenerator<MessageUpdateLazy, void> {
+  const startedAt = Date.now()
   const toolName = toolUse.name
   // First try to find in the available tools (what the model sees)
   let tool = findToolByName(toolUseContext.options.tools, toolName)
@@ -368,6 +370,21 @@ export async function* runToolUse(
 
   // Check if the tool exists
   if (!tool) {
+    await emitHarnessEvent({
+      event: 'tool.execution.failed',
+      component: 'tool_execution',
+      query_id: toolUseContext.queryTracking?.chainId ?? null,
+      request_id: requestId ?? null,
+      tool_call_id: toolUse.id,
+      subagent_id: toolUseContext.agentId ?? null,
+      subagent_type: toolUseContext.agentType ?? null,
+      payload: {
+        tool_name: toolName,
+        success: false,
+        error: 'tool_not_found',
+        duration_ms: Date.now() - startedAt,
+      },
+    })
     const sanitizedToolName = sanitizeToolNameForAnalytics(toolName)
     logForDebugging(`Unknown tool ${toolName}: ${toolUse.id}`)
     logEvent('tengu_tool_use_error', {
@@ -413,6 +430,32 @@ export async function* runToolUse(
 
   const toolInput = toolUse.input as { [key: string]: string }
   try {
+    await emitHarnessEvent({
+      event: 'tool.enqueued',
+      component: 'tool_execution',
+      query_id: toolUseContext.queryTracking?.chainId ?? null,
+      request_id: requestId ?? null,
+      tool_call_id: toolUse.id,
+      subagent_id: toolUseContext.agentId ?? null,
+      subagent_type: toolUseContext.agentType ?? null,
+      payload: {
+        tool_name: tool.name,
+        input_keys: Object.keys(toolInput),
+      },
+    })
+    await emitHarnessEvent({
+      event: 'tool.execution.started',
+      component: 'tool_execution',
+      query_id: toolUseContext.queryTracking?.chainId ?? null,
+      request_id: requestId ?? null,
+      tool_call_id: toolUse.id,
+      subagent_id: toolUseContext.agentId ?? null,
+      subagent_type: toolUseContext.agentType ?? null,
+      payload: {
+        tool_name: tool.name,
+        input_keys: Object.keys(toolInput),
+      },
+    })
     if (toolUseContext.abortController.signal.aborted) {
       logEvent('tengu_tool_use_cancelled', {
         toolName: sanitizeToolNameForAnalytics(tool.name),
@@ -450,6 +493,21 @@ export async function* runToolUse(
           sourceToolAssistantUUID: assistantMessage.uuid,
         }),
       }
+      await emitHarnessEvent({
+        event: 'tool.execution.failed',
+        component: 'tool_execution',
+        query_id: toolUseContext.queryTracking?.chainId ?? null,
+        request_id: requestId ?? null,
+        tool_call_id: toolUse.id,
+        subagent_id: toolUseContext.agentId ?? null,
+        subagent_type: toolUseContext.agentType ?? null,
+        payload: {
+          tool_name: tool.name,
+          success: false,
+          error: 'cancelled_before_execution',
+          duration_ms: Date.now() - startedAt,
+        },
+      })
       return
     }
 
@@ -467,6 +525,20 @@ export async function* runToolUse(
     )) {
       yield update
     }
+    await emitHarnessEvent({
+      event: 'tool.execution.completed',
+      component: 'tool_execution',
+      query_id: toolUseContext.queryTracking?.chainId ?? null,
+      request_id: requestId ?? null,
+      tool_call_id: toolUse.id,
+      subagent_id: toolUseContext.agentId ?? null,
+      subagent_type: toolUseContext.agentType ?? null,
+      payload: {
+        tool_name: tool.name,
+        success: true,
+        duration_ms: Date.now() - startedAt,
+      },
+    })
   } catch (error) {
     logError(error)
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -487,6 +559,21 @@ export async function* runToolUse(
         sourceToolAssistantUUID: assistantMessage.uuid,
       }),
     }
+    await emitHarnessEvent({
+      event: 'tool.execution.failed',
+      component: 'tool_execution',
+      query_id: toolUseContext.queryTracking?.chainId ?? null,
+      request_id: requestId ?? null,
+      tool_call_id: toolUse.id,
+      subagent_id: toolUseContext.agentId ?? null,
+      subagent_type: toolUseContext.agentType ?? null,
+      payload: {
+        tool_name: tool?.name ?? toolName,
+        success: false,
+        error: errorMessage,
+        duration_ms: Date.now() - startedAt,
+      },
+    })
   }
 }
 

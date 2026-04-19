@@ -5,6 +5,7 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from '../services/analytics/index.js'
+import { emitHarnessEvent } from '../observability/harness.js'
 import type { ToolUseContext } from '../Tool.js'
 import type { HookProgress } from '../types/hooks.js'
 import type {
@@ -80,6 +81,19 @@ export async function* handleStopHooks(
   StopHookResult
 > {
   const hookStartTime = Date.now()
+  await emitHarnessEvent({
+    event: 'stop_hooks.started',
+    component: 'stop_hooks',
+    query_id: toolUseContext.queryTracking?.chainId ?? null,
+    query_source: querySource,
+    subagent_id: toolUseContext.agentId ?? null,
+    subagent_type: toolUseContext.agentType ?? null,
+    payload: {
+      messages_for_query: messagesForQuery.length,
+      assistant_messages: assistantMessages.length,
+      stop_hook_active: stopHookActive ?? false,
+    },
+  })
 
   const stopHookContext: REPLHookContext = {
     messages: [...messagesForQuery, ...assistantMessages],
@@ -331,11 +345,39 @@ export async function* handleStopHooks(
     }
 
     if (preventedContinuation) {
+      await emitHarnessEvent({
+        event: 'stop_hooks.completed',
+        component: 'stop_hooks',
+        query_id: toolUseContext.queryTracking?.chainId ?? null,
+        query_source: querySource,
+        subagent_id: toolUseContext.agentId ?? null,
+        subagent_type: toolUseContext.agentType ?? null,
+        payload: {
+          prevent_continuation: true,
+          blocking_error_count: 0,
+          hook_count: hookCount,
+          duration_ms: Date.now() - hookStartTime,
+        },
+      })
       return { blockingErrors: [], preventContinuation: true }
     }
 
     // Collect blocking errors from stop hooks
     if (blockingErrors.length > 0) {
+      await emitHarnessEvent({
+        event: 'stop_hooks.completed',
+        component: 'stop_hooks',
+        query_id: toolUseContext.queryTracking?.chainId ?? null,
+        query_source: querySource,
+        subagent_id: toolUseContext.agentId ?? null,
+        subagent_type: toolUseContext.agentType ?? null,
+        payload: {
+          prevent_continuation: false,
+          blocking_error_count: blockingErrors.length,
+          hook_count: hookCount,
+          duration_ms: Date.now() - hookStartTime,
+        },
+      })
       return { blockingErrors, preventContinuation: false }
     }
 
@@ -449,10 +491,38 @@ export async function* handleStopHooks(
       }
 
       if (teammatePreventedContinuation) {
+        await emitHarnessEvent({
+          event: 'stop_hooks.completed',
+          component: 'stop_hooks',
+          query_id: toolUseContext.queryTracking?.chainId ?? null,
+          query_source: querySource,
+          subagent_id: toolUseContext.agentId ?? null,
+          subagent_type: toolUseContext.agentType ?? null,
+          payload: {
+            prevent_continuation: true,
+            blocking_error_count: 0,
+            hook_count: hookCount,
+            duration_ms: Date.now() - hookStartTime,
+          },
+        })
         return { blockingErrors: [], preventContinuation: true }
       }
 
       if (teammateBlockingErrors.length > 0) {
+        await emitHarnessEvent({
+          event: 'stop_hooks.completed',
+          component: 'stop_hooks',
+          query_id: toolUseContext.queryTracking?.chainId ?? null,
+          query_source: querySource,
+          subagent_id: toolUseContext.agentId ?? null,
+          subagent_type: toolUseContext.agentType ?? null,
+          payload: {
+            prevent_continuation: false,
+            blocking_error_count: teammateBlockingErrors.length,
+            hook_count: hookCount,
+            duration_ms: Date.now() - hookStartTime,
+          },
+        })
         return {
           blockingErrors: teammateBlockingErrors,
           preventContinuation: false,
@@ -460,6 +530,20 @@ export async function* handleStopHooks(
       }
     }
 
+    await emitHarnessEvent({
+      event: 'stop_hooks.completed',
+      component: 'stop_hooks',
+      query_id: toolUseContext.queryTracking?.chainId ?? null,
+      query_source: querySource,
+      subagent_id: toolUseContext.agentId ?? null,
+      subagent_type: toolUseContext.agentType ?? null,
+      payload: {
+        prevent_continuation: false,
+        blocking_error_count: 0,
+        hook_count: hookCount,
+        duration_ms: Date.now() - hookStartTime,
+      },
+    })
     return { blockingErrors: [], preventContinuation: false }
   } catch (error) {
     const durationMs = Date.now() - hookStartTime

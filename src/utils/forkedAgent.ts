@@ -18,6 +18,7 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from '../services/analytics/index.js'
+import { emitHarnessEvent } from '../observability/harness.js'
 import { accumulateUsage, updateUsage } from '../services/api/claude.js'
 import { EMPTY_USAGE, type NonNullableUsage } from '@ant/model-provider'
 import type { ToolUseContext } from '../Tool.js'
@@ -502,6 +503,18 @@ export async function runForkedAgent({
   const startTime = Date.now()
   const outputMessages: Message[] = []
   let totalUsage: NonNullableUsage = { ...EMPTY_USAGE }
+  await emitHarnessEvent({
+    event: 'subagent.spawn.requested',
+    component: 'forked_agent',
+    query_source: querySource,
+    subagent_type: forkLabel,
+    payload: {
+      fork_label: forkLabel,
+      prompt_message_count: promptMessages.length,
+      skip_transcript: skipTranscript ?? false,
+      max_turns: maxTurns ?? null,
+    },
+  })
 
   const {
     systemPrompt,
@@ -526,6 +539,20 @@ export async function runForkedAgent({
   // Generate agent ID and record initial messages for transcript
   // When skipTranscript is set, skip agent ID creation and all transcript I/O
   const agentId = skipTranscript ? undefined : createAgentId(forkLabel)
+  await emitHarnessEvent({
+    event: 'subagent.spawned',
+    component: 'forked_agent',
+    query_id: isolatedToolUseContext.queryTracking?.chainId ?? null,
+    query_source: querySource,
+    subagent_id: isolatedToolUseContext.agentId ?? agentId ?? null,
+    subagent_type: forkLabel,
+    payload: {
+      fork_label: forkLabel,
+      inherited_message_count: forkContextMessages.length,
+      prompt_message_count: promptMessages.length,
+      transcript_enabled: Boolean(agentId),
+    },
+  })
   let lastRecordedUuid: UUID | null = null
   if (agentId) {
     await recordSidechainTranscript(initialMessages, agentId).catch(err =>
@@ -573,6 +600,17 @@ export async function runForkedAgent({
       logForDebugging(
         `Forked agent [${forkLabel}] received message: type=${message.type}`,
       )
+      await emitHarnessEvent({
+        event: 'subagent.message.received',
+        component: 'forked_agent',
+        query_id: isolatedToolUseContext.queryTracking?.chainId ?? null,
+        query_source: querySource,
+        subagent_id: isolatedToolUseContext.agentId ?? agentId ?? null,
+        subagent_type: forkLabel,
+        payload: {
+          message_type: (message as Message).type,
+        },
+      })
 
       outputMessages.push(message as Message)
       onMessage?.(message as Message)
@@ -617,6 +655,23 @@ export async function runForkedAgent({
     messageCount: outputMessages.length,
     totalUsage,
     queryTracking: toolUseContext.queryTracking,
+  })
+  await emitHarnessEvent({
+    event: 'subagent.completed',
+    component: 'forked_agent',
+    query_id: isolatedToolUseContext.queryTracking?.chainId ?? null,
+    query_source: querySource,
+    subagent_id: isolatedToolUseContext.agentId ?? agentId ?? null,
+    subagent_type: forkLabel,
+    payload: {
+      fork_label: forkLabel,
+      duration_ms: durationMs,
+      message_count: outputMessages.length,
+      input_tokens: totalUsage.input_tokens,
+      output_tokens: totalUsage.output_tokens,
+      cache_read_input_tokens: totalUsage.cache_read_input_tokens,
+      cache_creation_input_tokens: totalUsage.cache_creation_input_tokens,
+    },
   })
 
   return {

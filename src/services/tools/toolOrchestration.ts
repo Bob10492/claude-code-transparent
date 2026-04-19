@@ -1,5 +1,6 @@
 import type { ToolUseBlock } from '@anthropic-ai/sdk/resources/index.mjs'
 import type { CanUseToolFn } from '../../hooks/useCanUseTool.js'
+import { emitHarnessEvent } from '../../observability/harness.js'
 import { findToolByName, type ToolUseContext } from '../../Tool.js'
 import type { AssistantMessage, Message } from '../../types/message.js'
 import { all } from '../../utils/generators.js'
@@ -23,6 +24,18 @@ export async function* runTools(
   canUseTool: CanUseToolFn,
   toolUseContext: ToolUseContext,
 ): AsyncGenerator<MessageUpdate, void> {
+  await emitHarnessEvent({
+    event: 'tool.batch.started',
+    component: 'tool_orchestration',
+    query_id: toolUseContext.queryTracking?.chainId ?? null,
+    subagent_id: toolUseContext.agentId ?? null,
+    subagent_type: toolUseContext.agentType ?? null,
+    payload: {
+      tool_count: toolUseMessages.length,
+      tool_names: toolUseMessages.map(block => block.name),
+      execution_mode: 'runTools',
+    },
+  })
   // Wrap all tool calls in this turn under a single Langfuse turn span
   const turnSpan = toolUseMessages.length > 0
     ? createToolBatchSpan(toolUseContext.langfuseTrace ?? null, {
@@ -39,6 +52,19 @@ export async function* runTools(
     toolUseMessages,
     currentContext,
   )) {
+    await emitHarnessEvent({
+      event: 'tool.execution.mode.selected',
+      component: 'tool_orchestration',
+      query_id: currentContext.queryTracking?.chainId ?? null,
+      subagent_id: currentContext.agentId ?? null,
+      subagent_type: currentContext.agentType ?? null,
+      payload: {
+        execution_mode: 'runTools',
+        batch_size: blocks.length,
+        concurrency: isConcurrencySafe ? 'parallel' : 'serial',
+        tool_names: blocks.map(block => block.name),
+      },
+    })
     if (isConcurrencySafe) {
       const queuedContextModifiers: Record<
         string,
@@ -72,6 +98,20 @@ export async function* runTools(
           currentContext = modifier(currentContext)
         }
       }
+      if (blocks.some(block => queuedContextModifiers[block.id]?.length)) {
+        await emitHarnessEvent({
+          event: 'tool.context.updated',
+          component: 'tool_orchestration',
+          query_id: currentContext.queryTracking?.chainId ?? null,
+          subagent_id: currentContext.agentId ?? null,
+          subagent_type: currentContext.agentType ?? null,
+          payload: {
+            execution_mode: 'runTools',
+            batch_size: blocks.length,
+            concurrency: 'parallel',
+          },
+        })
+      }
       yield { newContext: currentContext }
     } else {
       // Run non-read-only batch serially
@@ -89,6 +129,18 @@ export async function* runTools(
           newContext: currentContext,
         }
       }
+      await emitHarnessEvent({
+        event: 'tool.context.updated',
+        component: 'tool_orchestration',
+        query_id: currentContext.queryTracking?.chainId ?? null,
+        subagent_id: currentContext.agentId ?? null,
+        subagent_type: currentContext.agentType ?? null,
+        payload: {
+          execution_mode: 'runTools',
+          batch_size: blocks.length,
+          concurrency: 'serial',
+        },
+      })
     }
   }
 

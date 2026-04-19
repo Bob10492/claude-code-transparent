@@ -213,6 +213,75 @@ function asOptionalString(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
+function extractPromptSectionLabel(section: string): string {
+  const firstLine = section
+    .split('\n')
+    .map(line => line.trim())
+    .find(line => line.length > 0)
+  if (!firstLine) {
+    return '(empty)'
+  }
+  return firstLine.length > 80 ? `${firstLine.slice(0, 80)}...` : firstLine
+}
+
+function summarizeStringMap(context: { [k: string]: string }): {
+  keys: string[]
+  chars_total: number
+  serialized_chars: number
+  value_chars_by_key: Record<string, number>
+} {
+  const entries = Object.entries(context)
+  return {
+    keys: entries.map(([key]) => key),
+    chars_total: entries.reduce((sum, [, value]) => sum + value.length, 0),
+    serialized_chars: jsonStringify(context).length,
+    value_chars_by_key: Object.fromEntries(
+      entries.map(([key, value]) => [key, value.length]),
+    ) as Record<string, number>,
+  }
+}
+
+function summarizePromptComposition({
+  systemPrompt,
+  systemContext,
+  userContext,
+  messagesBeforePrepend,
+  requestMessages,
+}: {
+  systemPrompt: SystemPrompt
+  systemContext: { [k: string]: string }
+  userContext: { [k: string]: string }
+  messagesBeforePrepend: Message[]
+  requestMessages: Message[]
+}): {
+  system_prompt_section_labels: string[]
+  system_prompt_chars_by_section: number[]
+  system_context: ReturnType<typeof summarizeStringMap>
+  user_context: ReturnType<typeof summarizeStringMap>
+  claude_md_chars: number
+  current_date_chars: number
+  base_messages_chars_total: number
+  request_messages_chars_total: number
+  prepended_context_message_chars: number
+} {
+  const prependedContextMessage =
+    requestMessages.length > messagesBeforePrepend.length ? requestMessages[0] : null
+
+  return {
+    system_prompt_section_labels: systemPrompt.map(extractPromptSectionLabel),
+    system_prompt_chars_by_section: systemPrompt.map(section => section.length),
+    system_context: summarizeStringMap(systemContext),
+    user_context: summarizeStringMap(userContext),
+    claude_md_chars: userContext.claudeMd?.length ?? 0,
+    current_date_chars: userContext.currentDate?.length ?? 0,
+    base_messages_chars_total: jsonStringify(messagesBeforePrepend).length,
+    request_messages_chars_total: jsonStringify(requestMessages).length,
+    prepended_context_message_chars: prependedContextMessage
+      ? jsonStringify(prependedContextMessage).length
+      : 0,
+  }
+}
+
 async function emitMessageStageEvent({
   event,
   component,
@@ -262,6 +331,105 @@ async function emitMessageStageEvent({
       snapshot_before_ref: snapshotBefore.snapshot_ref,
       snapshot_after_ref: snapshotAfter.snapshot_ref,
       ...extraPayload,
+    },
+  })
+}
+
+async function emitStateSnapshotEvent({
+  event,
+  state,
+  queryId,
+  turnId,
+  loopIter,
+  querySource,
+}: {
+  event: 'state.snapshot.before_turn' | 'state.snapshot.after_turn'
+  state: State
+  queryId: string
+  turnId: string
+  loopIter: number
+  querySource: string
+}): Promise<void> {
+  const snapshot = await storeHarnessSnapshot(event, {
+    messages_count: state.messages.length,
+    turn_count: state.turnCount,
+    transition: state.transition ?? null,
+    max_output_tokens_recovery_count: state.maxOutputTokensRecoveryCount,
+    has_attempted_reactive_compact: state.hasAttemptedReactiveCompact,
+    max_output_tokens_override: state.maxOutputTokensOverride ?? null,
+    stop_hook_active: state.stopHookActive ?? false,
+    auto_compact_tracking: state.autoCompactTracking ?? null,
+    tool_use_context: {
+      agent_id: state.toolUseContext.agentId ?? null,
+      agent_type: state.toolUseContext.agentType ?? null,
+      query_tracking: state.toolUseContext.queryTracking ?? null,
+      tool_count: state.toolUseContext.options.tools.length,
+      main_loop_model: state.toolUseContext.options.mainLoopModel,
+    },
+  })
+  await emitHarnessEvent({
+    event,
+    component: 'query_loop',
+    query_id: queryId,
+    turn_id: turnId,
+    loop_iter: loopIter,
+    query_source: querySource,
+    subagent_id: state.toolUseContext.agentId ?? null,
+    subagent_type: state.toolUseContext.agentType ?? null,
+    payload: {
+      messages_count: state.messages.length,
+      snapshot_ref: snapshot.snapshot_ref,
+      transition: state.transition?.reason ?? null,
+    },
+  })
+}
+
+async function emitStateTransitionEvent({
+  fromState,
+  toState,
+  queryId,
+  turnId,
+  loopIter,
+  querySource,
+}: {
+  fromState: State
+  toState: State
+  queryId: string
+  turnId: string
+  loopIter: number
+  querySource: string
+}): Promise<void> {
+  const [beforeSnapshot, afterSnapshot] = await Promise.all([
+    storeHarnessSnapshot('state-before', {
+      messages_count: fromState.messages.length,
+      turn_count: fromState.turnCount,
+      transition: fromState.transition ?? null,
+    }),
+    storeHarnessSnapshot('state-after', {
+      messages_count: toState.messages.length,
+      turn_count: toState.turnCount,
+      transition: toState.transition ?? null,
+    }),
+  ])
+  await emitHarnessEvent({
+    event: 'state.transitioned',
+    component: 'query_loop',
+    query_id: queryId,
+    turn_id: turnId,
+    loop_iter: loopIter,
+    query_source: querySource,
+    subagent_id: toState.toolUseContext.agentId ?? null,
+    subagent_type: toState.toolUseContext.agentType ?? null,
+    payload: {
+      from_transition: fromState.transition?.reason ?? null,
+      to_transition: toState.transition?.reason ?? null,
+      from_messages_count: fromState.messages.length,
+      to_messages_count: toState.messages.length,
+      message_delta: toState.messages.length - fromState.messages.length,
+      token_estimate_before: tokenCountWithEstimation(fromState.messages),
+      token_estimate_after: tokenCountWithEstimation(toState.messages),
+      before_snapshot_ref: beforeSnapshot.snapshot_ref,
+      after_snapshot_ref: afterSnapshot.snapshot_ref,
     },
   })
 }
@@ -441,6 +609,15 @@ async function* queryLoop(
     state.messages,
     state.toolUseContext,
   )
+  await emitHarnessEvent({
+    event: 'prefetch.memory.started',
+    component: 'query_loop',
+    query_source: querySource,
+    payload: {
+      message_count: state.messages.length,
+      is_subagent: Boolean(state.toolUseContext.agentId),
+    },
+  })
 
   async function emitQueryTerminated(
     reason: string,
@@ -565,6 +742,14 @@ async function* queryLoop(
         transition: state.transition?.reason ?? null,
         message_count: messages.length,
       },
+    })
+    await emitStateSnapshotEvent({
+      event: 'state.snapshot.before_turn',
+      state,
+      queryId: queryTracking.chainId,
+      turnId,
+      loopIter: turnCount,
+      querySource: querySource,
     })
 
     let messagesForQuery = [...getMessagesAfterCompactBoundary(messages)]
@@ -966,6 +1151,13 @@ async function* queryLoop(
           let firstStreamChunkSeen = false
           queryCheckpoint('query_api_streaming_start')
           const requestMessages = prependUserContext(messagesForQuery, userContext)
+          const promptComposition = summarizePromptComposition({
+            systemPrompt: fullSystemPrompt,
+            systemContext,
+            userContext,
+            messagesBeforePrepend: messagesForQuery,
+            requestMessages,
+          })
           await emitHarnessEvent({
             event: 'prompt.build.started',
             component: 'query_loop',
@@ -1017,10 +1209,33 @@ async function* queryLoop(
               tool_names_chars: toolUseContext.options.tools
                 .map(tool => tool.name)
                 .join(',').length,
-              messages_chars_total: jsonStringify(requestMessages).length,
+              messages_chars_total: promptComposition.request_messages_chars_total,
               attachments_chars_total: jsonStringify(
                 requestMessages.filter(message => message.type === 'attachment'),
               ).length,
+              base_messages_chars_total:
+                promptComposition.base_messages_chars_total,
+              prepended_context_message_chars:
+                promptComposition.prepended_context_message_chars,
+              system_prompt_section_labels:
+                promptComposition.system_prompt_section_labels,
+              system_prompt_chars_by_section:
+                promptComposition.system_prompt_chars_by_section,
+              system_context_keys: promptComposition.system_context.keys,
+              system_context_chars_total:
+                promptComposition.system_context.chars_total,
+              system_context_serialized_chars:
+                promptComposition.system_context.serialized_chars,
+              system_context_value_chars_by_key:
+                promptComposition.system_context.value_chars_by_key,
+              user_context_keys: promptComposition.user_context.keys,
+              user_context_chars_total: promptComposition.user_context.chars_total,
+              user_context_serialized_chars:
+                promptComposition.user_context.serialized_chars,
+              user_context_value_chars_by_key:
+                promptComposition.user_context.value_chars_by_key,
+              claude_md_chars: promptComposition.claude_md_chars,
+              current_date_chars: promptComposition.current_date_chars,
               serialized_request_bytes: requestSnapshot.bytes,
               request_snapshot_ref: requestSnapshot.snapshot_ref,
             },
@@ -1585,6 +1800,22 @@ async function* queryLoop(
                 committed: drained.committed,
               },
             }
+            await emitStateTransitionEvent({
+              fromState: state,
+              toState: next,
+              queryId: queryTracking.chainId,
+              turnId,
+              loopIter: turnCount,
+              querySource: querySource,
+            })
+            await emitStateSnapshotEvent({
+              event: 'state.snapshot.after_turn',
+              state: next,
+              queryId: queryTracking.chainId,
+              turnId,
+              loopIter: turnCount,
+              querySource: querySource,
+            })
             state = next
             continue
           }
@@ -1635,6 +1866,22 @@ async function* queryLoop(
             turnCount,
             transition: { reason: 'reactive_compact_retry' },
           }
+          await emitStateTransitionEvent({
+            fromState: state,
+            toState: next,
+            queryId: queryTracking.chainId,
+            turnId,
+            loopIter: turnCount,
+            querySource: querySource,
+          })
+          await emitStateSnapshotEvent({
+            event: 'state.snapshot.after_turn',
+            state: next,
+            queryId: queryTracking.chainId,
+            turnId,
+            loopIter: turnCount,
+            querySource: querySource,
+          })
           state = next
           continue
         }
@@ -1694,6 +1941,22 @@ async function* queryLoop(
             turnCount,
             transition: { reason: 'max_output_tokens_escalate' },
           }
+          await emitStateTransitionEvent({
+            fromState: state,
+            toState: next,
+            queryId: queryTracking.chainId,
+            turnId,
+            loopIter: turnCount,
+            querySource: querySource,
+          })
+          await emitStateSnapshotEvent({
+            event: 'state.snapshot.after_turn',
+            state: next,
+            queryId: queryTracking.chainId,
+            turnId,
+            loopIter: turnCount,
+            querySource: querySource,
+          })
           state = next
           continue
         }
@@ -1725,6 +1988,22 @@ async function* queryLoop(
               attempt: maxOutputTokensRecoveryCount + 1,
             },
           }
+          await emitStateTransitionEvent({
+            fromState: state,
+            toState: next,
+            queryId: queryTracking.chainId,
+            turnId,
+            loopIter: turnCount,
+            querySource: querySource,
+          })
+          await emitStateSnapshotEvent({
+            event: 'state.snapshot.after_turn',
+            state: next,
+            queryId: queryTracking.chainId,
+            turnId,
+            loopIter: turnCount,
+            querySource: querySource,
+          })
           state = next
           continue
         }
@@ -1783,6 +2062,22 @@ async function* queryLoop(
           turnCount,
           transition: { reason: 'stop_hook_blocking' },
         }
+        await emitStateTransitionEvent({
+          fromState: state,
+          toState: next,
+          queryId: queryTracking.chainId,
+          turnId,
+          loopIter: turnCount,
+          querySource: querySource,
+        })
+        await emitStateSnapshotEvent({
+          event: 'state.snapshot.after_turn',
+          state: next,
+          queryId: queryTracking.chainId,
+          turnId,
+          loopIter: turnCount,
+          querySource: querySource,
+        })
         state = next
         continue
       }
@@ -1815,7 +2110,7 @@ async function* queryLoop(
           logForDebugging(
             `Token budget continuation #${decision.continuationCount}: ${decision.pct}% (${decision.turnTokens.toLocaleString()} / ${decision.budget.toLocaleString()})`,
           )
-          state = {
+          const next: State = {
             messages: [
               ...messagesForQuery,
               ...assistantMessages,
@@ -1834,6 +2129,23 @@ async function* queryLoop(
             turnCount,
             transition: { reason: 'token_budget_continuation' },
           }
+          await emitStateTransitionEvent({
+            fromState: state,
+            toState: next,
+            queryId: queryTracking.chainId,
+            turnId,
+            loopIter: turnCount,
+            querySource: querySource,
+          })
+          await emitStateSnapshotEvent({
+            event: 'state.snapshot.after_turn',
+            state: next,
+            queryId: queryTracking.chainId,
+            turnId,
+            loopIter: turnCount,
+            querySource: querySource,
+          })
+          state = next
           continue
         }
 
@@ -2239,6 +2551,22 @@ async function* queryLoop(
       stopHookActive,
       transition: { reason: 'next_turn' },
     }
+    await emitStateTransitionEvent({
+      fromState: state,
+      toState: next,
+      queryId: queryTracking.chainId,
+      turnId,
+      loopIter: turnCount,
+      querySource: querySource,
+    })
+    await emitStateSnapshotEvent({
+      event: 'state.snapshot.after_turn',
+      state: next,
+      queryId: queryTracking.chainId,
+      turnId,
+      loopIter: turnCount,
+      querySource: querySource,
+    })
     state = next
   } // while (true)
 }
