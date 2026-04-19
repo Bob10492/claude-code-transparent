@@ -28,6 +28,8 @@ __pycache__/
 *.pyc
 logs
 
+#Observable data
+.observability/
 data
 .omc
 .codex/*

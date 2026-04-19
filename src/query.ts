@@ -23,6 +23,10 @@ import {
   logEvent,
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
 } from 'src/services/analytics/index.js'
+import {
+  emitHarnessEvent,
+  storeHarnessSnapshot,
+} from 'src/observability/harness.js'
 import { ImageSizeError } from './utils/imageValidation.js'
 import { ImageResizeError } from './utils/imageResizer.js'
 import { findToolByName, type ToolUseContext } from './Tool.js'
@@ -182,6 +186,86 @@ function isWithheldMaxOutputTokens(
   return msg?.type === 'assistant' && msg.apiError === 'max_output_tokens'
 }
 
+function countMessagesByType(messages: Message[]): Record<string, number> {
+  return messages.reduce<Record<string, number>>((acc, message) => {
+    acc[message.type] = (acc[message.type] ?? 0) + 1
+    return acc
+  }, {})
+}
+
+function countToolResultBlocks(messages: Message[]): number {
+  return messages.reduce((total, message) => {
+    if (message.type !== 'user' || !Array.isArray(message.message?.content)) {
+      return total
+    }
+    return (
+      total +
+      message.message.content.filter(block => block.type === 'tool_result').length
+    )
+  }, 0)
+}
+
+function countAttachments(messages: Message[]): number {
+  return messages.filter(message => message.type === 'attachment').length
+}
+
+function asOptionalString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
+
+async function emitMessageStageEvent({
+  event,
+  component,
+  before,
+  after,
+  queryId,
+  turnId,
+  loopIter,
+  querySource,
+  extraPayload,
+}: {
+  event: string
+  component: string
+  before: Message[]
+  after: Message[]
+  queryId: string
+  turnId: string
+  loopIter: number
+  querySource: string
+  extraPayload?: Record<string, unknown>
+}): Promise<void> {
+  const [snapshotBefore, snapshotAfter] = await Promise.all([
+    storeHarnessSnapshot(`${event}-before`, before),
+    storeHarnessSnapshot(`${event}-after`, after),
+  ])
+  const estimated_tokens_before = tokenCountWithEstimation(before)
+  const estimated_tokens_after = tokenCountWithEstimation(after)
+  await emitHarnessEvent({
+    event,
+    component,
+    query_id: queryId,
+    turn_id: turnId,
+    loop_iter: loopIter,
+    query_source: querySource,
+    payload: {
+      messages_before: before.length,
+      messages_after: after.length,
+      message_types_before: countMessagesByType(before),
+      message_types_after: countMessagesByType(after),
+      estimated_tokens_before,
+      estimated_tokens_after,
+      tokens_saved: estimated_tokens_before - estimated_tokens_after,
+      attachments_before: countAttachments(before),
+      attachments_after: countAttachments(after),
+      tool_results_before: countToolResultBlocks(before),
+      tool_results_after: countToolResultBlocks(after),
+      snapshot_before_ref: snapshotBefore.snapshot_ref,
+      snapshot_after_ref: snapshotAfter.snapshot_ref,
+      ...extraPayload,
+    },
+  })
+}
+
 export type QueryParams = {
   messages: Message[]
   systemPrompt: SystemPrompt
@@ -334,6 +418,20 @@ async function* queryLoop(
   // Snapshot immutable env/statsig/session state once at entry. See QueryConfig
   // for what's included and why feature() gates are intentionally excluded.
   const config = buildQueryConfig()
+  await emitHarnessEvent({
+    event: 'state.initialized',
+    component: 'query_loop',
+    query_source: querySource,
+    turn_id: 'turn-1',
+    loop_iter: 1,
+    payload: {
+      initial_message_count: state.messages.length,
+      initial_turn_count: state.turnCount,
+      streaming_tool_execution: config.gates.streamingToolExecution,
+      emit_tool_use_summaries: config.gates.emitToolUseSummaries,
+      is_subagent: Boolean(state.toolUseContext.agentId),
+    },
+  })
 
   // Fired once per user turn — the prompt is invariant across loop iterations,
   // so per-iteration firing would ask sideQuery the same question N times.
@@ -343,6 +441,28 @@ async function* queryLoop(
     state.messages,
     state.toolUseContext,
   )
+
+  async function emitQueryTerminated(
+    reason: string,
+    extraPayload?: Record<string, unknown>,
+  ): Promise<void> {
+    await emitHarnessEvent({
+      event: 'query.terminated',
+      component: 'query_loop',
+      query_source: querySource,
+      query_id: state.toolUseContext.queryTracking?.chainId ?? null,
+      turn_id: `turn-${state.turnCount}`,
+      loop_iter: state.turnCount,
+      subagent_id: state.toolUseContext.agentId ?? null,
+      subagent_type: state.toolUseContext.agentType ?? null,
+      payload: {
+        reason,
+        final_message_count: state.messages.length,
+        transition: state.transition?.reason ?? null,
+        ...extraPayload,
+      },
+    })
+  }
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -397,13 +517,67 @@ async function* queryLoop(
 
     const queryChainIdForAnalytics =
       queryTracking.chainId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
+    const turnId = `turn-${turnCount}`
 
     toolUseContext = {
       ...toolUseContext,
       queryTracking,
     }
+    if (queryTracking.depth === 0) {
+      await emitHarnessEvent({
+        event: 'query.started',
+        component: 'query_loop',
+        query_id: queryTracking.chainId,
+        turn_id: turnId,
+        loop_iter: turnCount,
+        query_source: querySource,
+        subagent_id: toolUseContext.agentId ?? null,
+        subagent_type: toolUseContext.agentType ?? null,
+        payload: {
+          message_count: messages.length,
+          has_fallback_model: Boolean(fallbackModel),
+          max_turns: maxTurns ?? null,
+          task_budget_total: params.taskBudget?.total ?? null,
+        },
+      })
+    }
+    await emitHarnessEvent({
+      event: 'query_tracking.assigned',
+      component: 'query_loop',
+      query_id: queryTracking.chainId,
+      turn_id: turnId,
+      loop_iter: turnCount,
+      query_source: querySource,
+      payload: {
+        depth: queryTracking.depth,
+        chain_id: queryTracking.chainId,
+      },
+    })
+    await emitHarnessEvent({
+      event: 'turn.started',
+      component: 'query_loop',
+      query_id: queryTracking.chainId,
+      turn_id: turnId,
+      loop_iter: turnCount,
+      query_source: querySource,
+      payload: {
+        turn_count: turnCount,
+        transition: state.transition?.reason ?? null,
+        message_count: messages.length,
+      },
+    })
 
     let messagesForQuery = [...getMessagesAfterCompactBoundary(messages)]
+    await emitMessageStageEvent({
+      event: 'messages.compact_boundary.applied',
+      component: 'query_loop',
+      before: messages,
+      after: messagesForQuery,
+      queryId: queryTracking.chainId,
+      turnId,
+      loopIter: turnCount,
+      querySource: querySource,
+    })
 
     let tracking = autoCompactTracking
 
@@ -417,6 +591,7 @@ async function* queryLoop(
     const persistReplacements =
       querySource.startsWith('agent:') ||
       querySource.startsWith('repl_main_thread')
+    const beforeToolResultBudget = messagesForQuery
     messagesForQuery = await applyToolResultBudget(
       messagesForQuery,
       toolUseContext.contentReplacementState,
@@ -433,6 +608,16 @@ async function* queryLoop(
           .map(t => t.name),
       ),
     )
+    await emitMessageStageEvent({
+      event: 'messages.tool_result_budget.applied',
+      component: 'query_loop',
+      before: beforeToolResultBudget,
+      after: messagesForQuery,
+      queryId: queryTracking.chainId,
+      turnId,
+      loopIter: turnCount,
+      querySource: querySource,
+    })
 
     // Apply snip before microcompact (both may run — they are not mutually exclusive).
     // snipTokensFreed is plumbed to autocompact so its threshold check reflects
@@ -441,17 +626,33 @@ async function* queryLoop(
     let snipTokensFreed = 0
     if (feature('HISTORY_SNIP')) {
       queryCheckpoint('query_snip_start')
+      const beforeSnip = messagesForQuery
       const snipResult = snipModule!.snipCompactIfNeeded(messagesForQuery)
       messagesForQuery = snipResult.messages
       snipTokensFreed = snipResult.tokensFreed
       if (snipResult.boundaryMessage) {
         yield snipResult.boundaryMessage
       }
+      await emitMessageStageEvent({
+        event: 'messages.history_snip.applied',
+        component: 'query_loop',
+        before: beforeSnip,
+        after: messagesForQuery,
+        queryId: queryTracking.chainId,
+        turnId,
+        loopIter: turnCount,
+        querySource: querySource,
+        extraPayload: {
+          tokens_freed: snipTokensFreed,
+          boundary_emitted: Boolean(snipResult.boundaryMessage),
+        },
+      })
       queryCheckpoint('query_snip_end')
     }
 
     // Apply microcompact before autocompact
     queryCheckpoint('query_microcompact_start')
+    const beforeMicrocompact = messagesForQuery
     const microcompactResult = await deps.microcompact(
       messagesForQuery,
       toolUseContext,
@@ -464,6 +665,19 @@ async function* queryLoop(
     const pendingCacheEdits = feature('CACHED_MICROCOMPACT')
       ? microcompactResult.compactionInfo?.pendingCacheEdits
       : undefined
+    await emitMessageStageEvent({
+      event: 'messages.microcompact.applied',
+      component: 'query_loop',
+      before: beforeMicrocompact,
+      after: messagesForQuery,
+      queryId: queryTracking.chainId,
+      turnId,
+      loopIter: turnCount,
+      querySource: querySource,
+      extraPayload: {
+        pending_cache_edits: Boolean(pendingCacheEdits),
+      },
+    })
     queryCheckpoint('query_microcompact_end')
 
     // Project the collapsed context view and maybe commit more collapses.
@@ -479,12 +693,23 @@ async function* queryLoop(
     // continue site (query.ts:1192), and the next projectView() no-ops
     // because the archived messages are already gone from its input.
     if (feature('CONTEXT_COLLAPSE') && contextCollapse) {
+      const beforeCollapse = messagesForQuery
       const collapseResult = await contextCollapse.applyCollapsesIfNeeded(
         messagesForQuery,
         toolUseContext,
         querySource,
       )
       messagesForQuery = collapseResult.messages
+      await emitMessageStageEvent({
+        event: 'messages.context_collapse.applied',
+        component: 'query_loop',
+        before: beforeCollapse,
+        after: messagesForQuery,
+        queryId: queryTracking.chainId,
+        turnId,
+        loopIter: turnCount,
+        querySource: querySource,
+      })
     }
 
     const fullSystemPrompt = asSystemPrompt(
@@ -492,6 +717,20 @@ async function* queryLoop(
     )
 
     queryCheckpoint('query_autocompact_start')
+    const beforeAutocompact = messagesForQuery
+    await emitHarnessEvent({
+      event: 'messages.autoconpact.checked',
+      component: 'query_loop',
+      query_id: queryTracking.chainId,
+      turn_id: turnId,
+      loop_iter: turnCount,
+      query_source: querySource,
+      payload: {
+        message_count: messagesForQuery.length,
+        token_estimate: tokenCountWithEstimation(messagesForQuery),
+        snip_tokens_freed: snipTokensFreed,
+      },
+    })
     const { compactionResult, consecutiveFailures } = await deps.autocompact(
       messagesForQuery,
       toolUseContext,
@@ -506,6 +745,19 @@ async function* queryLoop(
       tracking,
       snipTokensFreed,
     )
+    await emitHarnessEvent({
+      event: 'messages.autoconpact.completed',
+      component: 'query_loop',
+      query_id: queryTracking.chainId,
+      turn_id: turnId,
+      loop_iter: turnCount,
+      query_source: querySource,
+      payload: {
+        compacted: Boolean(compactionResult),
+        consecutive_failures: consecutiveFailures ?? 0,
+        token_estimate_before: tokenCountWithEstimation(beforeAutocompact),
+      },
+    })
     queryCheckpoint('query_autocompact_end')
 
     if (compactionResult) {
@@ -582,6 +834,20 @@ async function* queryLoop(
         consecutiveFailures,
       }
     }
+
+    await emitMessageStageEvent({
+      event: 'messages.preprocess.completed',
+      component: 'query_loop',
+      before: messages,
+      after: messagesForQuery,
+      queryId: queryTracking.chainId,
+      turnId,
+      loopIter: turnCount,
+      querySource: querySource,
+      extraPayload: {
+        autocompact_applied: Boolean(compactionResult),
+      },
+    })
 
     //TODO: no need to set toolUseContext.messages during set-up since it is updated here
     toolUseContext = {
@@ -684,6 +950,7 @@ async function* queryLoop(
           content: PROMPT_TOO_LONG_ERROR_MESSAGE,
           error: 'invalid_request',
         })
+        await emitQueryTerminated('blocking_limit')
         return { reason: 'blocking_limit' }
       }
     }
@@ -696,8 +963,81 @@ async function* queryLoop(
         attemptWithFallback = false
         try {
           let streamingFallbackOccured = false
+          let firstStreamChunkSeen = false
           queryCheckpoint('query_api_streaming_start')
           const requestMessages = prependUserContext(messagesForQuery, userContext)
+          await emitHarnessEvent({
+            event: 'prompt.build.started',
+            component: 'query_loop',
+            query_id: queryTracking.chainId,
+            turn_id: turnId,
+            loop_iter: turnCount,
+            query_source: querySource,
+            payload: {
+              provider: getAPIProvider(),
+              model: currentModel,
+              tool_names_count: toolUseContext.options.tools.length,
+            },
+          })
+          const requestSnapshot = await storeHarnessSnapshot('request', {
+            provider: getAPIProvider(),
+            querySource,
+            model: currentModel,
+            systemPrompt: fullSystemPrompt,
+            messages: requestMessages,
+            thinkingConfig: toolUseContext.options.thinkingConfig,
+            toolNames: toolUseContext.options.tools.map(tool => tool.name),
+          })
+          await emitHarnessEvent({
+            event: 'prompt.snapshot.stored',
+            component: 'query_loop',
+            query_id: queryTracking.chainId,
+            turn_id: turnId,
+            loop_iter: turnCount,
+            query_source: querySource,
+            payload: {
+              request_snapshot_ref: requestSnapshot.snapshot_ref,
+              serialized_request_bytes: requestSnapshot.bytes,
+            },
+          })
+          await emitHarnessEvent({
+            event: 'prompt.build.completed',
+            component: 'query_loop',
+            query_id: queryTracking.chainId,
+            turn_id: turnId,
+            loop_iter: turnCount,
+            query_source: querySource,
+            payload: {
+              provider: getAPIProvider(),
+              query_source: querySource,
+              model: currentModel,
+              system_prompt_segments_count: fullSystemPrompt.length,
+              system_prompt_chars: jsonStringify(fullSystemPrompt).length,
+              tool_names_count: toolUseContext.options.tools.length,
+              tool_names_chars: toolUseContext.options.tools
+                .map(tool => tool.name)
+                .join(',').length,
+              messages_chars_total: jsonStringify(requestMessages).length,
+              attachments_chars_total: jsonStringify(
+                requestMessages.filter(message => message.type === 'attachment'),
+              ).length,
+              serialized_request_bytes: requestSnapshot.bytes,
+              request_snapshot_ref: requestSnapshot.snapshot_ref,
+            },
+          })
+          await emitHarnessEvent({
+            event: 'api.request.started',
+            component: 'query_loop',
+            query_id: queryTracking.chainId,
+            turn_id: turnId,
+            loop_iter: turnCount,
+            query_source: querySource,
+            payload: {
+              provider: getAPIProvider(),
+              model: currentModel,
+              request_snapshot_ref: requestSnapshot.snapshot_ref,
+            },
+          })
           logForDebugging(
             `[PromptDebug] full request snapshot before callModel: ${jsonStringify({
               provider: getAPIProvider(),
@@ -761,6 +1101,23 @@ async function* queryLoop(
               langfuseTrace: toolUseContext.langfuseTrace,
             },
           })) {
+            if (
+              !streamingFallbackOccured &&
+              !firstStreamChunkSeen
+            ) {
+              firstStreamChunkSeen = true
+              await emitHarnessEvent({
+                event: 'api.stream.first_chunk',
+                component: 'query_loop',
+                query_id: queryTracking.chainId,
+                turn_id: turnId,
+                loop_iter: turnCount,
+                query_source: querySource,
+                payload: {
+                  chunk_type: message.type,
+                },
+              })
+            }
             // We won't use the tool_calls from the first attempt
             // We could.. but then we'd have to merge assistant messages
             // with different ids and double up on full the tool_results
@@ -802,6 +1159,38 @@ async function* queryLoop(
             let yieldMessage: typeof message = message
             if (message.type === 'assistant') {
               const assistantMsg = message as AssistantMessage
+              const blocks = Array.isArray(assistantMsg.message?.content)
+                ? assistantMsg.message.content
+                : []
+              for (const block of blocks) {
+                await emitHarnessEvent({
+                  event: 'assistant.block.received',
+                  component: 'query_loop',
+                  query_id: queryTracking.chainId,
+                  turn_id: turnId,
+                  loop_iter: turnCount,
+                  query_source: querySource,
+                  request_id: asOptionalString(assistantMsg.requestId),
+                  payload: {
+                    block_type: block.type,
+                  },
+                })
+                if (block.type === 'tool_use') {
+                  await emitHarnessEvent({
+                    event: 'assistant.tool_use.detected',
+                    component: 'query_loop',
+                    query_id: queryTracking.chainId,
+                    turn_id: turnId,
+                    loop_iter: turnCount,
+                    query_source: querySource,
+                    request_id: asOptionalString(assistantMsg.requestId),
+                    tool_call_id: block.id,
+                    payload: {
+                      tool_name: block.name,
+                    },
+                  })
+                }
+              }
               const contentArr = Array.isArray(assistantMsg.message?.content) ? assistantMsg.message.content as unknown as Array<{ type: string; input?: unknown; name?: string; [key: string]: unknown }> : []
               let clonedContent: typeof contentArr | undefined
               for (let i = 0; i < contentArr.length; i++) {
@@ -920,6 +1309,28 @@ async function* queryLoop(
             }
           }
           queryCheckpoint('query_api_streaming_end')
+          const responseSnapshot = await storeHarnessSnapshot('response', {
+            querySource,
+            model: currentModel,
+            assistantMessages,
+            toolUseBlocks,
+          })
+          const lastAssistantMessage = assistantMessages.at(-1)
+          await emitHarnessEvent({
+            event: 'api.stream.completed',
+            component: 'query_loop',
+            query_id: queryTracking.chainId,
+            turn_id: turnId,
+            loop_iter: turnCount,
+            query_source: querySource,
+            request_id: asOptionalString(lastAssistantMessage?.requestId),
+            payload: {
+              assistant_message_count: assistantMessages.length,
+              tool_use_count: toolUseBlocks.length,
+              response_snapshot_ref: responseSnapshot.snapshot_ref,
+              stop_reason: lastAssistantMessage?.message?.stop_reason ?? null,
+            },
+          })
 
           // Yield deferred microcompact boundary message using actual API-reported
           // token deletion count instead of client-side estimates.
@@ -1032,6 +1443,9 @@ async function* queryLoop(
         yield createAssistantAPIErrorMessage({
           content: error.message,
         })
+        await emitQueryTerminated('image_error', {
+          error_message: error.message,
+        })
         return { reason: 'image_error' }
       }
 
@@ -1051,6 +1465,7 @@ async function* queryLoop(
 
       // To help track down bugs, log loudly for ants
       logAntError('Query error', error)
+      await emitQueryTerminated('model_error', { error_message: errorMessage })
       return { reason: 'model_error', error }
     }
 
@@ -1106,6 +1521,7 @@ async function* queryLoop(
           toolUse: false,
         })
       }
+      await emitQueryTerminated('aborted_streaming')
       return { reason: 'aborted_streaming' }
     }
 
@@ -1230,6 +1646,9 @@ async function* queryLoop(
         // → retry → error → … (the hook injects more tokens each cycle).
         yield lastMessage!
         void executeStopFailureHooks(lastMessage!, toolUseContext)
+        await emitQueryTerminated(
+          isWithheldMedia ? 'image_error' : 'prompt_too_long',
+        )
         return { reason: isWithheldMedia ? 'image_error' : 'prompt_too_long' }
       } else if (feature('CONTEXT_COLLAPSE') && isWithheld413) {
         // reactiveCompact compiled out but contextCollapse withheld and
@@ -1237,6 +1656,7 @@ async function* queryLoop(
         // early-return rationale — don't fall through to stop hooks.
         yield lastMessage
         void executeStopFailureHooks(lastMessage, toolUseContext)
+        await emitQueryTerminated('prompt_too_long')
         return { reason: 'prompt_too_long' }
       }
 
@@ -1319,6 +1739,9 @@ async function* queryLoop(
       // error → hook blocking → retry → error → …
       if (lastMessage?.isApiErrorMessage) {
         void executeStopFailureHooks(lastMessage, toolUseContext)
+        await emitQueryTerminated('completed', {
+          last_message_api_error: true,
+        })
         return { reason: 'completed' }
       }
 
@@ -1334,6 +1757,7 @@ async function* queryLoop(
       )
 
       if (stopHookResult.preventContinuation) {
+        await emitQueryTerminated('stop_hook_prevented')
         return { reason: 'stop_hook_prevented' }
       }
 
@@ -1370,6 +1794,21 @@ async function* queryLoop(
           getCurrentTurnTokenBudget(),
           getTurnOutputTokens(),
         )
+        await emitHarnessEvent({
+          event: 'token_budget.decision',
+          component: 'query_loop',
+          query_id: queryTracking.chainId,
+          turn_id: turnId,
+          loop_iter: turnCount,
+          query_source: querySource,
+          payload: {
+            action: decision.action,
+            continuation_count:
+              'continuationCount' in decision
+                ? decision.continuationCount
+                : null,
+          },
+        })
 
         if (decision.action === 'continue') {
           incrementBudgetContinuationCount()
@@ -1412,6 +1851,7 @@ async function* queryLoop(
         }
       }
 
+      await emitQueryTerminated('completed')
       return { reason: 'completed' }
     }
 
@@ -1434,6 +1874,18 @@ async function* queryLoop(
         queryDepth: queryTracking.depth,
       })
     }
+    await emitHarnessEvent({
+      event: 'tool.execution.mode.selected',
+      component: 'query_loop',
+      query_id: queryTracking.chainId,
+      turn_id: turnId,
+      loop_iter: turnCount,
+      query_source: querySource,
+      payload: {
+        mode: streamingToolExecutor ? 'streaming' : 'runTools',
+        tool_count: toolUseBlocks.length,
+      },
+    })
 
     const toolUpdates = streamingToolExecutor
       ? streamingToolExecutor.getRemainingResults()
@@ -1570,11 +2022,13 @@ async function* queryLoop(
           turnCount: nextTurnCountOnAbort,
         })
       }
+      await emitQueryTerminated('aborted_tools')
       return { reason: 'aborted_tools' }
     }
 
     // If a hook indicated to prevent continuation, stop here
     if (shouldPreventContinuation) {
+      await emitQueryTerminated('hook_stopped')
       return { reason: 'hook_stopped' }
     }
 
@@ -1765,6 +2219,9 @@ async function* queryLoop(
         type: 'max_turns_reached',
         maxTurns,
         turnCount: nextTurnCount,
+      })
+      await emitQueryTerminated('max_turns', {
+        turn_count: nextTurnCount,
       })
       return { reason: 'max_turns', turnCount: nextTurnCount }
     }

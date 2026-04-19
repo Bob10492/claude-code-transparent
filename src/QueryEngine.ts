@@ -30,6 +30,7 @@ import {
   getTotalAPIDuration,
   getTotalCost,
 } from './cost-tracker.js'
+import { emitHarnessEvent } from './observability/harness.js'
 import type { CanUseToolFn } from './hooks/useCanUseTool.js'
 import { loadMemoryPrompt } from './memdir/memdir.js'
 import { hasAutoMemPathOverride } from './memdir/paths.js'
@@ -212,6 +213,17 @@ export class QueryEngine {
     prompt: string | ContentBlockParam[],
     options?: { uuid?: string; isMeta?: boolean },
   ): AsyncGenerator<SDKMessage, void, unknown> {
+    await emitHarnessEvent({
+      event: 'submit.attempted',
+      component: 'query_engine',
+      user_action_id: options?.uuid ?? null,
+      payload: {
+        is_meta: options?.isMeta ?? false,
+        prompt_kind: typeof prompt === 'string' ? 'string' : 'content_blocks',
+        prompt_chars: typeof prompt === 'string' ? prompt.length : null,
+        prompt_blocks: Array.isArray(prompt) ? prompt.length : null,
+      },
+    })
     const {
       cwd,
       commands,
@@ -557,6 +569,17 @@ export class QueryEngine {
     headlessProfilerCheckpoint('system_message_yielded')
 
     if (!shouldQuery) {
+      await emitHarnessEvent({
+        event: 'submit.blocked',
+        component: 'query_engine',
+        user_action_id: options?.uuid ?? null,
+        query_source: 'sdk',
+        payload: {
+          reason: 'process_user_input_returned_should_query_false',
+          messages_count: messagesFromUserInput.length,
+          result_text_chars: resultText?.length ?? null,
+        },
+      })
       // Return the results of local slash commands.
       // Use messagesFromUserInput (not replayableMessages) for command output
       // because selectableUserMessagesFilter excludes local-command-stdout tags.
@@ -655,6 +678,14 @@ export class QueryEngine {
             },
             message.uuid,
           )
+          void emitHarnessEvent({
+            event: 'file_history.snapshot.created',
+            component: 'query_engine',
+            user_action_id: options?.uuid ?? null,
+            payload: {
+              message_uuid: message.uuid,
+            },
+          })
         })
     }
 

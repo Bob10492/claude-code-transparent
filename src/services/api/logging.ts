@@ -168,6 +168,50 @@ function getBuildAgeMinutes(): number | undefined {
   return Math.floor((Date.now() - buildTime) / 60000)
 }
 
+function logAPIResponseSnapshot({
+  model,
+  preNormalizedModel,
+  requestId,
+  stopReason,
+  usage,
+  didFallBackToNonStreaming,
+  querySource,
+  newMessages,
+}: {
+  model: string
+  preNormalizedModel: string
+  requestId: string | null
+  stopReason: BetaStopReason | null
+  usage: NonNullableUsage
+  didFallBackToNonStreaming: boolean
+  querySource: string
+  newMessages?: AssistantMessage[]
+}): void {
+  logForDebugging(
+    `[PromptDebug] full response snapshot after callModel: ${jsonStringify({
+      model,
+      preNormalizedModel,
+      requestId,
+      stopReason,
+      usage,
+      didFallBackToNonStreaming,
+      querySource,
+      messages:
+        newMessages?.map(msg => ({
+          type: msg.type,
+          uuid: msg.uuid,
+          timestamp: msg.timestamp,
+          requestId: msg.requestId ?? null,
+          parentToolUseId: msg.parent_tool_use_id ?? null,
+          advisorModel: msg.advisorModel ?? null,
+          research: msg.research,
+          message: msg.message,
+        })) ?? [],
+    })}`,
+    { level: 'info' },
+  )
+}
+
 export function logAPIQuery({
   model,
   messagesLength,
@@ -638,6 +682,17 @@ export function logAPISuccessAndDuration({
   previousRequestId?: string | null
   betas?: string[]
 }): void {
+  logAPIResponseSnapshot({
+    model,
+    preNormalizedModel,
+    requestId,
+    stopReason,
+    usage,
+    didFallBackToNonStreaming,
+    querySource,
+    newMessages,
+  })
+
   const gateway = detectGateway({
     headers,
     baseUrl: process.env.ANTHROPIC_BASE_URL,

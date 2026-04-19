@@ -6,6 +6,10 @@ import type {
 } from '@anthropic-ai/sdk/resources/messages.mjs'
 import { randomUUID } from 'crypto'
 import type { QuerySource } from 'src/constants/querySource.js'
+import {
+  emitHarnessEvent,
+  storeHarnessSnapshot,
+} from 'src/observability/harness.js'
 import { logEvent } from 'src/services/analytics/index.js'
 import { getContentText } from 'src/utils/messages.js'
 import {
@@ -138,6 +142,28 @@ export async function processUserInput({
   isMeta?: boolean
   skipAttachments?: boolean
 }): Promise<ProcessUserInputBaseResult> {
+  const rawInputSnapshot = await storeHarnessSnapshot('input-raw', {
+    input,
+    preExpansionInput: preExpansionInput ?? null,
+    mode,
+    querySource: querySource ?? null,
+    isMeta: isMeta ?? false,
+    skipSlashCommands: skipSlashCommands ?? false,
+    skipAttachments: skipAttachments ?? false,
+  })
+  await emitHarnessEvent({
+    event: 'input.process.started',
+    component: 'process_user_input',
+    user_action_id: uuid ?? null,
+    query_source: querySource ?? null,
+    payload: {
+      mode,
+      has_string_input: typeof input === 'string',
+      input_chars: typeof input === 'string' ? input.length : null,
+      input_blocks: Array.isArray(input) ? input.length : null,
+      raw_input_snapshot_ref: rawInputSnapshot.snapshot_ref,
+    },
+  })
   const inputString = typeof input === 'string' ? input : null
   // Immediately show the user input prompt while we are still processing the input.
   // Skip for isMeta (system-generated prompts like scheduled tasks) — those
@@ -172,6 +198,23 @@ export async function processUserInput({
   queryCheckpoint('query_process_user_input_base_end')
 
   if (!result.shouldQuery) {
+    const blockedMessagesSnapshot = await storeHarnessSnapshot(
+      'input-messages',
+      result.messages,
+    )
+    await emitHarnessEvent({
+      event: 'submit.blocked',
+      component: 'process_user_input',
+      user_action_id: uuid ?? null,
+      query_source: querySource ?? null,
+      payload: {
+        mode,
+        should_query: false,
+        result_text_chars: result.resultText?.length ?? null,
+        messages_count: result.messages.length,
+        messages_snapshot_ref: blockedMessagesSnapshot.snapshot_ref,
+      },
+    })
     return result
   }
 
@@ -266,6 +309,39 @@ export async function processUserInput({
   // Happy path: onQuery will clear userInputOnProcessing via startTransition
   // so it resolves in the same frame as deferredMessages (no flicker gap).
   // Error paths are handled by handlePromptSubmit's finally block.
+  const completedMessagesSnapshot = await storeHarnessSnapshot(
+    'input-messages',
+    result.messages,
+  )
+  const attachmentMessages = result.messages.filter(
+    message => message.type === 'attachment',
+  )
+  await emitHarnessEvent({
+    event: 'input.process.completed',
+    component: 'process_user_input',
+    user_action_id: uuid ?? null,
+    query_source: querySource ?? null,
+    payload: {
+      mode,
+      should_query: result.shouldQuery,
+      result_text_chars: result.resultText?.length ?? null,
+      final_messages_count: result.messages.length,
+      attachment_count: attachmentMessages.length,
+      slash_command_detected:
+        typeof input === 'string' && input.trimStart().startsWith('/'),
+      allowed_tools_count: result.allowedTools?.length ?? 0,
+      model_override: result.model ?? null,
+      raw_input_snapshot_ref: rawInputSnapshot.snapshot_ref,
+      messages_snapshot_ref: completedMessagesSnapshot.snapshot_ref,
+      query_params_summary: {
+        query_source: querySource ?? null,
+        message_count: result.messages.length,
+        allowed_tools_count: result.allowedTools?.length ?? 0,
+        model: result.model ?? null,
+        should_query: result.shouldQuery,
+      },
+    },
+  })
   return result
 }
 
