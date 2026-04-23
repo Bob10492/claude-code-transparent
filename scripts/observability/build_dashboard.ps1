@@ -11,7 +11,7 @@ $observabilityDir = Join-Path $repoRoot ".observability"
 $duckdbExe = Join-Path $repoRoot "tools\duckdb\duckdb.exe"
 $dbPath = Join-Path $repoRoot ".observability\observability_v1.duckdb"
 $rebuildScript = Join-Path $repoRoot "scripts\observability\rebuild_observability_db.ps1"
-$outputPath = Join-Path $repoRoot "ObservrityTask\observability_dashboard.html"
+$outputPath = Join-Path $repoRoot "ObservrityTask\10-系统版本\v1\01-总览\observability_dashboard.html"
 
 if (-not (Test-Path -LiteralPath $duckdbExe)) {
   throw "DuckDB executable not found at $duckdbExe"
@@ -199,6 +199,78 @@ function ConvertTo-CardHtml {
 "@
 }
 
+function Get-SystemHealthStatus {
+  param(
+    [object]$Integrity
+  )
+
+  $primaryHealthy =
+    ([double]$Integrity.strict_query_completion_rate -eq 1.0) -and
+    ([double]$Integrity.strict_turn_state_closure_rate -eq 1.0) -and
+    ([double]$Integrity.tool_lifecycle_closure_rate -eq 1.0) -and
+    ([double]$Integrity.subagent_lifecycle_closure_rate -eq 1.0) -and
+    ([double]$Integrity.snapshot_missing_rate -eq 0.0)
+
+  if ($primaryHealthy -and [double]$Integrity.orphan_event_rate -le 0.02) {
+    return [PSCustomObject]@{
+      label = "通过"
+      tone = "healthy"
+      summary = "主链完整性已闭合，当前主要风险只剩极少量孤儿事件。"
+    }
+  }
+
+  if ($primaryHealthy) {
+    return [PSCustomObject]@{
+      label = "基本通过"
+      tone = "warning"
+      summary = "主链闭合正常，但孤儿事件率偏高，说明仍有少量前置埋点无法挂靠。"
+    }
+  }
+
+  return [PSCustomObject]@{
+    label = "告警"
+    tone = "danger"
+    summary = "当前观测链存在未闭合环节，不建议直接基于这批数据做深入分析。"
+  }
+}
+
+function ConvertTo-SystemHealthHtml {
+  param(
+    [object]$Integrity,
+    [object]$BuildMeta
+  )
+
+  $health = Get-SystemHealthStatus -Integrity $Integrity
+  $safeLabel = [System.Net.WebUtility]::HtmlEncode($health.label)
+  $safeSummary = [System.Net.WebUtility]::HtmlEncode($health.summary)
+  $safeTone = [System.Net.WebUtility]::HtmlEncode($health.tone)
+  $safeBuiltAt = [System.Net.WebUtility]::HtmlEncode((Get-CellText $BuildMeta.built_at))
+  $safeOrphanRate = [System.Net.WebUtility]::HtmlEncode((Get-CellText $Integrity.orphan_event_rate))
+
+  return @"
+<section class="panel health-panel health-$safeTone">
+  <div class="health-top">
+    <div>
+      <h2>系统健康</h2>
+      <p class="muted">完整性已经从主分析面板降级为基础设施 guardrail。这里默认只给出健康判断，不再把闭合率明细放在首页当主指标。</p>
+    </div>
+    <div class="health-badge">$safeLabel</div>
+  </div>
+  <p class="health-summary">$safeSummary</p>
+  <div class="health-meta">
+    <div class="meta-chip">
+      <div class="label">建库时间</div>
+      <div class="value">$safeBuiltAt</div>
+    </div>
+    <div class="meta-chip">
+      <div class="label">Orphan Event 率</div>
+      <div class="value">$safeOrphanRate</div>
+    </div>
+  </div>
+</section>
+"@
+}
+
 function ConvertTo-TableHtml {
   param(
     [string]$Title,
@@ -341,18 +413,7 @@ $overviewCards = @(
   (ConvertTo-CardHtml "subagent_count" "Subagent 数" $rollup.subagent_count)
 ) -join "`n"
 
-$integrityCards = @(
-  (ConvertTo-CardHtml "strict_query_completion_rate" "严格 Query 完成率" $integrity.strict_query_completion_rate),
-  (ConvertTo-CardHtml "inferred_query_completion_rate" "推断 Query 完成率" $integrity.inferred_query_completion_rate),
-  (ConvertTo-CardHtml "query_completeness_gap" "Query 补链差值" $integrity.query_completeness_gap),
-  (ConvertTo-CardHtml "strict_turn_state_closure_rate" "严格 Turn 闭合率" $integrity.strict_turn_state_closure_rate),
-  (ConvertTo-CardHtml "inferred_turn_state_closure_rate" "推断 Turn 闭合率" $integrity.inferred_turn_state_closure_rate),
-  (ConvertTo-CardHtml "turn_closure_gap" "Turn 补链差值" $integrity.turn_closure_gap),
-  (ConvertTo-CardHtml "tool_lifecycle_closure_rate" "工具闭合率" $integrity.tool_lifecycle_closure_rate),
-  (ConvertTo-CardHtml "subagent_lifecycle_closure_rate" "Subagent 闭合率" $integrity.subagent_lifecycle_closure_rate),
-  (ConvertTo-CardHtml "snapshot_missing_rate" "Snapshot 缺失率" $integrity.snapshot_missing_rate),
-  (ConvertTo-CardHtml "orphan_event_rate" "Orphan Event 率" $integrity.orphan_event_rate)
-) -join "`n"
+$systemHealthSection = ConvertTo-SystemHealthHtml -Integrity $integrity -BuildMeta $buildMeta
 
 $costDailyTotalCards = @(
   (ConvertTo-CardHtml "total_prompt_input_tokens" "总 Prompt 输入 Tokens" $cost.user_action_total_prompt_input_tokens),
@@ -448,6 +509,7 @@ $html = @"
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>本地可观测系统 V1 Dashboard</title>
+  <meta http-equiv="refresh" content="15">
   <style>
     :root {
       --bg: #f7f2e8;
@@ -570,6 +632,44 @@ $html = @"
     .panel {
       padding: 20px;
     }
+    .health-panel {
+      margin-bottom: 18px;
+    }
+    .health-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .health-badge {
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .health-summary {
+      margin: 12px 0 16px;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .health-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .health-healthy .health-badge {
+      background: #e2f2e6;
+      color: #1d6b36;
+    }
+    .health-warning .health-badge {
+      background: #fff0d8;
+      color: #a15d00;
+    }
+    .health-danger .health-badge {
+      background: #f8d8d8;
+      color: #9d2121;
+    }
     .panel h2, .panel h3 {
       margin-top: 0;
     }
@@ -637,7 +737,7 @@ $html = @"
   <div class="page">
     <section class="hero">
       <h1>本地可观测系统 V1</h1>
-      <p>这版 dashboard 按方向 A 执行清单把指标分成更稳定的分析层级。成本侧按 <strong>每日总量</strong>、<strong>成本结构</strong>、<strong>主/子链路</strong>、<strong>日均/效率</strong> 展示；完整性侧同时提供 <strong>原生口径</strong>、<strong>推断口径</strong> 和 <strong>补链差值</strong>；loop 指标单独拆开，用来区分“prompt 大”还是“多轮循环导致贵”。</p>
+      <p>这版 dashboard 把首页重点收敛到真正用于分析 agent 行为的内容：<strong>成本</strong>、<strong>loop</strong>、<strong>延迟</strong>、<strong>工具</strong>。完整性不再作为主面板指标展示，而是降级成一个系统健康 guardrail，用来判断这批数据能不能信。</p>
       <div class="meta">
         <div class="meta-chip"><div class="label">日期</div><div class="value">$([System.Net.WebUtility]::HtmlEncode((Get-CellText $targetDate)))</div></div>
         <div class="meta-chip"><div class="label">源文件</div><div class="value">$([System.Net.WebUtility]::HtmlEncode((Get-CellText $buildMeta.source_events_file_name)))</div></div>
@@ -653,12 +753,7 @@ $html = @"
       </div>
     </section>
 
-    <section class="section">
-      <h2>完整性</h2>
-      <div class="card-grid">
-        $integrityCards
-      </div>
-    </section>
+    $systemHealthSection
 
     <section class="section">
       <h2>成本 - 每日总量</h2>

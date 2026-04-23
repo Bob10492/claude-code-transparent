@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>本地可观测系统 V1 Dashboard</title>
+  <meta http-equiv="refresh" content="15">
   <style>
     :root {
       --bg: #f7f2e8;
@@ -126,6 +127,44 @@
     .panel {
       padding: 20px;
     }
+    .health-panel {
+      margin-bottom: 18px;
+    }
+    .health-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .health-badge {
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .health-summary {
+      margin: 12px 0 16px;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .health-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .health-healthy .health-badge {
+      background: #e2f2e6;
+      color: #1d6b36;
+    }
+    .health-warning .health-badge {
+      background: #fff0d8;
+      color: #a15d00;
+    }
+    .health-danger .health-badge {
+      background: #f8d8d8;
+      color: #9d2121;
+    }
     .panel h2, .panel h3 {
       margin-top: 0;
     }
@@ -193,12 +232,12 @@
   <div class="page">
     <section class="hero">
       <h1>本地可观测系统 V1</h1>
-      <p>这版 dashboard 按方向 A 执行清单把指标分成更稳定的分析层级。成本侧按 <strong>每日总量</strong>、<strong>成本结构</strong>、<strong>主/子链路</strong>、<strong>日均/效率</strong> 展示；完整性侧同时提供 <strong>原生口径</strong>、<strong>推断口径</strong> 和 <strong>补链差值</strong>；loop 指标单独拆开，用来区分“prompt 大”还是“多轮循环导致贵”。</p>
+      <p>这版 dashboard 把首页重点收敛到真正用于分析 agent 行为的内容：<strong>成本</strong>、<strong>loop</strong>、<strong>延迟</strong>、<strong>工具</strong>。完整性不再作为主面板指标展示，而是降级成一个系统健康 guardrail，用来判断这批数据能不能信。</p>
       <div class="meta">
-        <div class="meta-chip"><div class="label">日期</div><div class="value">2026-04-22</div></div>
-        <div class="meta-chip"><div class="label">源文件</div><div class="value">events-20260422.jsonl</div></div>
-        <div class="meta-chip"><div class="label">文件大小(bytes)</div><div class="value">868649</div></div>
-        <div class="meta-chip"><div class="label">建库时间</div><div class="value">2026-04-22T18:30:43.396Z</div></div>
+        <div class="meta-chip"><div class="label">日期</div><div class="value">2026-04-23</div></div>
+        <div class="meta-chip"><div class="label">源文件</div><div class="value">events-20260423.jsonl</div></div>
+        <div class="meta-chip"><div class="label">文件大小(bytes)</div><div class="value">453594</div></div>
+        <div class="meta-chip"><div class="label">建库时间</div><div class="value">2026-04-23T14:18:34.468Z</div></div>
       </div>
     </section>
 
@@ -210,121 +249,66 @@
     <div class="card-label">事件数</div>
     <a class="metric-link" href="#metric-event_count">说明</a>
   </div>
-  <div class="card-value">809</div>
+  <div class="card-value">392</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">用户动作数</div>
     <a class="metric-link" href="#metric-user_action_count">说明</a>
   </div>
-  <div class="card-value">2</div>
+  <div class="card-value">1</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Query 数</div>
     <a class="metric-link" href="#metric-query_count">说明</a>
   </div>
-  <div class="card-value">7</div>
+  <div class="card-value">4</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Turn 数</div>
     <a class="metric-link" href="#metric-turn_count">说明</a>
   </div>
-  <div class="card-value">24</div>
+  <div class="card-value">11</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">工具调用数</div>
     <a class="metric-link" href="#metric-tool_calls_total">说明</a>
   </div>
-  <div class="card-value">42</div>
+  <div class="card-value">17</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Subagent 数</div>
     <a class="metric-link" href="#metric-subagent_count">说明</a>
   </div>
-  <div class="card-value">5</div>
+  <div class="card-value">3</div>
 </article>
       </div>
     </section>
 
-    <section class="section">
-      <h2>完整性</h2>
-      <div class="card-grid">
-        <article class="card">
-  <div class="card-top">
-    <div class="card-label">严格 Query 完成率</div>
-    <a class="metric-link" href="#metric-strict_query_completion_rate">说明</a>
+    <section class="panel health-panel health-healthy">
+  <div class="health-top">
+    <div>
+      <h2>系统健康</h2>
+      <p class="muted">完整性已经从主分析面板降级为基础设施 guardrail。这里默认只给出健康判断，不再把闭合率明细放在首页当主指标。</p>
+    </div>
+    <div class="health-badge">通过</div>
   </div>
-  <div class="card-value">0.285714</div>
-</article>
-<article class="card">
-  <div class="card-top">
-    <div class="card-label">推断 Query 完成率</div>
-    <a class="metric-link" href="#metric-inferred_query_completion_rate">说明</a>
+  <p class="health-summary">主链完整性已闭合，当前主要风险只剩极少量孤儿事件。</p>
+  <div class="health-meta">
+    <div class="meta-chip">
+      <div class="label">建库时间</div>
+      <div class="value">2026-04-23T14:18:34.468Z</div>
+    </div>
+    <div class="meta-chip">
+      <div class="label">Orphan Event 率</div>
+      <div class="value">0.010204</div>
+    </div>
   </div>
-  <div class="card-value">0.285714</div>
-</article>
-<article class="card">
-  <div class="card-top">
-    <div class="card-label">Query 补链差值</div>
-    <a class="metric-link" href="#metric-query_completeness_gap">说明</a>
-  </div>
-  <div class="card-value">0</div>
-</article>
-<article class="card">
-  <div class="card-top">
-    <div class="card-label">严格 Turn 闭合率</div>
-    <a class="metric-link" href="#metric-strict_turn_state_closure_rate">说明</a>
-  </div>
-  <div class="card-value">0.708333</div>
-</article>
-<article class="card">
-  <div class="card-top">
-    <div class="card-label">推断 Turn 闭合率</div>
-    <a class="metric-link" href="#metric-inferred_turn_state_closure_rate">说明</a>
-  </div>
-  <div class="card-value">0.708333</div>
-</article>
-<article class="card">
-  <div class="card-top">
-    <div class="card-label">Turn 补链差值</div>
-    <a class="metric-link" href="#metric-turn_closure_gap">说明</a>
-  </div>
-  <div class="card-value">0</div>
-</article>
-<article class="card">
-  <div class="card-top">
-    <div class="card-label">工具闭合率</div>
-    <a class="metric-link" href="#metric-tool_lifecycle_closure_rate">说明</a>
-  </div>
-  <div class="card-value">0.904762</div>
-</article>
-<article class="card">
-  <div class="card-top">
-    <div class="card-label">Subagent 闭合率</div>
-    <a class="metric-link" href="#metric-subagent_lifecycle_closure_rate">说明</a>
-  </div>
-  <div class="card-value">1</div>
-</article>
-<article class="card">
-  <div class="card-top">
-    <div class="card-label">Snapshot 缺失率</div>
-    <a class="metric-link" href="#metric-snapshot_missing_rate">说明</a>
-  </div>
-  <div class="card-value">0</div>
-</article>
-<article class="card">
-  <div class="card-top">
-    <div class="card-label">Orphan Event 率</div>
-    <a class="metric-link" href="#metric-orphan_event_rate">说明</a>
-  </div>
-  <div class="card-value">0.007417</div>
-</article>
-      </div>
-    </section>
+</section>
 
     <section class="section">
       <h2>成本 - 每日总量</h2>
@@ -334,21 +318,21 @@
     <div class="card-label">总 Prompt 输入 Tokens</div>
     <a class="metric-link" href="#metric-total_prompt_input_tokens">说明</a>
   </div>
-  <div class="card-value">3361798</div>
+  <div class="card-value">782189</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">总 Billed Tokens</div>
     <a class="metric-link" href="#metric-total_billed_tokens">说明</a>
   </div>
-  <div class="card-value">3375883</div>
+  <div class="card-value">789987</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Output Tokens</div>
     <a class="metric-link" href="#metric-output_tokens">说明</a>
   </div>
-  <div class="card-value">14085</div>
+  <div class="card-value">7798</div>
 </article>
       </div>
     </section>
@@ -361,21 +345,21 @@
     <div class="card-label">裸 Input Tokens</div>
     <a class="metric-link" href="#metric-raw_input_tokens">说明</a>
   </div>
-  <div class="card-value">24</div>
+  <div class="card-value">11</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Cache Read Tokens</div>
     <a class="metric-link" href="#metric-cache_read_tokens">说明</a>
   </div>
-  <div class="card-value">2209219</div>
+  <div class="card-value">240238</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Cache Create Tokens</div>
     <a class="metric-link" href="#metric-cache_create_tokens">说明</a>
   </div>
-  <div class="card-value">1152555</div>
+  <div class="card-value">541940</div>
 </article>
       </div>
     </section>
@@ -388,21 +372,21 @@
     <div class="card-label">主线程 Prompt 输入</div>
     <a class="metric-link" href="#metric-main_thread_prompt_tokens">说明</a>
   </div>
-  <div class="card-value">2003202</div>
+  <div class="card-value">122510</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Subagent Prompt 输入</div>
     <a class="metric-link" href="#metric-subagent_prompt_tokens">说明</a>
   </div>
-  <div class="card-value">1358596</div>
+  <div class="card-value">659679</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Subagent 放大倍率</div>
     <a class="metric-link" href="#metric-subagent_amplification_ratio">说明</a>
   </div>
-  <div class="card-value">0.678212</div>
+  <div class="card-value">5.384695</div>
 </article>
       </div>
     </section>
@@ -415,28 +399,28 @@
     <div class="card-label">每个用户动作平均 Prompt 输入</div>
     <a class="metric-link" href="#metric-avg_prompt_input_per_user_action">说明</a>
   </div>
-  <div class="card-value">1680899</div>
+  <div class="card-value">782189</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">每个用户动作平均 Billed</div>
     <a class="metric-link" href="#metric-avg_billed_per_user_action">说明</a>
   </div>
-  <div class="card-value">1687941.5</div>
+  <div class="card-value">789987</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">每个 Query 平均 Prompt 输入</div>
     <a class="metric-link" href="#metric-avg_prompt_input_per_query">说明</a>
   </div>
-  <div class="card-value">480256.857</div>
+  <div class="card-value">195547.25</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">每个 Query 平均 Billed</div>
     <a class="metric-link" href="#metric-avg_billed_per_query">说明</a>
   </div>
-  <div class="card-value">482269</div>
+  <div class="card-value">197496.75</div>
 </article>
       </div>
     </section>
@@ -449,21 +433,21 @@
     <div class="card-label">每日平均 Turn/Query</div>
     <a class="metric-link" href="#metric-daily_avg_turns_per_query">说明</a>
   </div>
-  <div class="card-value">3.429</div>
+  <div class="card-value">2.75</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">每日平均 Loop 终点</div>
     <a class="metric-link" href="#metric-daily_avg_loop_iter_end">说明</a>
   </div>
-  <div class="card-value">3.429</div>
+  <div class="card-value">2.75</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">每日 Loop 终点 P95</div>
     <a class="metric-link" href="#metric-daily_p95_loop_iter_end">说明</a>
   </div>
-  <div class="card-value">5.4</div>
+  <div class="card-value">3.85</div>
 </article>
 <article class="card">
   <div class="card-top">
@@ -483,63 +467,63 @@
     <div class="card-label">Submit -&gt; First Chunk</div>
     <a class="metric-link" href="#metric-submit_to_first_chunk_ms">说明</a>
   </div>
-  <div class="card-value">23922</div>
+  <div class="card-value">5007</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Preprocess</div>
     <a class="metric-link" href="#metric-preprocess_duration_ms">说明</a>
   </div>
-  <div class="card-value">49.917</div>
+  <div class="card-value">70.727</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Prompt.Build</div>
     <a class="metric-link" href="#metric-prompt_build_duration_ms">说明</a>
   </div>
-  <div class="card-value">5.042</div>
+  <div class="card-value">9.364</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Request -&gt; First Chunk</div>
     <a class="metric-link" href="#metric-api_first_chunk_latency_ms">说明</a>
   </div>
-  <div class="card-value">16010.583</div>
+  <div class="card-value">16878.182</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">API 总时长</div>
     <a class="metric-link" href="#metric-api_total_duration_ms">说明</a>
   </div>
-  <div class="card-value">24755.125</div>
+  <div class="card-value">29556.091</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">工具执行平均时长</div>
     <a class="metric-link" href="#metric-tool_execution_duration_ms">说明</a>
   </div>
-  <div class="card-value">2988.526</div>
+  <div class="card-value">5219.412</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Stop Hooks 平均时长</div>
     <a class="metric-link" href="#metric-stop_hook_duration_ms">说明</a>
   </div>
-  <div class="card-value">2.5</div>
+  <div class="card-value">7.25</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Subagent 生命周期均值</div>
     <a class="metric-link" href="#metric-subagent_duration_ms">说明</a>
   </div>
-  <div class="card-value">87090.75</div>
+  <div class="card-value">97802.667</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">User Action E2E</div>
     <a class="metric-link" href="#metric-user_action_e2e_duration_ms">说明</a>
   </div>
-  <div class="card-value">275601</div>
+  <div class="card-value">245431</div>
 </article>
       </div>
     </section>
@@ -553,14 +537,14 @@
     <div class="card-label">Preprocess 前 Tokens</div>
     <a class="metric-link" href="#metric-preprocess_tokens_before_total">说明</a>
   </div>
-  <div class="card-value">3481101</div>
+  <div class="card-value">767735</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">Preprocess 后 Tokens</div>
     <a class="metric-link" href="#metric-preprocess_tokens_after_total">说明</a>
   </div>
-  <div class="card-value">3481101</div>
+  <div class="card-value">767735</div>
 </article>
 <article class="card">
   <div class="card-top">
@@ -607,7 +591,7 @@
     <div class="card-label">工具成功率</div>
     <a class="metric-link" href="#metric-tool_success_rate">说明</a>
   </div>
-  <div class="card-value">0.904762</div>
+  <div class="card-value">1</div>
 </article>
 <article class="card">
   <div class="card-top">
@@ -621,35 +605,35 @@
     <div class="card-label">工具平均时长</div>
     <a class="metric-link" href="#metric-tool_avg_duration_ms">说明</a>
   </div>
-  <div class="card-value">2988.526</div>
+  <div class="card-value">5219.412</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">工具 P95 时长</div>
     <a class="metric-link" href="#metric-tool_p95_duration_ms">说明</a>
   </div>
-  <div class="card-value">17520.65</div>
+  <div class="card-value">17713.2</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">每个 Query 的工具数</div>
     <a class="metric-link" href="#metric-tools_per_query">说明</a>
   </div>
-  <div class="card-value">6</div>
+  <div class="card-value">4.25</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">每个 Subagent 的工具数</div>
     <a class="metric-link" href="#metric-tools_per_subagent">说明</a>
   </div>
-  <div class="card-value">5.6</div>
+  <div class="card-value">5.333333</div>
 </article>
 <article class="card">
   <div class="card-top">
     <div class="card-label">工具后续驱动率</div>
     <a class="metric-link" href="#metric-tool_followup_turn_ratio">说明</a>
   </div>
-  <div class="card-value">0.944444</div>
+  <div class="card-value">1</div>
 </article>
           <article class="card">
   <div class="card-top">
@@ -684,7 +668,7 @@
     <div class="card-label">API Error Rate</div>
     <a class="metric-link" href="#metric-api_error_rate">说明</a>
   </div>
-  <div class="card-value">0.142857</div>
+  <div class="card-value">0</div>
 </article>
 <article class="card">
   <div class="card-top">
@@ -703,10 +687,9 @@
     <table>
       <thead><tr><th>query_source</th><th>total_prompt_input_tokens</th><th>total_billed_tokens</th><th>daily_cost_share</th></tr></thead>
       <tbody>
-        <tr><td>repl_main_thread</td><td>2003202</td><td>2007661</td><td>0.594707</td></tr>
-<tr><td>session_memory</td><td>1002017</td><td>1009847</td><td>0.299136</td></tr>
-<tr><td>agent:builtin:Explore</td><td>222858</td><td>223229</td><td>0.066125</td></tr>
-<tr><td>extract_memories</td><td>133721</td><td>135146</td><td>0.040033</td></tr>
+        <tr><td>session_memory</td><td>445430</td><td>450228</td><td>0.569918</td></tr>
+<tr><td>extract_memories</td><td>214249</td><td>215972</td><td>0.273387</td></tr>
+<tr><td>repl_main_thread</td><td>122510</td><td>123787</td><td>0.156695</td></tr>
       </tbody>
     </table>
   </div>
@@ -717,10 +700,9 @@
     <table>
       <thead><tr><th>agent_name</th><th>source_group</th><th>agent_total_prompt_input_tokens</th><th>agent_total_billed_tokens</th><th>agent_cost_share</th><th>agent_query_count</th><th>agent_avg_turns_per_query</th><th>agent_avg_loop_iter_end</th></tr></thead>
       <tbody>
-        <tr><td>main_thread</td><td>main_thread</td><td>2003202</td><td>2007661</td><td>0.594707</td><td>2</td><td>5</td><td>5</td></tr>
-<tr><td>session_memory</td><td>memory</td><td>1002017</td><td>1009847</td><td>0.299136</td><td>3</td><td>2.667</td><td>2.667</td></tr>
-<tr><td>Explore</td><td>agent</td><td>222858</td><td>223229</td><td>0.066125</td><td>1</td><td>3</td><td>3</td></tr>
-<tr><td>extract_memories</td><td>memory</td><td>133721</td><td>135146</td><td>0.040033</td><td>1</td><td>3</td><td>3</td></tr>
+        <tr><td>session_memory</td><td>memory</td><td>445430</td><td>450228</td><td>0.569918</td><td>2</td><td>3</td><td>3</td></tr>
+<tr><td>extract_memories</td><td>memory</td><td>214249</td><td>215972</td><td>0.273387</td><td>1</td><td>3</td><td>3</td></tr>
+<tr><td>main_thread</td><td>main_thread</td><td>122510</td><td>123787</td><td>0.156695</td><td>1</td><td>2</td><td>2</td></tr>
       </tbody>
     </table>
   </div>
@@ -731,8 +713,7 @@
     <table>
       <thead><tr><th>user_action_id</th><th>duration_ms</th><th>query_count</th><th>main_thread_query_count</th><th>subagent_count</th><th>total_prompt_input_tokens</th><th>total_billed_tokens</th></tr></thead>
       <tbody>
-        <tr><td>c27626a1-a2d0-46f5-8faf-c39370255036</td><td>234875</td><td>3</td><td>1</td><td>2</td><td>1591885</td><td>1599671</td></tr>
-<tr><td>036e4c84-da48-4da3-a5e3-1362d9eb6255</td><td>316327</td><td>4</td><td>1</td><td>3</td><td>1769913</td><td>1776212</td></tr>
+        <tr><td>12330098-180b-4063-9f96-af47b7e7c39f</td><td>245431</td><td>4</td><td>1</td><td>3</td><td>782189</td><td>789987</td></tr>
       </tbody>
     </table>
   </div>
@@ -743,10 +724,9 @@
     <table>
       <thead><tr><th>query_source</th><th>query_count</th><th>total_duration_ms</th><th>total_tool_calls</th></tr></thead>
       <tbody>
-        <tr><td>session_memory</td><td>3</td><td>279359</td><td>19</td></tr>
-<tr><td>repl_main_thread</td><td>2</td><td>482197</td><td>14</td></tr>
-<tr><td>agent:builtin:Explore</td><td>1</td><td>25708</td><td>6</td></tr>
-<tr><td>extract_memories</td><td>1</td><td>69005</td><td>3</td></tr>
+        <tr><td>session_memory</td><td>2</td><td>233102</td><td>12</td></tr>
+<tr><td>extract_memories</td><td>1</td><td>60307</td><td>4</td></tr>
+<tr><td>repl_main_thread</td><td>1</td><td>121766</td><td>1</td></tr>
       </tbody>
     </table>
   </div>
@@ -757,8 +737,8 @@
     <table>
       <thead><tr><th>subagent_reason</th><th>agent_name</th><th>subagent_count</th><th>avg_duration_ms</th></tr></thead>
       <tbody>
-        <tr><td>session_memory</td><td>session_memory</td><td>3</td><td>93119.333</td></tr>
-<tr><td>extract_memories</td><td>extract_memories</td><td>1</td><td>69005</td></tr>
+        <tr><td>session_memory</td><td>session_memory</td><td>2</td><td>116550.5</td></tr>
+<tr><td>extract_memories</td><td>extract_memories</td><td>1</td><td>60307</td></tr>
       </tbody>
     </table>
   </div>
@@ -769,13 +749,10 @@
     <table>
       <thead><tr><th>tool_name</th><th>tool_calls</th><th>tool_success_rate</th><th>tool_failure_rate</th><th>tool_avg_duration_ms</th><th>tool_p95_duration_ms</th></tr></thead>
       <tbody>
-        <tr><td>Edit</td><td>16</td><td>1</td><td>0</td><td>30.875</td><td>50.75</td></tr>
-<tr><td>Bash</td><td>11</td><td>0.818182</td><td>0</td><td>9721</td><td>28616.8</td></tr>
-<tr><td>Read</td><td>7</td><td>0.857143</td><td>0</td><td>23.333</td><td>48.25</td></tr>
-<tr><td>Glob</td><td>5</td><td>1</td><td>0</td><td>5070.4</td><td>6671.2</td></tr>
-<tr><td>Agent</td><td>1</td><td>1</td><td>0</td><td>62</td><td>62</td></tr>
-<tr><td>Grep</td><td>1</td><td>0</td><td>0</td><td>null</td><td>null</td></tr>
-<tr><td>Write</td><td>1</td><td>1</td><td>0</td><td>27</td><td>27</td></tr>
+        <tr><td>Edit</td><td>11</td><td>1</td><td>0</td><td>24</td><td>34</td></tr>
+<tr><td>Read</td><td>3</td><td>1</td><td>0</td><td>9.667</td><td>13.7</td></tr>
+<tr><td>Bash</td><td>2</td><td>1</td><td>0</td><td>44204</td><td>83982.2</td></tr>
+<tr><td>Write</td><td>1</td><td>1</td><td>0</td><td>29</td><td>29</td></tr>
       </tbody>
     </table>
   </div>
@@ -786,7 +763,7 @@
     <table>
       <thead><tr><th>tool_mode</th><th>tool_calls</th></tr></thead>
       <tbody>
-        <tr><td>streaming</td><td>18</td></tr>
+        <tr><td>streaming</td><td>7</td></tr>
       </tbody>
     </table>
   </div>
@@ -797,8 +774,7 @@
     <table>
       <thead><tr><th>terminal_reason</th><th>query_count</th></tr></thead>
       <tbody>
-        <tr><td>completed</td><td>6</td></tr>
-<tr><td>aborted_tools</td><td>1</td></tr>
+        <tr><td>completed</td><td>4</td></tr>
       </tbody>
     </table>
   </div>
