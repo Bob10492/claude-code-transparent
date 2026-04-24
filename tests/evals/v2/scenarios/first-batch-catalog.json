@@ -1,0 +1,46 @@
+{
+  "scenario_set_id": "v2_first_batch",
+  "description": "First benchmark batch for V2 phase-one local evaluation.",
+  "scenarios": [
+    {
+      "scenario_id": "readme_summary",
+      "name": "README Summary",
+      "focus": ["task_success", "efficiency"]
+    },
+    {
+      "scenario_id": "code_symbol_locate",
+      "name": "Code Symbol Locate",
+      "focus": ["decision_quality", "tool_selection"]
+    },
+    {
+      "scenario_id": "single_file_fix",
+      "name": "Single File Fix",
+      "focus": ["task_success", "controllability"]
+    },
+    {
+      "scenario_id": "multi_file_change",
+      "name": "Multi File Change",
+      "focus": ["task_success", "stability"]
+    },
+    {
+      "scenario_id": "tool_choice_sensitive",
+      "name": "Tool Choice Sensitive",
+      "focus": ["decision_quality", "efficiency"]
+    },
+    {
+      "scenario_id": "memory_branch_sensitive",
+      "name": "Memory Branch Sensitive",
+      "focus": ["subagent_behavior", "cost"]
+    },
+    {
+      "scenario_id": "loop_risk_task",
+      "name": "Loop Risk Task",
+      "focus": ["stability", "controllability"]
+    },
+    {
+      "scenario_id": "cost_sensitive_task",
+      "name": "Cost Sensitive Task",
+      "focus": ["efficiency", "tradeoff"]
+    }
+  ]
+}

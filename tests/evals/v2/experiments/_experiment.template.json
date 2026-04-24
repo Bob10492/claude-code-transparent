@@ -1,0 +1,9 @@
+{
+  "experiment_id": "experiment_template",
+  "name": "Experiment Template",
+  "goal": "State the decision this experiment should support.",
+  "baseline_variant_id": "baseline_default",
+  "candidate_variant_ids": ["candidate_a"],
+  "scenario_set_id": "v2_first_batch",
+  "status": "draft"
+}

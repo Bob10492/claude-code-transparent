@@ -1,0 +1,13 @@
+{
+  "scenario_id": "scenario_template",
+  "name": "Scenario Template",
+  "description": "Short description of the task to evaluate.",
+  "input_prompt": "User-facing prompt or task instruction for the benchmark run.",
+  "tags": ["category", "capability"],
+  "expected_artifacts": ["path/or/artifact/name"],
+  "expected_tools": ["Read"],
+  "expected_skills": [],
+  "expected_constraints": ["Must not modify unrelated files"],
+  "owner": "owner_name",
+  "status": "draft"
+}

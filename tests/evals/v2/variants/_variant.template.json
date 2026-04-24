@@ -1,0 +1,10 @@
+{
+  "variant_id": "variant_template",
+  "name": "Variant Template",
+  "description": "Describe what changed in this system configuration.",
+  "change_layer": "harness",
+  "base_variant_id": "baseline_default",
+  "git_commit": "HEAD",
+  "config_snapshot_ref": "path/to/config-snapshot.json",
+  "notes": "Keep this variant narrowly scoped."
+}

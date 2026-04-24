@@ -1,0 +1,10 @@
+{
+  "variant_id": "candidate_tool_router_v2",
+  "name": "Candidate Tool Router V2",
+  "description": "Template candidate for testing whether a tool routing change reduces unnecessary calls without hurting task success.",
+  "change_layer": "tool",
+  "base_variant_id": "baseline_default",
+  "git_commit": "HEAD",
+  "config_snapshot_ref": "manual",
+  "notes": "Copy this template to candidate_tool_router_v2.json when the candidate is real."
+}

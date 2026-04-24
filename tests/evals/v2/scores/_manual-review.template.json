@@ -1,0 +1,10 @@
+{
+  "score_id": "manual_review_template",
+  "run_id": "run_template",
+  "dimension": "task_success",
+  "subdimension": "final_output_quality",
+  "score_value": null,
+  "score_label": "needs_review",
+  "evidence_ref": "path/or/link/to/evidence",
+  "reason": "Reviewer notes go here."
+}
