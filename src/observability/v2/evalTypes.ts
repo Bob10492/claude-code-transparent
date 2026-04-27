@@ -38,6 +38,9 @@ export interface EvalScenario {
   expected_tools: string[]
   expected_skills: string[]
   expected_constraints: string[]
+  max_turn_count?: number
+  max_total_billed_tokens?: number
+  max_subagent_count?: number
   owner: string
   status: 'draft' | 'ready' | 'archived'
 }

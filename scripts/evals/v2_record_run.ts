@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { copyFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import type {
@@ -213,7 +213,19 @@ function buildScores(params: {
         closureValues.length
 
   const maxTurnCount = asNumber(rootQuery?.turn_count)
-  const maxTurnScore = maxTurnCount > 0 && maxTurnCount <= 8 ? 1 : 0
+  const turnLimit = scenario.max_turn_count ?? 8
+  const maxTurnScore = maxTurnCount > 0 && maxTurnCount <= turnLimit ? 1 : 0
+  const billedLimit = scenario.max_total_billed_tokens
+  const billedTokens = asNumber(action.total_billed_tokens)
+  const billedBudgetScore =
+    billedLimit === undefined ? null : billedTokens <= billedLimit ? 1 : 0
+  const subagentLimit = scenario.max_subagent_count
+  const subagentCount = subagents.reduce(
+    (sum, subagent) => sum + asNumber(subagent.subagent_count),
+    0,
+  )
+  const subagentBudgetScore =
+    subagentLimit === undefined ? null : subagentCount <= subagentLimit ? 1 : 0
   const recoveryScore = recoveries.length === 0 ? 1 : 0
 
   return [
@@ -254,6 +266,20 @@ function buildScores(params: {
       reason: 'Raw efficiency fact from V1 user_actions.',
     },
     {
+      score_id: `${runId}_efficiency_total_billed_token_budget`,
+      run_id: runId,
+      dimension: 'efficiency',
+      subdimension: 'total_billed_token_budget',
+      score_value: billedBudgetScore,
+      score_label:
+        billedBudgetScore === null ? 'not_applicable' : scoreLabel(billedBudgetScore),
+      evidence_ref: 'user_actions.total_billed_tokens',
+      reason:
+        billedLimit === undefined
+          ? 'Scenario has no max_total_billed_tokens budget.'
+          : `total_billed_tokens=${billedTokens}; budget=${billedLimit}.`,
+    },
+    {
       score_id: `${runId}_stability_v1_closure_health`,
       run_id: runId,
       dimension: 'stability',
@@ -285,17 +311,33 @@ function buildScores(params: {
       score_value: maxTurnScore,
       score_label: scoreLabel(maxTurnScore),
       evidence_ref: 'queries.turn_count',
-      reason: `Root query turn_count=${maxTurnCount}; phase-one soft limit is 8.`,
+      reason: `Root query turn_count=${maxTurnCount}; scenario limit is ${turnLimit}.`,
     },
     {
       score_id: `${runId}_decision_quality_subagent_count_observed`,
       run_id: runId,
       dimension: 'decision_quality',
       subdimension: 'subagent_count_observed',
-      score_value: subagents.length,
+      score_value: subagentCount,
       score_label: 'observed',
       evidence_ref: 'subagents',
       reason: 'Observed subagent count is a fact for later baseline vs candidate comparison.',
+    },
+    {
+      score_id: `${runId}_controllability_subagent_count_budget`,
+      run_id: runId,
+      dimension: 'controllability',
+      subdimension: 'subagent_count_budget',
+      score_value: subagentBudgetScore,
+      score_label:
+        subagentBudgetScore === null
+          ? 'not_applicable'
+          : scoreLabel(subagentBudgetScore),
+      evidence_ref: 'subagents',
+      reason:
+        subagentLimit === undefined
+          ? 'Scenario has no max_subagent_count budget.'
+          : `subagent_count=${subagentCount}; budget=${subagentLimit}.`,
     },
   ]
 }
@@ -503,6 +545,10 @@ async function main(): Promise<void> {
       scores,
     }),
   )
+
+  if (Boolean(args['snapshot-db']) && dbPath !== sourceDbPath) {
+    await rm(dbPath, { force: true }).catch(() => undefined)
+  }
 
   console.log(`Created V2 run: ${runId}`)
   console.log(`user_action_id: ${userActionId}`)

@@ -1,0 +1,29 @@
+{
+  "experiment_id": "session_memory_sparse_vs_default",
+  "name": "Session Memory Sparse vs Default",
+  "goal": "Evaluate whether sparse session memory reduces cost without hurting task success.",
+  "baseline_variant_id": "baseline_default",
+  "candidate_variant_ids": ["candidate_session_memory_sparse"],
+  "scenario_set_id": "v2_first_batch",
+  "scenario_ids": ["cost_sensitive_task"],
+  "repeat_count": 1,
+  "score_spec_ids": [
+    "task_success.main_chain_observed",
+    "efficiency.total_billed_tokens",
+    "decision_quality.subagent_count_observed",
+    "stability.recovery_absence",
+    "controllability.turn_limit_basic"
+  ],
+  "gate_policy_id": "default_v2_1_gate",
+  "mode": "bind_existing",
+  "action_bindings": [
+    {
+      "scenario_id": "cost_sensitive_task",
+      "baseline_user_action_id": "REPLACE_WITH_BASELINE_USER_ACTION_ID",
+      "candidate_user_action_ids": {
+        "candidate_session_memory_sparse": "REPLACE_WITH_CANDIDATE_USER_ACTION_ID"
+      }
+    }
+  ],
+  "status": "draft"
+}

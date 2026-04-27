@@ -1,0 +1,16 @@
+{
+  "score_spec_id": "dimension.subdimension",
+  "dimension": "efficiency",
+  "subdimension": "subdimension",
+  "direction": "lower_is_better",
+  "formula": "Describe how this score is computed from V1/V2 evidence.",
+  "data_sources": ["V1 user_actions"],
+  "evidence_requirements": ["entry_user_action_id"],
+  "automation_level": "automatic",
+  "thresholds": {
+    "hard_fail_regression_pct": 30,
+    "soft_warn_regression_pct": 10
+  },
+  "version": "v2.1",
+  "notes": "Template for one score spec. Production files usually wrap specs in { \"score_specs\": [...] }."
+}

@@ -1,0 +1,31 @@
+{
+  "gate_policy_id": "default_v2_1_gate",
+  "name": "Default V2.1 Regression Gate",
+  "rules": [
+    {
+      "score_spec_id": "task_success.main_chain_observed",
+      "rule_type": "hard_fail",
+      "condition": "candidate < baseline",
+      "notes": "Candidate cannot lose the main-chain success signal."
+    },
+    {
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "rule_type": "hard_fail",
+      "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+      "threshold": 30,
+      "notes": "Cost cannot rise sharply without a success improvement."
+    },
+    {
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "rule_type": "soft_warning",
+      "condition": "candidate_regression_pct > 10",
+      "threshold": 10
+    },
+    {
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "rule_type": "soft_warning",
+      "condition": "candidate_regression_pct > 50",
+      "threshold": 50
+    }
+  ]
+}

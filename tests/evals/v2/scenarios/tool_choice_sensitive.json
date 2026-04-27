@@ -1,0 +1,20 @@
+{
+  "scenario_id": "tool_choice_sensitive",
+  "name": "Tool Choice Sensitive",
+  "description": "Evaluate whether the agent selects lightweight file-reading and search tools rather than unnecessary write or shell actions.",
+  "input_prompt": "请定位 V2 评测系统中定义 scenario、variant、run 的代码位置，并说明这些对象之间的关系。不要修改文件。",
+  "tags": ["decision_quality", "tool_selection", "observability-v2"],
+  "expected_artifacts": [],
+  "expected_tools": ["Read"],
+  "expected_skills": [],
+  "expected_constraints": [
+    "Must not modify files",
+    "Should prefer read/search style inspection",
+    "Should avoid Edit or Write for this read-only task"
+  ],
+  "max_turn_count": 8,
+  "max_total_billed_tokens": 260000,
+  "max_subagent_count": 3,
+  "owner": "local",
+  "status": "ready"
+}

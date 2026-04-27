@@ -1,4 +1,4 @@
-# V2 Run Report: run_2026-04-24T050007063Z_cost_sensitive_task_candidate_session_memory_sparse_dbf9fae1
+# V2 Run Report: run_2026-04-27T105524538Z_cost_sensitive_task_candidate_session_memory_sparse_dbf9fae1
 
 ## 理解清单
 
@@ -43,9 +43,11 @@ The report does not judge final answer quality by itself. It records trace-backe
 ## Scores
 
 - task_success.main_chain_observed: pass (1)
-- decision_quality.expected_tool_hit_rate: not_applicable (n/a)
+- decision_quality.expected_tool_hit_rate: pass (1)
 - efficiency.total_billed_tokens: observed (352691)
+- efficiency.total_billed_token_budget: fail (0)
 - stability.v1_closure_health: pass (1)
 - stability.recovery_absence: pass (1)
 - controllability.turn_limit_basic: pass (1)
 - decision_quality.subagent_count_observed: observed (2)
+- controllability.subagent_count_budget: pass (1)

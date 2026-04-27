@@ -1,4 +1,4 @@
-# V2 Run Report: run_2026-04-24T050004856Z_cost_sensitive_task_baseline_default_1d5eb5e1
+# V2 Run Report: run_2026-04-27T105508448Z_cost_sensitive_task_baseline_default_1d5eb5e1
 
 ## 理解清单
 
@@ -39,16 +39,18 @@ The report does not judge final answer quality by itself. It records trace-backe
 ## Subagents
 
 - session_memory: count=1, trigger=token_threshold_and_tool_threshold
+- prompt_suggestion: count=1, trigger=suggestion_generation_allowed
 - extract_memories: count=1, trigger=post_turn_background_extraction
 - session_memory: count=1, trigger=token_threshold_and_natural_break
-- prompt_suggestion: count=1, trigger=suggestion_generation_allowed
 
 ## Scores
 
 - task_success.main_chain_observed: pass (1)
-- decision_quality.expected_tool_hit_rate: not_applicable (n/a)
+- decision_quality.expected_tool_hit_rate: pass (1)
 - efficiency.total_billed_tokens: observed (400399)
+- efficiency.total_billed_token_budget: fail (0)
 - stability.v1_closure_health: pass (1)
 - stability.recovery_absence: pass (1)
 - controllability.turn_limit_basic: pass (1)
 - decision_quality.subagent_count_observed: observed (4)
+- controllability.subagent_count_budget: fail (0)

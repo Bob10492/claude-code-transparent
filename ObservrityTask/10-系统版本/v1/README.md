@@ -40,3 +40,18 @@ powershell -ExecutionPolicy Bypass -File .\scripts\observability\explain_action.
 - `Mermaid Detailed DAG`：适合逐轮看 turn、工具调用聚合、循环次数、分支挂载位置。
 
 默认优先写入 `03-样例`。如果当前环境不能在该目录中新建文件，脚本会自动写入 `.observability/action-reports/`，并在命令输出中提示最终路径。
+
+如果想直接看到渲染后的流程图，而不是手动复制 Mermaid，可以使用：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\observability\render_action_mermaid.ps1 -Latest -SnapshotDb -Open
+```
+
+常用参数：
+
+- `-Diagram overview`：默认值，生成压缩总览图。
+- `-Diagram detailed`：生成逐 turn 展开的详细 DAG。
+- `-UserActionId <id>`：渲染指定用户动作。
+- `-OutputPath <html路径>`：指定 HTML 输出位置。
+
+生成的 HTML 默认位于 `.observability/action-flowcharts/`。页面会从 Mermaid CDN 加载渲染库；如果浏览器无法访问网络，可以回退到报告里的 Mermaid 代码块。

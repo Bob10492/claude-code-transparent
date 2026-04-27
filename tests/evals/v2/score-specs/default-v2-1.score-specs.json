@@ -1,0 +1,66 @@
+{
+  "score_specs": [
+    {
+      "score_spec_id": "task_success.main_chain_observed",
+      "dimension": "task_success",
+      "subdimension": "main_chain_observed",
+      "direction": "higher_is_better",
+      "formula": "1 if a main_thread root query exists for run.entry_user_action_id else 0",
+      "data_sources": ["V1 queries", "V2 run"],
+      "evidence_requirements": ["entry_user_action_id", "root_query_id"],
+      "automation_level": "automatic",
+      "version": "v2.1"
+    },
+    {
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "dimension": "efficiency",
+      "subdimension": "total_billed_tokens",
+      "direction": "lower_is_better",
+      "formula": "user_actions.total_billed_tokens for run.entry_user_action_id",
+      "data_sources": ["V1 user_actions"],
+      "evidence_requirements": ["entry_user_action_id", "total_billed_tokens"],
+      "automation_level": "automatic",
+      "thresholds": {
+        "hard_fail_regression_pct": 30,
+        "soft_warn_regression_pct": 10
+      },
+      "version": "v2.1"
+    },
+    {
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "dimension": "decision_quality",
+      "subdimension": "subagent_count_observed",
+      "direction": "lower_is_better",
+      "formula": "count(subagents) for run.entry_user_action_id",
+      "data_sources": ["V1 subagents"],
+      "evidence_requirements": ["entry_user_action_id", "subagents"],
+      "automation_level": "automatic",
+      "thresholds": {
+        "soft_warn_regression_pct": 50
+      },
+      "version": "v2.1"
+    },
+    {
+      "score_spec_id": "stability.recovery_absence",
+      "dimension": "stability",
+      "subdimension": "recovery_absence",
+      "direction": "higher_is_better",
+      "formula": "1 if no recovery event exists for run.entry_user_action_id else 0",
+      "data_sources": ["V1 recoveries"],
+      "evidence_requirements": ["entry_user_action_id", "recoveries"],
+      "automation_level": "automatic",
+      "version": "v2.1"
+    },
+    {
+      "score_spec_id": "controllability.turn_limit_basic",
+      "dimension": "controllability",
+      "subdimension": "turn_limit_basic",
+      "direction": "higher_is_better",
+      "formula": "1 if root_query.turn_count <= scenario.max_turn_count or default limit 8 else 0",
+      "data_sources": ["V1 queries", "V2 scenario"],
+      "evidence_requirements": ["root_query_id", "turn_count"],
+      "automation_level": "automatic",
+      "version": "v2.1"
+    }
+  ]
+}

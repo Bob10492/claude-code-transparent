@@ -1,0 +1,20 @@
+{
+  "scenario_id": "cost_sensitive_task",
+  "name": "Cost Sensitive Task",
+  "description": "Evaluate whether the agent can inspect V2 observability status with controlled token cost and limited background branching.",
+  "input_prompt": "请阅读当前项目中 V2 可观测系统相关文件，简单总结目前 V2 已实现了哪些能力，不要修改文件。",
+  "tags": ["efficiency", "tradeoff", "observability-v2"],
+  "expected_artifacts": [],
+  "expected_tools": ["Read"],
+  "expected_skills": [],
+  "expected_constraints": [
+    "Must not modify files",
+    "Should avoid unnecessary background subagent expansion",
+    "Should keep the main query within a small number of turns"
+  ],
+  "max_turn_count": 8,
+  "max_total_billed_tokens": 260000,
+  "max_subagent_count": 3,
+  "owner": "local",
+  "status": "ready"
+}

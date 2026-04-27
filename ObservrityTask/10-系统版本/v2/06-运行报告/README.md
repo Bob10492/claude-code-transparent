@@ -1,6 +1,6 @@
 # V2 运行报告
 
-当前目录用于保存由 V2 runner / scorer 生成的单次 run 报告。
+当前目录用于保存由 V2 runner / scorer 生成的 run、compare、experiment 报告。
 
 第一阶段报告的核心作用：
 
@@ -11,13 +11,41 @@
 - 展示从 V1 DuckDB 抽取的基础证据
 - 展示第一批 rule / structure score
 
-生成入口：
+## 当前推荐入口：V2.1 实验闭环
+
+现在日常跑评测，优先使用 experiment manifest：
 
 ```powershell
-bun run scripts/evals/v2_record_run.ts --scenario tool_choice_sensitive --variant baseline_default --latest --snapshot-db
+bun run scripts/evals/v2_validate_manifests.ts
+bun run scripts/evals/v2_run_experiment.ts --experiment <experiment_id>
 ```
 
-对比入口：
+当前样例：
+
+```powershell
+bun run scripts/evals/v2_run_experiment.ts --experiment session_memory_sparse_vs_default
+```
+
+这会自动完成：
+
+1. 根据 experiment manifest 找到 scenario、baseline variant、candidate variant 和 V1 `user_action_id` 绑定。
+2. 调用 `v2_record_run.ts` 生成 baseline run 和 candidate run。
+3. 生成每个 run 的 score。
+4. 调用 `v2_compare_runs.ts` 生成 baseline vs candidate 对比报告。
+5. 应用 gate policy。
+6. 生成 experiment summary。
+
+当前 V2.1 是 `bind_existing` 模式：它不会自动启动 harness 跑 prompt。你需要先通过真实 debug/使用过程产生 baseline 和 candidate 对应的 V1 `user_action_id`，再把它们写进 experiment manifest。
+
+## 底层调试入口
+
+如果只想手动登记一次 run，可以使用：
+
+```powershell
+bun run scripts/evals/v2_record_run.ts --scenario tool_choice_sensitive --variant baseline_default --user-action-id <user_action_id> --snapshot-db
+```
+
+如果只想手动比较两个 run，可以使用：
 
 ```powershell
 bun run scripts/evals/v2_compare_runs.ts --baseline-run <baseline_run_id> --candidate-run <candidate_run_id>
@@ -35,7 +63,7 @@ bun run scripts/evals/v2_list_runs.ts --scenario tool_choice_sensitive
 bun run scripts/evals/v2_compare_scenario.ts --scenario tool_choice_sensitive --candidate candidate_tool_router_v2
 ```
 
-## 最小使用例子
+## 最小使用例子：当前 V2.1
 
 目标：测试某个改动是否让 agent 的运行效果变好。
 
@@ -47,50 +75,54 @@ powershell -ExecutionPolicy Bypass -File E:\claude-code-transparent\scripts\obse
 
 2. 在当前代码状态下跑一次 debug query，作为 baseline。
 
-3. 把刚才那次 action 登记成 baseline run。
+3. 记下 baseline 的 `user_action_id`。
 
-```powershell
-bun run scripts/evals/v2_record_run.ts --scenario tool_choice_sensitive --variant baseline_default --latest --snapshot-db
-```
-
-4. 修改你想测试的 harness / skill / tool / model 配置。
+4. 修改你想测试的 harness / skill / tool / model 配置，并确保 candidate variant 文件已存在。
 
 5. 再跑同一个 debug query，作为 candidate。
 
-6. 准备一个 candidate variant 文件，例如：
+6. 记下 candidate 的 `user_action_id`。
+
+7. 准备或更新 experiment manifest，例如：
 
 ```json
 {
-  "variant_id": "candidate_tool_router_v2",
-  "name": "Candidate Tool Router V2",
-  "description": "Test whether the new tool routing policy reduces unnecessary tool calls.",
-  "change_layer": "tool",
-  "base_variant_id": "baseline_default",
-  "git_commit": "HEAD",
-  "config_snapshot_ref": "manual",
-  "notes": "Single-variable candidate for tool routing behavior."
+  "experiment_id": "my_candidate_vs_default",
+  "baseline_variant_id": "baseline_default",
+  "candidate_variant_ids": ["candidate_tool_router_v2"],
+  "scenario_ids": ["tool_choice_sensitive"],
+  "mode": "bind_existing",
+  "action_bindings": [
+    {
+      "scenario_id": "tool_choice_sensitive",
+      "baseline_user_action_id": "<baseline_user_action_id>",
+      "candidate_user_action_ids": {
+        "candidate_tool_router_v2": "<candidate_user_action_id>"
+      }
+    }
+  ]
 }
 ```
 
 保存到：
 
 ```text
-tests/evals/v2/variants/candidate_tool_router_v2.json
+tests/evals/v2/experiments/my_candidate_vs_default.json
 ```
 
-7. 把第二次 action 登记成 candidate run。
+8. 校验 manifest。
 
 ```powershell
-bun run scripts/evals/v2_record_run.ts --scenario tool_choice_sensitive --variant candidate_tool_router_v2 --latest --snapshot-db
+bun run scripts/evals/v2_validate_manifests.ts
 ```
 
-8. 用两个 run id 生成对比报告。
+9. 一条命令跑完整实验。
 
 ```powershell
-bun run scripts/evals/v2_compare_runs.ts --baseline-run <baseline_run_id> --candidate-run <candidate_run_id>
+bun run scripts/evals/v2_run_experiment.ts --experiment my_candidate_vs_default
 ```
 
-阅读对比报告时，先看：
+阅读 experiment 报告时，先看：
 
 - `task_success.main_chain_observed`
 - `decision_quality.expected_tool_hit_rate`

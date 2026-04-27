@@ -8,6 +8,9 @@
   "expected_tools": ["Read"],
   "expected_skills": [],
   "expected_constraints": ["Must not modify unrelated files"],
+  "max_turn_count": 8,
+  "max_total_billed_tokens": 250000,
+  "max_subagent_count": 3,
   "owner": "owner_name",
   "status": "draft"
 }
