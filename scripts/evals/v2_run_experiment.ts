@@ -4,6 +4,9 @@ import path from 'node:path'
 
 import type { EvalScore } from '../../src/observability/v2/evalTypes'
 import type {
+  EvalExperimentActionBinding,
+  EvalExperimentFlatActionBinding,
+  EvalExperimentNestedActionBinding,
   EvalExperimentV21,
   EvalGatePolicy,
   EvalGatePolicyRule,
@@ -110,6 +113,52 @@ async function loadGatePolicy(gatePolicyId?: string): Promise<EvalGatePolicy | u
   if (!gatePolicyId) return undefined
   const filePath = path.join(evalRoot, 'gates', `${gatePolicyId}.json`)
   return await readJson<EvalGatePolicy>(filePath)
+}
+
+function normalizeGateRules(gatePolicy: EvalGatePolicy | undefined): EvalGatePolicyRule[] {
+  if (!gatePolicy) return []
+  return [
+    ...(gatePolicy.rules ?? []),
+    ...(gatePolicy.hard_fail_rules ?? []).map(rule => ({
+      ...rule,
+      rule_type: 'hard_fail' as const,
+    })),
+    ...(gatePolicy.soft_warning_rules ?? []).map(rule => ({
+      ...rule,
+      rule_type: 'soft_warning' as const,
+    })),
+  ]
+}
+
+function isFlatActionBinding(
+  binding: EvalExperimentActionBinding,
+): binding is EvalExperimentFlatActionBinding {
+  return 'variant_id' in binding && 'entry_user_action_id' in binding
+}
+
+function isNestedActionBinding(
+  binding: EvalExperimentActionBinding,
+): binding is EvalExperimentNestedActionBinding {
+  return 'baseline_user_action_id' in binding && 'candidate_user_action_ids' in binding
+}
+
+function findBoundUserActionId(params: {
+  experiment: EvalExperimentV21
+  scenarioId: string
+  variantId: string
+}): string | undefined {
+  const { experiment, scenarioId, variantId } = params
+  for (const binding of experiment.action_bindings ?? []) {
+    if (binding.scenario_id !== scenarioId) continue
+    if (isFlatActionBinding(binding) && binding.variant_id === variantId) {
+      return binding.entry_user_action_id
+    }
+    if (isNestedActionBinding(binding)) {
+      if (variantId === experiment.baseline_variant_id) return binding.baseline_user_action_id
+      return binding.candidate_user_action_ids[variantId]
+    }
+  }
+  return undefined
 }
 
 function runBunScript(script: string, args: string[]): string {
@@ -225,14 +274,15 @@ function evaluateGate(params: {
     baselineScores,
     candidateScores,
   } = params
-  if (!gatePolicy) return []
+  const rules = normalizeGateRules(gatePolicy)
+  if (rules.length === 0) return []
 
   const taskBaseline = valueFor(baselineScores, 'task_success.main_chain_observed')
   const taskCandidate = valueFor(candidateScores, 'task_success.main_chain_observed')
   const taskSuccessNotImproved =
     taskBaseline !== null && taskCandidate !== null && taskCandidate <= taskBaseline
 
-  return gatePolicy.rules.map(rule => {
+  return rules.map(rule => {
     const spec = scoreSpecs.get(rule.score_spec_id)
     const baselineValue = valueFor(baselineScores, rule.score_spec_id)
     const candidateValue = valueFor(candidateScores, rule.score_spec_id)
@@ -269,8 +319,9 @@ function buildRecordRunArgs(params: {
   scenarioId: string
   variantId: string
   userActionId: string
+  scoreSpecIds: string[]
 }): string[] {
-  return [
+  const args = [
     '--scenario',
     params.scenarioId,
     '--variant',
@@ -279,6 +330,10 @@ function buildRecordRunArgs(params: {
     params.userActionId,
     '--snapshot-db',
   ]
+  if (params.scoreSpecIds.length > 0) {
+    args.push('--score-spec-ids', params.scoreSpecIds.join(','))
+  }
+  return args
 }
 
 function buildMarkdownReport(params: {
@@ -327,6 +382,8 @@ function buildMarkdownReport(params: {
 - baseline_variant: ${experiment.baseline_variant_id}
 - candidate_variants: ${experiment.candidate_variant_ids.join(', ')}
 - scenario_count: ${experiment.scenario_ids?.length ?? 0}
+- score_specs: ${(experiment.score_spec_ids ?? []).join(', ') || 'not configured'}
+- gate_policy: ${experiment.gate_policy_id ?? 'not configured'}
 - output_json: ${outputJson}
 
 ## 预期效果
@@ -364,10 +421,16 @@ async function main(): Promise<void> {
 
   const experimentPath = await findExperimentPath(experimentArg)
   const experiment = await readJson<EvalExperimentV21>(experimentPath)
+  const mode = experiment.mode ?? 'bind_existing'
 
-  if ((experiment.mode ?? 'bind_existing') !== 'bind_existing') {
+  if (mode === 'execute_harness') {
     throw new Error(
-      `Only bind_existing mode is implemented in V2.1. mode=${experiment.mode}`,
+      'execute_harness mode is not implemented yet: missing headless harness execution adapter',
+    )
+  }
+  if (mode !== 'bind_existing') {
+    throw new Error(
+      `Unsupported V2.1 experiment mode: ${mode}`,
     )
   }
 
@@ -378,16 +441,37 @@ async function main(): Promise<void> {
 
   const scoreSpecs = await loadScoreSpecs()
   const gatePolicy = await loadGatePolicy(experiment.gate_policy_id)
+  for (const scoreSpecId of experiment.score_spec_ids ?? []) {
+    if (!scoreSpecs.has(scoreSpecId)) {
+      throw new Error(
+        `Experiment references missing score_spec_id: ${scoreSpecId}`,
+      )
+    }
+  }
+  if (experiment.gate_policy_id && !gatePolicy) {
+    throw new Error(
+      `Experiment references missing gate_policy_id: ${experiment.gate_policy_id}`,
+    )
+  }
+  for (const rule of normalizeGateRules(gatePolicy)) {
+    if (!scoreSpecs.has(rule.score_spec_id)) {
+      throw new Error(
+        `Gate policy ${experiment.gate_policy_id} references missing score_spec_id: ${rule.score_spec_id}`,
+      )
+    }
+  }
   const repeatCount = Math.max(experiment.repeat_count ?? 1, 1)
   const results: ScenarioExperimentResult[] = []
 
   for (const scenarioId of scenarioIds) {
-    const binding = experiment.action_bindings?.find(
-      item => item.scenario_id === scenarioId,
-    )
-    if (!binding) {
+    const baselineUserActionId = findBoundUserActionId({
+      experiment,
+      scenarioId,
+      variantId: experiment.baseline_variant_id,
+    })
+    if (!baselineUserActionId) {
       throw new Error(
-        `Missing action_bindings for scenario=${scenarioId}. V2.1 bind_existing mode requires user_action_id bindings.`,
+        `Missing action binding for scenario=${scenarioId}, variant=${experiment.baseline_variant_id}. V2.1 bind_existing mode requires user_action_id bindings.`,
       )
     }
 
@@ -397,7 +481,8 @@ async function main(): Promise<void> {
         buildRecordRunArgs({
           scenarioId,
           variantId: experiment.baseline_variant_id,
-          userActionId: binding.baseline_user_action_id,
+          userActionId: baselineUserActionId,
+          scoreSpecIds: experiment.score_spec_ids ?? [],
         }),
       )
       const baselineRunId = extractCreatedRunId(baselineOutput)
@@ -407,7 +492,11 @@ async function main(): Promise<void> {
 
       const candidates: CandidateExperimentResult[] = []
       for (const candidateVariantId of experiment.candidate_variant_ids) {
-        const candidateActionId = binding.candidate_user_action_ids[candidateVariantId]
+        const candidateActionId = findBoundUserActionId({
+          experiment,
+          scenarioId,
+          variantId: candidateVariantId,
+        })
         if (!candidateActionId) {
           throw new Error(
             `Missing candidate user_action_id for scenario=${scenarioId}, variant=${candidateVariantId}`,
@@ -420,6 +509,7 @@ async function main(): Promise<void> {
             scenarioId,
             variantId: candidateVariantId,
             userActionId: candidateActionId,
+            scoreSpecIds: experiment.score_spec_ids ?? [],
           }),
         )
         const candidateRunId = extractCreatedRunId(candidateOutput)
@@ -454,7 +544,7 @@ async function main(): Promise<void> {
         scenario_id: scenarioId,
         repeat_index: repeatIndex,
         baseline_run_id: baselineRunId,
-        baseline_user_action_id: binding.baseline_user_action_id,
+        baseline_user_action_id: baselineUserActionId,
         candidates,
       })
     }
@@ -472,6 +562,11 @@ async function main(): Promise<void> {
     `${JSON.stringify(
       {
         experiment,
+        runner: {
+          mode,
+          score_spec_ids: experiment.score_spec_ids ?? [],
+          gate_policy_id: experiment.gate_policy_id ?? null,
+        },
         results,
         created_at: new Date().toISOString(),
       },

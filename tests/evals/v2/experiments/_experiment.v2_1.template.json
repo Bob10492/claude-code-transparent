@@ -19,10 +19,13 @@
   "action_bindings": [
     {
       "scenario_id": "cost_sensitive_task",
-      "baseline_user_action_id": "REPLACE_WITH_BASELINE_USER_ACTION_ID",
-      "candidate_user_action_ids": {
-        "candidate_session_memory_sparse": "REPLACE_WITH_CANDIDATE_USER_ACTION_ID"
-      }
+      "variant_id": "baseline_default",
+      "entry_user_action_id": "REPLACE_WITH_BASELINE_USER_ACTION_ID"
+    },
+    {
+      "scenario_id": "cost_sensitive_task",
+      "variant_id": "candidate_session_memory_sparse",
+      "entry_user_action_id": "REPLACE_WITH_CANDIDATE_USER_ACTION_ID"
     }
   ],
   "status": "draft"

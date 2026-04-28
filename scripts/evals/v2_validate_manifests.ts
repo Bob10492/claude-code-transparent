@@ -7,8 +7,12 @@ import type {
   EvalVariant,
 } from '../../src/observability/v2/evalTypes'
 import type {
+  EvalExperimentActionBinding,
+  EvalExperimentFlatActionBinding,
+  EvalExperimentNestedActionBinding,
   EvalExperimentV21,
   EvalGatePolicy,
+  EvalGatePolicyRule,
   EvalScoreSpecCollection,
 } from '../../src/observability/v2/evalExperimentTypes'
 
@@ -36,6 +40,13 @@ const scoreDirections = new Set([
 ])
 const automationLevels = new Set(['automatic', 'manual_review', 'mixed'])
 const experimentModes = new Set(['bind_existing', 'execute_harness'])
+
+interface ValidationContext {
+  scenarioIds: Set<string>
+  variantIds: Set<string>
+  scoreSpecIds: Set<string>
+  gatePolicyIds: Set<string>
+}
 
 async function readJson<T>(filePath: string): Promise<T> {
   return JSON.parse(await readFile(filePath, 'utf8')) as T
@@ -81,6 +92,36 @@ function requireOptionalNumber(
   }
 }
 
+function isFlatActionBinding(
+  binding: EvalExperimentActionBinding,
+): binding is EvalExperimentFlatActionBinding {
+  return 'variant_id' in binding && 'entry_user_action_id' in binding
+}
+
+function isNestedActionBinding(
+  binding: EvalExperimentActionBinding,
+): binding is EvalExperimentNestedActionBinding {
+  return 'baseline_user_action_id' in binding && 'candidate_user_action_ids' in binding
+}
+
+function isPlaceholderActionId(value: string): boolean {
+  return value.startsWith('REPLACE_WITH_') || value.trim() === ''
+}
+
+function normalizeGateRules(gate: EvalGatePolicy): EvalGatePolicyRule[] {
+  return [
+    ...(gate.rules ?? []),
+    ...(gate.hard_fail_rules ?? []).map(rule => ({
+      ...rule,
+      rule_type: 'hard_fail' as const,
+    })),
+    ...(gate.soft_warning_rules ?? []).map(rule => ({
+      ...rule,
+      rule_type: 'soft_warning' as const,
+    })),
+  ]
+}
+
 function validateScenario(filePath: string, scenario: EvalScenario): string[] {
   const errors: string[] = []
   requireString(errors, filePath, 'scenario_id', scenario.scenario_id)
@@ -114,7 +155,11 @@ function validateVariant(filePath: string, variant: EvalVariant): string[] {
   return errors
 }
 
-function validateExperiment(filePath: string, experiment: EvalExperimentV21): string[] {
+function validateExperiment(
+  filePath: string,
+  experiment: EvalExperimentV21,
+  context?: ValidationContext,
+): string[] {
   const errors: string[] = []
   requireString(errors, filePath, 'experiment_id', experiment.experiment_id)
   requireString(errors, filePath, 'name', experiment.name)
@@ -124,6 +169,25 @@ function validateExperiment(filePath: string, experiment: EvalExperimentV21): st
   requireArray(errors, filePath, 'candidate_variant_ids', experiment.candidate_variant_ids)
   if (experiment.scenario_ids !== undefined) {
     requireArray(errors, filePath, 'scenario_ids', experiment.scenario_ids)
+    for (const scenarioId of experiment.scenario_ids) {
+      if (typeof scenarioId === 'string' && context && !context.scenarioIds.has(scenarioId)) {
+        errors.push(`${filePath}.scenario_ids references unknown scenario_id: ${scenarioId}`)
+      }
+    }
+  }
+  if (context && !context.variantIds.has(experiment.baseline_variant_id)) {
+    errors.push(
+      `${filePath}.baseline_variant_id references unknown variant_id: ${experiment.baseline_variant_id}`,
+    )
+  }
+  if (Array.isArray(experiment.candidate_variant_ids)) {
+    for (const variantId of experiment.candidate_variant_ids) {
+      if (typeof variantId === 'string' && context && !context.variantIds.has(variantId)) {
+        errors.push(
+          `${filePath}.candidate_variant_ids references unknown variant_id: ${variantId}`,
+        )
+      }
+    }
   }
   if (
     experiment.repeat_count !== undefined &&
@@ -133,6 +197,26 @@ function validateExperiment(filePath: string, experiment: EvalExperimentV21): st
   }
   if (experiment.score_spec_ids !== undefined) {
     requireArray(errors, filePath, 'score_spec_ids', experiment.score_spec_ids)
+    for (const scoreSpecId of experiment.score_spec_ids) {
+      if (
+        typeof scoreSpecId === 'string' &&
+        context &&
+        !context.scoreSpecIds.has(scoreSpecId)
+      ) {
+        errors.push(
+          `${filePath}.score_spec_ids references unknown score_spec_id: ${scoreSpecId}`,
+        )
+      }
+    }
+  }
+  if (
+    experiment.gate_policy_id !== undefined &&
+    context &&
+    !context.gatePolicyIds.has(experiment.gate_policy_id)
+  ) {
+    errors.push(
+      `${filePath}.gate_policy_id references unknown gate_policy_id: ${experiment.gate_policy_id}`,
+    )
   }
   if (
     experiment.mode !== undefined &&
@@ -143,26 +227,99 @@ function validateExperiment(filePath: string, experiment: EvalExperimentV21): st
   if (experiment.action_bindings !== undefined) {
     requireArray(errors, filePath, 'action_bindings', experiment.action_bindings)
     for (const [index, binding] of experiment.action_bindings.entries()) {
+      const objectName = `${filePath}.action_bindings[${index}]`
       requireString(
         errors,
-        `${filePath}.action_bindings[${index}]`,
+        objectName,
         'scenario_id',
         binding.scenario_id,
       )
-      requireString(
-        errors,
-        `${filePath}.action_bindings[${index}]`,
-        'baseline_user_action_id',
-        binding.baseline_user_action_id,
-      )
       if (
-        typeof binding.candidate_user_action_ids !== 'object' ||
-        binding.candidate_user_action_ids === null ||
-        Array.isArray(binding.candidate_user_action_ids)
+        typeof binding.scenario_id === 'string' &&
+        context &&
+        !context.scenarioIds.has(binding.scenario_id)
       ) {
-        errors.push(
-          `${filePath}.action_bindings[${index}].candidate_user_action_ids must be an object`,
+        errors.push(`${objectName}.scenario_id references unknown scenario_id: ${binding.scenario_id}`)
+      }
+
+      if (isFlatActionBinding(binding)) {
+        requireString(errors, objectName, 'variant_id', binding.variant_id)
+        requireString(
+          errors,
+          objectName,
+          'entry_user_action_id',
+          binding.entry_user_action_id,
         )
+        if (context && !context.variantIds.has(binding.variant_id)) {
+          errors.push(`${objectName}.variant_id references unknown variant_id: ${binding.variant_id}`)
+        }
+        if (isPlaceholderActionId(binding.entry_user_action_id)) {
+          errors.push(`${objectName}.entry_user_action_id still contains a placeholder`)
+        }
+        continue
+      }
+
+      if (isNestedActionBinding(binding)) {
+        requireString(
+          errors,
+          objectName,
+          'baseline_user_action_id',
+          binding.baseline_user_action_id,
+        )
+        if (isPlaceholderActionId(binding.baseline_user_action_id)) {
+          errors.push(`${objectName}.baseline_user_action_id still contains a placeholder`)
+        }
+        if (
+          typeof binding.candidate_user_action_ids !== 'object' ||
+          binding.candidate_user_action_ids === null ||
+          Array.isArray(binding.candidate_user_action_ids)
+        ) {
+          errors.push(`${objectName}.candidate_user_action_ids must be an object`)
+        } else {
+          for (const [variantId, actionId] of Object.entries(binding.candidate_user_action_ids)) {
+            if (context && !context.variantIds.has(variantId)) {
+              errors.push(
+                `${objectName}.candidate_user_action_ids references unknown variant_id: ${variantId}`,
+              )
+            }
+            if (isPlaceholderActionId(actionId)) {
+              errors.push(
+                `${objectName}.candidate_user_action_ids.${variantId} still contains a placeholder`,
+              )
+            }
+          }
+        }
+        continue
+      }
+
+      errors.push(
+        `${objectName} must use either flat {scenario_id, variant_id, entry_user_action_id} or nested {scenario_id, baseline_user_action_id, candidate_user_action_ids} format`,
+      )
+    }
+  }
+  if ((experiment.mode ?? 'bind_existing') === 'bind_existing') {
+    for (const scenarioId of experiment.scenario_ids ?? []) {
+      const variantIds = [experiment.baseline_variant_id, ...experiment.candidate_variant_ids]
+      for (const variantId of variantIds) {
+        const hasBinding = (experiment.action_bindings ?? []).some(binding => {
+          if (binding.scenario_id !== scenarioId) return false
+          if (isFlatActionBinding(binding)) {
+            return binding.variant_id === variantId && !isPlaceholderActionId(binding.entry_user_action_id)
+          }
+          if (isNestedActionBinding(binding)) {
+            if (variantId === experiment.baseline_variant_id) {
+              return !isPlaceholderActionId(binding.baseline_user_action_id)
+            }
+            const actionId = binding.candidate_user_action_ids[variantId]
+            return typeof actionId === 'string' && !isPlaceholderActionId(actionId)
+          }
+          return false
+        })
+        if (!hasBinding) {
+          errors.push(
+            `${filePath}.action_bindings missing bind_existing user_action_id for scenario=${scenarioId}, variant=${variantId}`,
+          )
+        }
       }
     }
   }
@@ -183,7 +340,12 @@ function validateScoreSpecCollection(
     requireString(errors, objectName, 'score_spec_id', spec.score_spec_id)
     requireString(errors, objectName, 'subdimension', spec.subdimension)
     requireString(errors, objectName, 'formula', spec.formula)
-    requireString(errors, objectName, 'version', spec.version)
+    if (
+      (typeof spec.version !== 'string' || spec.version.trim() === '') &&
+      typeof spec.version !== 'number'
+    ) {
+      errors.push(`${objectName}.version must be a non-empty string or number`)
+    }
     requireArray(errors, objectName, 'data_sources', spec.data_sources)
     requireArray(errors, objectName, 'evidence_requirements', spec.evidence_requirements)
     if (!scoreDimensions.has(spec.dimension)) {
@@ -205,14 +367,21 @@ function validateScoreSpecCollection(
   return errors
 }
 
-function validateGatePolicy(filePath: string, gate: EvalGatePolicy): string[] {
+function validateGatePolicy(
+  filePath: string,
+  gate: EvalGatePolicy,
+  context?: ValidationContext,
+): string[] {
   const errors: string[] = []
   requireString(errors, filePath, 'gate_policy_id', gate.gate_policy_id)
   requireString(errors, filePath, 'name', gate.name)
-  requireArray(errors, filePath, 'rules', gate.rules)
-  if (!Array.isArray(gate.rules)) return errors
+  const rules = normalizeGateRules(gate)
+  if (rules.length === 0) {
+    errors.push(`${filePath} must define at least one gate rule`)
+    return errors
+  }
 
-  for (const [index, rule] of gate.rules.entries()) {
+  for (const [index, rule] of rules.entries()) {
     const objectName = `${filePath}.rules[${index}]`
     requireString(errors, objectName, 'score_spec_id', rule.score_spec_id)
     requireString(errors, objectName, 'condition', rule.condition)
@@ -220,42 +389,83 @@ function validateGatePolicy(filePath: string, gate: EvalGatePolicy): string[] {
       errors.push(`${objectName}.rule_type has invalid value: ${rule.rule_type}`)
     }
     requireOptionalNumber(errors, objectName, 'threshold', rule.threshold)
+    if (context && !context.scoreSpecIds.has(rule.score_spec_id)) {
+      errors.push(`${objectName}.score_spec_id references unknown score_spec_id: ${rule.score_spec_id}`)
+    }
   }
   return errors
 }
 
 async function validateAll(): Promise<string[]> {
   const errors: string[] = []
+  const context: ValidationContext = {
+    scenarioIds: new Set<string>(),
+    variantIds: new Set<string>(),
+    scoreSpecIds: new Set<string>(),
+    gatePolicyIds: new Set<string>(),
+  }
 
-  for (const filePath of await listJsonFiles(path.join(evalRoot, 'scenarios'))) {
+  const scenarioFiles = await listJsonFiles(path.join(evalRoot, 'scenarios'))
+  const variantFiles = await listJsonFiles(path.join(evalRoot, 'variants'))
+  const experimentFiles = await listJsonFiles(path.join(evalRoot, 'experiments'))
+  const scoreSpecFiles = await listJsonFiles(path.join(evalRoot, 'score-specs'))
+  const gateFiles = await listJsonFiles(path.join(evalRoot, 'gates'))
+
+  for (const filePath of scenarioFiles) {
     if (path.basename(filePath).startsWith('_')) continue
     if (path.basename(filePath) === 'first-batch-catalog.json') continue
-    errors.push(...validateScenario(filePath, await readJson<EvalScenario>(filePath)))
+    const scenario = await readJson<EvalScenario>(filePath)
+    if (typeof scenario.scenario_id === 'string') context.scenarioIds.add(scenario.scenario_id)
+    errors.push(...validateScenario(filePath, scenario))
   }
 
-  for (const filePath of await listJsonFiles(path.join(evalRoot, 'variants'))) {
+  for (const filePath of variantFiles) {
     if (path.basename(filePath).startsWith('_')) continue
-    errors.push(...validateVariant(filePath, await readJson<EvalVariant>(filePath)))
+    const variant = await readJson<EvalVariant>(filePath)
+    if (typeof variant.variant_id === 'string') context.variantIds.add(variant.variant_id)
+    errors.push(...validateVariant(filePath, variant))
   }
 
-  for (const filePath of await listJsonFiles(path.join(evalRoot, 'experiments'))) {
+  for (const filePath of scoreSpecFiles) {
     if (path.basename(filePath).startsWith('_')) continue
-    errors.push(...validateExperiment(filePath, await readJson<EvalExperimentV21>(filePath)))
-  }
-
-  for (const filePath of await listJsonFiles(path.join(evalRoot, 'score-specs'))) {
-    if (path.basename(filePath).startsWith('_')) continue
+    const collection = await readJson<EvalScoreSpecCollection>(filePath)
+    for (const spec of collection.score_specs ?? []) {
+      if (typeof spec.score_spec_id === 'string') {
+        context.scoreSpecIds.add(spec.score_spec_id)
+      }
+    }
     errors.push(
       ...validateScoreSpecCollection(
         filePath,
-        await readJson<EvalScoreSpecCollection>(filePath),
+        collection,
       ),
     )
   }
 
-  for (const filePath of await listJsonFiles(path.join(evalRoot, 'gates'))) {
+  for (const filePath of gateFiles) {
     if (path.basename(filePath).startsWith('_')) continue
-    errors.push(...validateGatePolicy(filePath, await readJson<EvalGatePolicy>(filePath)))
+    const gate = await readJson<EvalGatePolicy>(filePath)
+    if (typeof gate.gate_policy_id === 'string') {
+      context.gatePolicyIds.add(gate.gate_policy_id)
+    }
+  }
+
+  for (const filePath of experimentFiles) {
+    if (path.basename(filePath).startsWith('_')) continue
+    errors.push(
+      ...validateExperiment(
+        filePath,
+        await readJson<EvalExperimentV21>(filePath),
+        context,
+      ),
+    )
+  }
+
+  for (const filePath of gateFiles) {
+    if (path.basename(filePath).startsWith('_')) continue
+    errors.push(
+      ...validateGatePolicy(filePath, await readJson<EvalGatePolicy>(filePath), context),
+    )
   }
 
   return errors

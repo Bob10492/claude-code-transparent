@@ -66,7 +66,20 @@ export interface EvalRun {
   entry_user_action_id?: string
   root_query_id?: string
   observability_db_ref?: string
+  binding?: EvalRunBinding
   notes?: string
+}
+
+export interface EvalRunBinding {
+  binding_mode: 'fact_only'
+  entry_user_action_id: string
+  root_query_id: string
+  observability_db_ref: string
+  events_file_ref?: string
+  snapshot_bundle_ref?: string
+  dag_ref?: string
+  bind_passed: boolean
+  binding_failure_reason: string | null
 }
 
 export interface EvalExpectation {

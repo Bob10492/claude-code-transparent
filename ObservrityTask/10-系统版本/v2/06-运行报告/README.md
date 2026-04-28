@@ -91,14 +91,25 @@ powershell -ExecutionPolicy Bypass -File E:\claude-code-transparent\scripts\obse
   "baseline_variant_id": "baseline_default",
   "candidate_variant_ids": ["candidate_tool_router_v2"],
   "scenario_ids": ["tool_choice_sensitive"],
+  "score_spec_ids": [
+    "task_success.main_chain_observed",
+    "efficiency.total_billed_tokens",
+    "decision_quality.subagent_count_observed",
+    "stability.recovery_absence",
+    "controllability.turn_limit_basic"
+  ],
+  "gate_policy_id": "default_v2_1_gate",
   "mode": "bind_existing",
   "action_bindings": [
     {
       "scenario_id": "tool_choice_sensitive",
-      "baseline_user_action_id": "<baseline_user_action_id>",
-      "candidate_user_action_ids": {
-        "candidate_tool_router_v2": "<candidate_user_action_id>"
-      }
+      "variant_id": "baseline_default",
+      "entry_user_action_id": "<baseline_user_action_id>"
+    },
+    {
+      "scenario_id": "tool_choice_sensitive",
+      "variant_id": "candidate_tool_router_v2",
+      "entry_user_action_id": "<candidate_user_action_id>"
     }
   ]
 }

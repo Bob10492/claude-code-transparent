@@ -32,9 +32,30 @@ Recommended V2.1 usage order:
    - `candidate_variant_ids`
    - `mode: "bind_existing"`
    - `action_bindings`
+   - `score_spec_ids`
+   - `gate_policy_id`
 5. Validate all manifests.
 6. Run the experiment runner.
 7. Read the generated run, score, comparison, gate, and experiment summary artifacts.
+
+Recommended V2.1 `action_bindings` shape:
+
+```json
+[
+  {
+    "scenario_id": "cost_sensitive_task",
+    "variant_id": "baseline_default",
+    "entry_user_action_id": "<baseline_user_action_id>"
+  },
+  {
+    "scenario_id": "cost_sensitive_task",
+    "variant_id": "candidate_session_memory_sparse",
+    "entry_user_action_id": "<candidate_user_action_id>"
+  }
+]
+```
+
+The runner still accepts the older nested binding shape for compatibility. New experiment manifests should use the flat `scenario_id + variant_id + entry_user_action_id` shape.
 
 Validate manifests:
 
@@ -48,7 +69,13 @@ Run the current sample V2.1 experiment:
 bun run scripts/evals/v2_run_experiment.ts --experiment session_memory_sparse_vs_default
 ```
 
-Current V2.1 mode is `bind_existing`. It does not execute the harness by itself yet. Instead, it binds existing V1 `user_action_id` traces into V2 runs, records scores, compares baseline vs candidate, applies the configured gate policy, and writes an experiment summary under `experiment-runs/` plus a Markdown report under `ObservrityTask/10-系统版本/v2/06-运行报告/`.
+Current V2.1 mode is `bind_existing`. It does not execute the harness by itself yet. Instead, it binds existing V1 `user_action_id` traces into V2 runs, records score-spec-backed scores, compares baseline vs candidate, applies the configured gate policy, and writes an experiment summary under `experiment-runs/` plus a Markdown report under `ObservrityTask/10-系统版本/v2/06-运行报告/`.
+
+`execute_harness` is reserved but intentionally blocked until a stable headless harness execution adapter exists. If a manifest uses that mode now, the runner exits with:
+
+```text
+execute_harness mode is not implemented yet: missing headless harness execution adapter
+```
 
 Lower-level commands are still available when you want to debug one step at a time.
 

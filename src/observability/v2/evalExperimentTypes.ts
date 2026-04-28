@@ -25,7 +25,7 @@ export interface EvalScoreSpec {
   evidence_requirements: string[]
   automation_level: EvalAutomationLevel
   thresholds?: EvalScoreSpecThresholds
-  version: string
+  version: string | number
   notes?: string
 }
 
@@ -44,14 +44,26 @@ export interface EvalGatePolicyRule {
 export interface EvalGatePolicy {
   gate_policy_id: string
   name: string
-  rules: EvalGatePolicyRule[]
+  rules?: EvalGatePolicyRule[]
+  hard_fail_rules?: Array<Omit<EvalGatePolicyRule, 'rule_type'>>
+  soft_warning_rules?: Array<Omit<EvalGatePolicyRule, 'rule_type'>>
 }
 
-export interface EvalExperimentActionBinding {
+export interface EvalExperimentFlatActionBinding {
+  scenario_id: string
+  variant_id: string
+  entry_user_action_id: string
+}
+
+export interface EvalExperimentNestedActionBinding {
   scenario_id: string
   baseline_user_action_id: string
   candidate_user_action_ids: Record<string, string>
 }
+
+export type EvalExperimentActionBinding =
+  | EvalExperimentFlatActionBinding
+  | EvalExperimentNestedActionBinding
 
 export interface EvalExperimentV21 extends EvalExperiment {
   scenario_ids?: string[]
