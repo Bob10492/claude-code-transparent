@@ -15,6 +15,7 @@ import type {
   EvalGatePolicyRule,
   EvalScoreSpecCollection,
 } from '../../src/observability/v2/evalExperimentTypes'
+import { listImplementedScoreSpecIds } from './v2_score_registry'
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const evalRoot = path.join(repoRoot, 'tests', 'evals', 'v2')
@@ -329,6 +330,7 @@ function validateExperiment(
 function validateScoreSpecCollection(
   filePath: string,
   collection: EvalScoreSpecCollection,
+  implementedScoreSpecIds: Set<string>,
 ): string[] {
   const errors: string[] = []
   requireArray(errors, filePath, 'score_specs', collection.score_specs)
@@ -361,6 +363,9 @@ function validateScoreSpecCollection(
     }
     if (seen.has(spec.score_spec_id)) {
       errors.push(`${objectName}.score_spec_id is duplicated: ${spec.score_spec_id}`)
+    }
+    if (!implementedScoreSpecIds.has(spec.score_spec_id)) {
+      errors.push(`${objectName}.score_spec_id has no implemented scorer: ${spec.score_spec_id}`)
     }
     seen.add(spec.score_spec_id)
   }
@@ -404,6 +409,7 @@ async function validateAll(): Promise<string[]> {
     scoreSpecIds: new Set<string>(),
     gatePolicyIds: new Set<string>(),
   }
+  const implementedScoreSpecIds = new Set(listImplementedScoreSpecIds())
 
   const scenarioFiles = await listJsonFiles(path.join(evalRoot, 'scenarios'))
   const variantFiles = await listJsonFiles(path.join(evalRoot, 'variants'))
@@ -438,6 +444,7 @@ async function validateAll(): Promise<string[]> {
       ...validateScoreSpecCollection(
         filePath,
         collection,
+        implementedScoreSpecIds,
       ),
     )
   }

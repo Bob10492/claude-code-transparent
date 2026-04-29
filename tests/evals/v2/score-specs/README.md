@@ -3,8 +3,8 @@
 ## 理解清单
 
 - `score-specs/*.json` 定义“哪些分数是正式分数”。
-- `scripts/evals/v2_record_run.ts` 目前负责实际计算这些分数。
-- V2.1 当前不是公式解释器；score formula 仍由脚本中的 scorer implementation 实现。
+- `scripts/evals/v2_score_registry.ts` 负责登记 `score_spec_id -> scorer implementation`。
+- V2.1 当前不是公式解释器；score formula 仍由 registry 中的 scorer implementation 实现。
 
 ## 预期效果
 
@@ -20,24 +20,24 @@
 V2.1 先固化 contract，再逐步演进实现。当前 contract 是：
 
 ```text
-score_spec_id -> implemented scorer in scripts/evals/v2_record_run.ts
+score_spec_id -> implemented scorer in scripts/evals/v2_score_registry.ts
 ```
 
-后续可以把公式解析、规则执行、外部 scorer registry 拆出去，但本轮不做。
+后续可以把公式解析、规则执行、外部 scorer backend 拆出去，但本轮不做。
 
 ## Current Mapping
 
 | score_spec_id | implementation | data source | current boundary |
 | --- | --- | --- | --- |
-| `task_success.main_chain_observed` | `buildScores()` in `scripts/evals/v2_record_run.ts` | V1 `queries` + run binding | 判断是否存在 `main_thread` root query。 |
-| `efficiency.total_billed_tokens` | `buildScores()` in `scripts/evals/v2_record_run.ts` | V1 `user_actions.total_billed_tokens` | 只记录事实值，不单独判断好坏。 |
-| `decision_quality.subagent_count_observed` | `buildScores()` in `scripts/evals/v2_record_run.ts` | V1 `subagents` | 只记录数量事实；是否好坏交给 compare/gate 结合任务成功判断。 |
-| `stability.recovery_absence` | `buildScores()` in `scripts/evals/v2_record_run.ts` | V1 `recoveries` | 无 recovery 为 1，有 recovery 为 0。 |
-| `controllability.turn_limit_basic` | `buildScores()` in `scripts/evals/v2_record_run.ts` | V1 `queries.turn_count` + scenario limit | 当前使用 scenario `max_turn_count`，缺省为 8。 |
+| `task_success.main_chain_observed` | `V2_SCORE_SCORERS['task_success.main_chain_observed']` | V1 `queries` + run binding | 判断是否存在 `main_thread` root query。 |
+| `efficiency.total_billed_tokens` | `V2_SCORE_SCORERS['efficiency.total_billed_tokens']` | V1 `user_actions.total_billed_tokens` | 只记录事实值，不单独判断好坏。 |
+| `decision_quality.subagent_count_observed` | `V2_SCORE_SCORERS['decision_quality.subagent_count_observed']` | V1 `subagents` | 只记录数量事实；是否好坏交给 compare/gate 结合任务成功判断。 |
+| `stability.recovery_absence` | `V2_SCORE_SCORERS['stability.recovery_absence']` | V1 `recoveries` | 无 recovery 为 1，有 recovery 为 0。 |
+| `controllability.turn_limit_basic` | `V2_SCORE_SCORERS['controllability.turn_limit_basic']` | V1 `queries.turn_count` + scenario limit | 当前使用 scenario `max_turn_count`，缺省为 8。 |
 
 ## Not Formal In V2.1
 
-`v2_record_run.ts` 内部还能计算一些辅助分数，例如：
+`v2_score_registry.ts` 内部还登记了一些辅助分数，例如：
 
 - `decision_quality.expected_tool_hit_rate`
 - `efficiency.total_billed_token_budget`
@@ -49,8 +49,8 @@ score_spec_id -> implemented scorer in scripts/evals/v2_record_run.ts
 ## Failure Rules
 
 - experiment 引用不存在的 `score_spec_id`：runner 失败。
-- score-spec 存在但 scorer 未实现：record_run 失败。
-- scorer 产生了未声明 score：runner 通过 `--score-spec-ids` 过滤，不写入正式 score artifact。
+- score-spec 存在但 scorer 未实现：manifest validator 和 record_run 都会失败。
+- 未声明 score 不会进入正式 score artifact，因为 record_run 只按 `--score-spec-ids` 从 registry 取分。
 
 ## V2.1 Boundary
 
