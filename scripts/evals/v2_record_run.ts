@@ -156,7 +156,14 @@ async function loadVariant(variantId: string): Promise<EvalVariant> {
   try {
     return await readJson<EvalVariant>(directPath)
   } catch {
-    // Fall through to shipped templates.
+    // Fall through to shipped templates and fixture variants.
+  }
+
+  const templatePath = path.join(evalRoot, 'variants', `${variantId}.template.json`)
+  try {
+    return await readJson<EvalVariant>(templatePath)
+  } catch {
+    // Fall through to the baseline template compatibility path.
   }
 
   const baseline = await readJson<EvalVariant>(

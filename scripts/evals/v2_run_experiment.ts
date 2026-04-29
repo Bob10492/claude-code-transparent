@@ -35,12 +35,22 @@ interface GateResult {
   candidate_variant_id: string
   rule_type: 'hard_fail' | 'soft_warning'
   score_spec_id: string
+  verdict: 'pass' | 'hard_fail' | 'soft_warning' | 'missing' | 'inconclusive'
   passed: boolean
   baseline_value: number | null
   candidate_value: number | null
   regression_pct: number | null
   condition: string
   notes?: string
+}
+
+interface GateVerdict {
+  status: 'pass' | 'warning' | 'fail' | 'inconclusive'
+  hard_fail_count: number
+  soft_warning_count: number
+  missing_score_count: number
+  inconclusive_count: number
+  candidate_count: number
 }
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
@@ -112,7 +122,11 @@ async function loadScoreSpecs(): Promise<Map<string, EvalScoreSpec>> {
 async function loadGatePolicy(gatePolicyId?: string): Promise<EvalGatePolicy | undefined> {
   if (!gatePolicyId) return undefined
   const filePath = path.join(evalRoot, 'gates', `${gatePolicyId}.json`)
-  return await readJson<EvalGatePolicy>(filePath)
+  try {
+    return await readJson<EvalGatePolicy>(filePath)
+  } catch {
+    return undefined
+  }
 }
 
 function normalizeGateRules(gatePolicy: EvalGatePolicy | undefined): EvalGatePolicyRule[] {
@@ -258,6 +272,10 @@ function rulePassed(params: {
   return true
 }
 
+function isSupportedGateCondition(condition: string): boolean {
+  return condition === 'candidate < baseline' || condition.includes('candidate_regression_pct >')
+}
+
 function evaluateGate(params: {
   scenarioId: string
   candidateVariantId: string
@@ -286,6 +304,8 @@ function evaluateGate(params: {
     const spec = scoreSpecs.get(rule.score_spec_id)
     const baselineValue = valueFor(baselineScores, rule.score_spec_id)
     const candidateValue = valueFor(candidateScores, rule.score_spec_id)
+    const hasMissingScore = baselineValue === null || candidateValue === null
+    const hasUnsupportedCondition = !isSupportedGateCondition(rule.condition)
     const regressionPctValue = spec
       ? regressionPct({
           baselineValue,
@@ -293,18 +313,30 @@ function evaluateGate(params: {
           direction: spec.direction,
         })
       : null
-    return {
-      scenario_id: scenarioId,
-      candidate_variant_id: candidateVariantId,
-      rule_type: rule.rule_type,
-      score_spec_id: rule.score_spec_id,
-      passed: rulePassed({
+    const passed =
+      !hasMissingScore &&
+      !hasUnsupportedCondition &&
+      rulePassed({
         rule,
         baselineValue,
         candidateValue,
         regressionPctValue,
         taskSuccessNotImproved,
-      }),
+      })
+    const verdict: GateResult['verdict'] = hasMissingScore
+      ? 'missing'
+      : !spec || hasUnsupportedCondition
+        ? 'inconclusive'
+        : passed
+          ? 'pass'
+          : rule.rule_type
+    return {
+      scenario_id: scenarioId,
+      candidate_variant_id: candidateVariantId,
+      rule_type: rule.rule_type,
+      score_spec_id: rule.score_spec_id,
+      verdict,
+      passed,
       baseline_value: baselineValue,
       candidate_value: candidateValue,
       regression_pct:
@@ -320,6 +352,8 @@ function buildRecordRunArgs(params: {
   variantId: string
   userActionId: string
   scoreSpecIds: string[]
+  dbPath?: string
+  snapshotDb: boolean
 }): string[] {
   const args = [
     '--scenario',
@@ -328,12 +362,64 @@ function buildRecordRunArgs(params: {
     params.variantId,
     '--user-action-id',
     params.userActionId,
-    '--snapshot-db',
   ]
+  if (params.snapshotDb) args.push('--snapshot-db')
+  if (params.dbPath) args.push('--db', params.dbPath)
   if (params.scoreSpecIds.length > 0) {
     args.push('--score-spec-ids', params.scoreSpecIds.join(','))
   }
   return args
+}
+
+function summarizeGate(results: ScenarioExperimentResult[]): GateVerdict {
+  const candidates = results.flatMap(result => result.candidates)
+  const allGateResults = candidates.flatMap(candidate => candidate.gate_results)
+  const hardFailCount = allGateResults.filter(result => result.verdict === 'hard_fail').length
+  const softWarningCount = allGateResults.filter(result => result.verdict === 'soft_warning').length
+  const missingScoreCount = allGateResults.filter(result => result.verdict === 'missing').length
+  const inconclusiveCount = allGateResults.filter(result => result.verdict === 'inconclusive').length
+  return {
+    status:
+      hardFailCount > 0
+        ? 'fail'
+        : missingScoreCount > 0 || inconclusiveCount > 0
+          ? 'inconclusive'
+          : softWarningCount > 0
+            ? 'warning'
+            : 'pass',
+    hard_fail_count: hardFailCount,
+    soft_warning_count: softWarningCount,
+    missing_score_count: missingScoreCount,
+    inconclusive_count: inconclusiveCount,
+    candidate_count: candidates.length,
+  }
+}
+
+function runRefs(results: ScenarioExperimentResult[]): string[] {
+  return results.flatMap(result => [
+    path.join('tests', 'evals', 'v2', 'runs', `${result.baseline_run_id}.json`),
+    ...result.candidates.map(candidate =>
+      path.join('tests', 'evals', 'v2', 'runs', `${candidate.candidate_run_id}.json`),
+    ),
+  ])
+}
+
+function scoreRefs(results: ScenarioExperimentResult[]): string[] {
+  return results.flatMap(result => [
+    path.join('tests', 'evals', 'v2', 'scores', `${result.baseline_run_id}.scores.json`),
+    ...result.candidates.map(candidate =>
+      path.join('tests', 'evals', 'v2', 'scores', `${candidate.candidate_run_id}.scores.json`),
+    ),
+  ])
+}
+
+function reportRefs(results: ScenarioExperimentResult[], experimentReport: string): string[] {
+  return [
+    ...results.flatMap(result =>
+      result.candidates.map(candidate => candidate.compare_report),
+    ),
+    experimentReport,
+  ].filter(Boolean)
 }
 
 function buildMarkdownReport(params: {
@@ -346,17 +432,20 @@ function buildMarkdownReport(params: {
     result.candidates.flatMap(candidate => candidate.gate_results),
   )
   const hardFailures = allGateResults.filter(
-    result => result.rule_type === 'hard_fail' && !result.passed,
+    result => result.verdict === 'hard_fail',
   )
   const softWarnings = allGateResults.filter(
-    result => result.rule_type === 'soft_warning' && !result.passed,
+    result => result.verdict === 'soft_warning',
+  )
+  const missingOrInconclusive = allGateResults.filter(
+    result => result.verdict === 'missing' || result.verdict === 'inconclusive',
   )
 
   const rows = results
     .flatMap(result =>
       result.candidates.map(candidate => {
         const gateSummary = candidate.gate_results.length
-          ? `${candidate.gate_results.filter(gate => !gate.passed).length}/${candidate.gate_results.length} failed`
+          ? `${candidate.gate_results.filter(gate => gate.verdict !== 'pass').length}/${candidate.gate_results.length} not passed`
           : 'not configured'
         return `| ${result.scenario_id} | ${result.repeat_index} | ${result.baseline_run_id} | ${candidate.candidate_variant_id} | ${candidate.candidate_run_id} | ${gateSummary} | ${candidate.compare_report} |`
       }),
@@ -369,7 +458,7 @@ function buildMarkdownReport(params: {
       : allGateResults
           .map(
             result =>
-              `| ${result.scenario_id} | ${result.candidate_variant_id} | ${result.rule_type} | ${result.score_spec_id} | ${result.passed ? 'pass' : 'fail'} | ${result.regression_pct ?? 'n/a'} |`,
+              `| ${result.scenario_id} | ${result.candidate_variant_id} | ${result.rule_type} | ${result.score_spec_id} | ${result.verdict} | ${result.regression_pct ?? 'n/a'} |`,
           )
           .join('\n')
 
@@ -398,7 +487,8 @@ V2.1 intentionally does not execute the harness automatically. It turns existing
 
 - hard_failures: ${hardFailures.length}
 - soft_warnings: ${softWarnings.length}
-- gate_status: ${hardFailures.length > 0 ? 'failed' : softWarnings.length > 0 ? 'warning' : 'passed'}
+- missing_or_inconclusive: ${missingOrInconclusive.length}
+- gate_status: ${hardFailures.length > 0 ? 'failed' : missingOrInconclusive.length > 0 ? 'inconclusive' : softWarnings.length > 0 ? 'warning' : 'passed'}
 
 ## Runs
 
@@ -408,7 +498,7 @@ ${rows}
 
 ## Gate Results
 
-| scenario | candidate_variant | rule_type | score_spec | result | regression_pct |
+| scenario | candidate_variant | rule_type | score_spec | verdict | regression_pct |
 | --- | --- | --- | --- | --- | ---: |
 ${gateRows}
 `
@@ -441,6 +531,8 @@ async function main(): Promise<void> {
 
   const scoreSpecs = await loadScoreSpecs()
   const gatePolicy = await loadGatePolicy(experiment.gate_policy_id)
+  const dbPath = typeof args.db === 'string' ? args.db : undefined
+  const snapshotDb = !Boolean(args['no-snapshot-db'])
   for (const scoreSpecId of experiment.score_spec_ids ?? []) {
     if (!scoreSpecs.has(scoreSpecId)) {
       throw new Error(
@@ -464,6 +556,21 @@ async function main(): Promise<void> {
   const results: ScenarioExperimentResult[] = []
 
   for (const scenarioId of scenarioIds) {
+    for (const variantId of [experiment.baseline_variant_id, ...experiment.candidate_variant_ids]) {
+      const userActionId = findBoundUserActionId({
+        experiment,
+        scenarioId,
+        variantId,
+      })
+      if (!userActionId) {
+        throw new Error(
+          `Missing action binding for scenario=${scenarioId}, variant=${variantId}. V2.1 bind_existing mode requires user_action_id bindings.`,
+        )
+      }
+    }
+  }
+
+  for (const scenarioId of scenarioIds) {
     const baselineUserActionId = findBoundUserActionId({
       experiment,
       scenarioId,
@@ -483,6 +590,8 @@ async function main(): Promise<void> {
           variantId: experiment.baseline_variant_id,
           userActionId: baselineUserActionId,
           scoreSpecIds: experiment.score_spec_ids ?? [],
+          dbPath,
+          snapshotDb,
         }),
       )
       const baselineRunId = extractCreatedRunId(baselineOutput)
@@ -510,6 +619,8 @@ async function main(): Promise<void> {
             variantId: candidateVariantId,
             userActionId: candidateActionId,
             scoreSpecIds: experiment.score_spec_ids ?? [],
+            dbPath,
+            snapshotDb,
           }),
         )
         const candidateRunId = extractCreatedRunId(candidateOutput)
@@ -557,10 +668,43 @@ async function main(): Promise<void> {
     `${experiment.experiment_id}_${runStamp}.json`,
   )
   const outputJsonRel = path.relative(repoRoot, outputJsonPath)
+  const reportRoot = await resolveReportRoot()
+  await mkdir(reportRoot, { recursive: true })
+  const outputMarkdownPath = path.join(
+    reportRoot,
+    `experiment_${experiment.experiment_id}_${runStamp}.md`,
+  )
+  const outputMarkdownRel = path.relative(repoRoot, outputMarkdownPath)
+  const generatedAt = new Date().toISOString()
+  const gateVerdict = summarizeGate(results)
+  const warningMessages = results
+    .flatMap(result => result.candidates.flatMap(candidate => candidate.gate_results))
+    .filter(result => result.verdict === 'soft_warning' || result.verdict === 'missing' || result.verdict === 'inconclusive')
+    .map(
+      result =>
+        `${result.verdict}: scenario=${result.scenario_id}, candidate=${result.candidate_variant_id}, score=${result.score_spec_id}`,
+    )
+  const errorMessages = results
+    .flatMap(result => result.candidates.flatMap(candidate => candidate.gate_results))
+    .filter(result => result.verdict === 'hard_fail')
+    .map(
+      result =>
+        `hard_fail: scenario=${result.scenario_id}, candidate=${result.candidate_variant_id}, score=${result.score_spec_id}`,
+    )
   await writeFile(
     outputJsonPath,
     `${JSON.stringify(
       {
+        experiment_id: experiment.experiment_id,
+        manifest_ref: path.relative(repoRoot, experimentPath),
+        generated_at: generatedAt,
+        mode,
+        run_refs: runRefs(results),
+        score_refs: scoreRefs(results),
+        report_refs: reportRefs(results, outputMarkdownRel),
+        gate_verdict: gateVerdict,
+        errors: errorMessages,
+        warnings: warningMessages,
         experiment,
         runner: {
           mode,
@@ -568,19 +712,13 @@ async function main(): Promise<void> {
           gate_policy_id: experiment.gate_policy_id ?? null,
         },
         results,
-        created_at: new Date().toISOString(),
+        created_at: generatedAt,
       },
       null,
       2,
     )}\n`,
   )
 
-  const reportRoot = await resolveReportRoot()
-  await mkdir(reportRoot, { recursive: true })
-  const outputMarkdownPath = path.join(
-    reportRoot,
-    `experiment_${experiment.experiment_id}_${runStamp}.md`,
-  )
   await writeFile(
     outputMarkdownPath,
     buildMarkdownReport({
@@ -591,7 +729,7 @@ async function main(): Promise<void> {
   )
 
   console.log(`Created V2.1 experiment summary: ${outputJsonRel}`)
-  console.log(`Created V2.1 experiment report: ${path.relative(repoRoot, outputMarkdownPath)}`)
+  console.log(`Created V2.1 experiment report: ${outputMarkdownRel}`)
 }
 
 main().catch(error => {

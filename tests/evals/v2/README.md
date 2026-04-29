@@ -16,6 +16,8 @@ Structure:
   - regression gate policies
 - `experiment-runs/`
   - generated experiment-level summaries
+- `verification-reports/`
+  - generated V2.1 runner verification summaries
 - `scores/`
   - optional manual review or exported score artifacts
 - `runs/`
@@ -63,6 +65,18 @@ Validate manifests:
 bun run scripts/evals/v2_validate_manifests.ts
 ```
 
+Run the V2.1 bind runner verification suite:
+
+```powershell
+bun run scripts/evals/v2_verify_bind_runner.ts
+```
+
+Validate generated experiment artifact schema:
+
+```powershell
+bun run scripts/evals/v2_validate_experiment_artifacts.ts
+```
+
 Run the current sample V2.1 experiment:
 
 ```powershell
@@ -70,6 +84,12 @@ bun run scripts/evals/v2_run_experiment.ts --experiment session_memory_sparse_vs
 ```
 
 Current V2.1 mode is `bind_existing`. It does not execute the harness by itself yet. Instead, it binds existing V1 `user_action_id` traces into V2 runs, records score-spec-backed scores, compares baseline vs candidate, applies the configured gate policy, and writes an experiment summary under `experiment-runs/` plus a Markdown report under `ObservrityTask/10-系统版本/v2/06-运行报告/`.
+
+Detailed V2.1 usage:
+
+```text
+tests/evals/v2/V2.1-bind_existing-usage.md
+```
 
 `execute_harness` is reserved but intentionally blocked until a stable headless harness execution adapter exists. If a manifest uses that mode now, the runner exits with:
 

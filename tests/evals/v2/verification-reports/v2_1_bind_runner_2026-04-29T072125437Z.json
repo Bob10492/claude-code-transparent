@@ -1,0 +1,91 @@
+{
+  "verification_id": "v2_1_bind_runner_2026-04-29T072125437Z",
+  "generated_at": "2026-04-29T07:22:28.161Z",
+  "temp_root": ".observability\\v2-runner-verification\\2026-04-29T072125437Z",
+  "passed": true,
+  "case_count": 9,
+  "failed_count": 0,
+  "results": [
+    {
+      "case_id": "single_scenario_single_candidate",
+      "description": "Single scenario plus one candidate should complete.",
+      "passed": true,
+      "expected": "success",
+      "status": 0,
+      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_1_verify_single_candidate_2026-04-29T072125437Z_2026-04-29T072218602Z.json",
+      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_single_candidate_2026-04-29T072125437Z_2026-04-29T072218602Z.md",
+      "artifacts_cleaned": true,
+      "error_excerpt": "Created V2.1 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_1_verify_single_candidate_2026-04-29T072125437Z_2026-04-29T072218602Z.json\nCreated V2.1 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_single_candidate_2026-04-29T072125437Z_2026-04-29T072218602Z.md"
+    },
+    {
+      "case_id": "single_scenario_multi_candidate",
+      "description": "Single scenario plus multiple candidates should complete.",
+      "passed": true,
+      "expected": "success",
+      "status": 0,
+      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_candidate_2026-04-29T072125437Z_2026-04-29T072221989Z.json",
+      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_candidate_2026-04-29T072125437Z_2026-04-29T072221989Z.md",
+      "artifacts_cleaned": true,
+      "error_excerpt": "Created V2.1 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_candidate_2026-04-29T072125437Z_2026-04-29T072221989Z.json\nCreated V2.1 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_candidate_2026-04-29T072125437Z_2026-04-29T072221989Z.md"
+    },
+    {
+      "case_id": "multi_scenario_single_candidate",
+      "description": "Multiple scenarios plus one candidate should complete.",
+      "passed": true,
+      "expected": "success",
+      "status": 0,
+      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_scenario_2026-04-29T072125437Z_2026-04-29T072226554Z.json",
+      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_scenario_2026-04-29T072125437Z_2026-04-29T072226554Z.md",
+      "artifacts_cleaned": true,
+      "error_excerpt": "Created V2.1 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_scenario_2026-04-29T072125437Z_2026-04-29T072226554Z.json\nCreated V2.1 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_scenario_2026-04-29T072125437Z_2026-04-29T072226554Z.md"
+    },
+    {
+      "case_id": "missing_action_binding",
+      "description": "Missing candidate action binding should fail clearly.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Missing action binding for scenario=cost_sensitive_task, variant=candidate_session_memory_sparse. V2.1 bind_existing mode requires user_action_id bindings."
+    },
+    {
+      "case_id": "nonexistent_user_action_id",
+      "description": "Nonexistent V1 user_action_id should fail.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Command failed: bun run scripts/evals/v2_record_run.ts --scenario cost_sensitive_task --variant baseline_default --user-action-id 00000000-0000-0000-0000-000000000000 --snapshot-db --score-spec-ids task_success.main_chain_observed,efficiency.total_billed_tokens,decision_quality.subagent_count_observed,stability.recovery_absence,controllability.turn_limit_basic\nuser_action_id not found: 00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "case_id": "root_query_missing",
+      "description": "V1 action without main_thread root query should fail.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Command failed: bun run scripts/evals/v2_record_run.ts --scenario cost_sensitive_task --variant baseline_default --user-action-id v2-verify-missing-root-action --db E:\\claude-code-transparent\\.observability\\v2-runner-verification\\2026-04-29T072125437Z\\missing-root.duckdb --score-spec-ids task_success.main_chain_observed,efficiency.total_billed_tokens,decision_quality.subagent_count_observed,stability.recovery_absence,controllability.turn_limit_basic\nFact-only binding failed: user_action_id=v2-ve"
+    },
+    {
+      "case_id": "missing_score_spec_id",
+      "description": "Missing score_spec_id should fail before run creation.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Experiment references missing score_spec_id: not.real.score"
+    },
+    {
+      "case_id": "missing_gate_policy_id",
+      "description": "Missing gate_policy_id should fail before run creation.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Experiment references missing gate_policy_id: not_real_gate"
+    },
+    {
+      "case_id": "execute_harness_blocked",
+      "description": "execute_harness mode should fail with the explicit adapter error.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "execute_harness mode is not implemented yet: missing headless harness execution adapter"
+    }
+  ]
+}
