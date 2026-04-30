@@ -1,7 +1,7 @@
 {
-  "verification_id": "v2_1_bind_runner_2026-04-29T072125437Z",
-  "generated_at": "2026-04-29T07:22:28.161Z",
-  "temp_root": ".observability\\v2-runner-verification\\2026-04-29T072125437Z",
+  "verification_id": "v2_1_bind_runner_2026-04-30T015859120Z",
+  "generated_at": "2026-04-30T01:59:10.761Z",
+  "temp_root": ".observability\\v2-runner-verification\\2026-04-30T015859120Z",
   "passed": true,
   "case_count": 9,
   "failed_count": 0,
@@ -12,10 +12,10 @@
       "passed": true,
       "expected": "success",
       "status": 0,
-      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_1_verify_single_candidate_2026-04-29T072125437Z_2026-04-29T072218602Z.json",
-      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_single_candidate_2026-04-29T072125437Z_2026-04-29T072218602Z.md",
+      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_1_verify_single_candidate_2026-04-30T015859120Z_2026-04-30T015902609Z.json",
+      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_single_candidate_2026-04-30T015859120Z_2026-04-30T015902609Z.md",
       "artifacts_cleaned": true,
-      "error_excerpt": "Created V2.1 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_1_verify_single_candidate_2026-04-29T072125437Z_2026-04-29T072218602Z.json\nCreated V2.1 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_single_candidate_2026-04-29T072125437Z_2026-04-29T072218602Z.md"
+      "error_excerpt": "Created V2.1 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_1_verify_single_candidate_2026-04-30T015859120Z_2026-04-30T015902609Z.json\nCreated V2.1 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_single_candidate_2026-04-30T015859120Z_2026-04-30T015902609Z.md"
     },
     {
       "case_id": "single_scenario_multi_candidate",
@@ -23,10 +23,10 @@
       "passed": true,
       "expected": "success",
       "status": 0,
-      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_candidate_2026-04-29T072125437Z_2026-04-29T072221989Z.json",
-      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_candidate_2026-04-29T072125437Z_2026-04-29T072221989Z.md",
+      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_candidate_2026-04-30T015859120Z_2026-04-30T015905575Z.json",
+      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_candidate_2026-04-30T015859120Z_2026-04-30T015905575Z.md",
       "artifacts_cleaned": true,
-      "error_excerpt": "Created V2.1 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_candidate_2026-04-29T072125437Z_2026-04-29T072221989Z.json\nCreated V2.1 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_candidate_2026-04-29T072125437Z_2026-04-29T072221989Z.md"
+      "error_excerpt": "Created V2.1 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_candidate_2026-04-30T015859120Z_2026-04-30T015905575Z.json\nCreated V2.1 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_candidate_2026-04-30T015859120Z_2026-04-30T015905575Z.md"
     },
     {
       "case_id": "multi_scenario_single_candidate",
@@ -34,10 +34,10 @@
       "passed": true,
       "expected": "success",
       "status": 0,
-      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_scenario_2026-04-29T072125437Z_2026-04-29T072226554Z.json",
-      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_scenario_2026-04-29T072125437Z_2026-04-29T072226554Z.md",
+      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_scenario_2026-04-30T015859120Z_2026-04-30T015909308Z.json",
+      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_scenario_2026-04-30T015859120Z_2026-04-30T015909308Z.md",
       "artifacts_cleaned": true,
-      "error_excerpt": "Created V2.1 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_scenario_2026-04-29T072125437Z_2026-04-29T072226554Z.json\nCreated V2.1 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_scenario_2026-04-29T072125437Z_2026-04-29T072226554Z.md"
+      "error_excerpt": "Created V2.1 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_1_verify_multi_scenario_2026-04-30T015859120Z_2026-04-30T015909308Z.json\nCreated V2.1 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_1_verify_multi_scenario_2026-04-30T015859120Z_2026-04-30T015909308Z.md"
     },
     {
       "case_id": "missing_action_binding",
@@ -61,7 +61,7 @@
       "passed": true,
       "expected": "failure",
       "status": 1,
-      "error_excerpt": "Command failed: bun run scripts/evals/v2_record_run.ts --scenario cost_sensitive_task --variant baseline_default --user-action-id v2-verify-missing-root-action --db E:\\claude-code-transparent\\.observability\\v2-runner-verification\\2026-04-29T072125437Z\\missing-root.duckdb --score-spec-ids task_success.main_chain_observed,efficiency.total_billed_tokens,decision_quality.subagent_count_observed,stability.recovery_absence,controllability.turn_limit_basic\nFact-only binding failed: user_action_id=v2-ve"
+      "error_excerpt": "Command failed: bun run scripts/evals/v2_record_run.ts --scenario cost_sensitive_task --variant baseline_default --user-action-id v2-verify-missing-root-action --db E:\\claude-code-transparent\\.observability\\v2-runner-verification\\2026-04-30T015859120Z\\missing-root.duckdb --score-spec-ids task_success.main_chain_observed,efficiency.total_billed_tokens,decision_quality.subagent_count_observed,stability.recovery_absence,controllability.turn_limit_basic\nFact-only binding failed: user_action_id=v2-ve"
     },
     {
       "case_id": "missing_score_spec_id",

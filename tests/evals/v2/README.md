@@ -38,7 +38,7 @@ Recommended V2.1 usage order:
    - `gate_policy_id`
 5. Validate all manifests.
 6. Run the experiment runner.
-7. Read the generated run, score, comparison, gate, and experiment summary artifacts.
+7. Read the generated run, score, comparison, risk gate, scorecard, exploration, and experiment summary artifacts.
 
 Recommended V2.1 `action_bindings` shape:
 
@@ -83,7 +83,9 @@ Run the current sample V2.1 experiment:
 bun run scripts/evals/v2_run_experiment.ts --experiment session_memory_sparse_vs_default
 ```
 
-Current V2.1 mode is `bind_existing`. It does not execute the harness by itself yet. Instead, it binds existing V1 `user_action_id` traces into V2 runs, records score-spec-backed scores, compares baseline vs candidate, applies the configured gate policy, and writes an experiment summary under `experiment-runs/` plus a Markdown report under `ObservrityTask/10-系统版本/v2/06-运行报告/`.
+Current V2.1 mode is `bind_existing`. It does not execute the harness by itself yet. Instead, it binds existing V1 `user_action_id` traces into V2 runs, records score-spec-backed scores, compares baseline vs candidate, applies the configured gate policy as a regression-risk check, and writes an experiment summary under `experiment-runs/` plus a Markdown report under `ObservrityTask/10-系统版本/v2/06-运行报告/`.
+
+The top-level `risk_verdict` is not a final experiment judgment. It is only a regression-risk signal. New summaries also include `scorecard_summary`, `exploration_signals`, `recommended_review_mode`, and `final_decision` so exploratory harness work is not reduced to pass/fail.
 
 Detailed V2.1 usage:
 

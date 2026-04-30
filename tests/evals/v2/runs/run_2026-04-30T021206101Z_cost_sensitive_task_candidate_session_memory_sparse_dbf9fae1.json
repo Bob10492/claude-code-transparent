@@ -1,6 +1,6 @@
 {
   "run": {
-    "run_id": "run_2026-04-28T162912577Z_cost_sensitive_task_candidate_session_memory_sparse_dbf9fae1",
+    "run_id": "run_2026-04-30T021206101Z_cost_sensitive_task_candidate_session_memory_sparse_dbf9fae1",
     "scenario_id": "cost_sensitive_task",
     "variant_id": "candidate_session_memory_sparse",
     "started_at": "2026-04-24T04:55:36.952Z",
@@ -144,18 +144,18 @@
     ],
     "subagents": [
       {
-        "subagent_reason": "extract_memories",
-        "subagent_trigger_kind": "stop_hook_background",
-        "subagent_trigger_detail": "post_turn_background_extraction",
-        "subagent_count": 1,
-        "avg_duration_ms": 18519
-      },
-      {
         "subagent_reason": "session_memory",
         "subagent_trigger_kind": "post_sampling_hook",
         "subagent_trigger_detail": "token_threshold_and_tool_threshold",
         "subagent_count": 1,
         "avg_duration_ms": 29679
+      },
+      {
+        "subagent_reason": "extract_memories",
+        "subagent_trigger_kind": "stop_hook_background",
+        "subagent_trigger_detail": "post_turn_background_extraction",
+        "subagent_count": 1,
+        "avg_duration_ms": 18519
       }
     ],
     "recoveries": []

@@ -158,11 +158,32 @@ function assertExperimentArtifactSchema(summary: JsonRecord): string[] {
   for (const field of ['run_refs', 'score_refs', 'report_refs', 'errors', 'warnings']) {
     if (!Array.isArray(summary[field])) errors.push(`${field} must be an array`)
   }
+  const riskVerdict = summary.risk_verdict as JsonRecord | undefined
+  if (!riskVerdict || typeof riskVerdict !== 'object') {
+    errors.push('risk_verdict must be an object')
+  } else {
+    if (!['pass', 'warning', 'fail', 'inconclusive'].includes(String(riskVerdict.status))) {
+      errors.push('risk_verdict.status has invalid value')
+    }
+    if (riskVerdict.scope !== 'regression_risk_only') {
+      errors.push('risk_verdict.scope must be regression_risk_only')
+    }
+    if (riskVerdict.is_final_experiment_judgment !== false) {
+      errors.push('risk_verdict.is_final_experiment_judgment must be false')
+    }
+  }
   const gateVerdict = summary.gate_verdict as JsonRecord | undefined
   if (!gateVerdict || typeof gateVerdict !== 'object') {
-    errors.push('gate_verdict must be an object')
-  } else if (!['pass', 'warning', 'fail', 'inconclusive'].includes(String(gateVerdict.status))) {
-    errors.push('gate_verdict.status has invalid value')
+    errors.push('gate_verdict compatibility alias must be an object')
+  }
+  for (const field of ['scorecard_summary', 'exploration_signals']) {
+    if (!Array.isArray(summary[field])) errors.push(`${field} must be an array`)
+  }
+  if (typeof summary.recommended_review_mode !== 'string') {
+    errors.push('recommended_review_mode must be a string')
+  }
+  if (summary.final_decision !== null) {
+    errors.push('final_decision must be null until a human decision is recorded')
   }
   return errors
 }

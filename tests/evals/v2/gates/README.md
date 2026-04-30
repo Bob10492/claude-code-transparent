@@ -1,30 +1,49 @@
-# V2.1 Gate Semantics
+# V2.1 Risk Gate Semantics
 
 ## 理解清单
 
 - gate 不是 scorer；gate 只解释 baseline 和 candidate 的 score 差异。
 - gate policy 定义 hard fail 和 soft warning。
-- runner 负责把每个 candidate 的 gate result 汇总成 experiment-level verdict。
+- runner 负责把每个 candidate 的 gate result 汇总成 experiment-level `risk_verdict`。
+- `risk_verdict` 不是最终实验结论，只是回归风险门禁。
 
 ## 预期效果
 
-读 `gate_verdict.status` 时，应能得到稳定含义：
+读 `risk_verdict.status` 时，应能得到稳定含义：
 
 - `pass`：没有 hard fail、soft warning、missing score、inconclusive。
 - `warning`：没有 hard fail，但至少有 soft warning。
 - `fail`：至少有一个 hard fail。
 - `inconclusive`：没有 hard fail，但存在 missing score 或无法判断的规则。
 
+旧字段 `gate_verdict` 暂时保留为兼容别名，新的脚本和文档应优先使用 `risk_verdict`。
+
 ## 设计思路
 
 V2.1 的 gate 语义要保守。缺失 score 不应被当作 pass；无法判断时应暴露为 `inconclusive`。
+
+更重要的是，gate 只能回答：
+
+```text
+这个 candidate 有没有触发已知回归风险？
+```
+
+它不能回答：
+
+```text
+这个 harness 是否更聪明？
+这个改动是否有探索价值？
+这个 candidate 是否应该被长期保留？
+```
+
+最终判断必须结合 scorecard、exploration signals、人工复盘和后续实验。
 
 ## Rule Types
 
 | rule type | meaning | effect |
 | --- | --- | --- |
-| `hard_fail` | 不可接受的退化 | 任意触发时，experiment verdict 为 `fail`。 |
-| `soft_warning` | 需要人工注意的退化 | 没有 hard fail 时，experiment verdict 为 `warning`。 |
+| `hard_fail` | 不可接受的退化 | 任意触发时，experiment `risk_verdict` 为 `fail`。 |
+| `soft_warning` | 需要人工注意的退化 | 没有 hard fail 时，experiment `risk_verdict` 为 `warning`。 |
 
 ## Missing Score
 
@@ -32,7 +51,7 @@ V2.1 的 gate 语义要保守。缺失 score 不应被当作 pass；无法判断
 
 - 该 rule 的 verdict 是 `missing`。
 - experiment `missing_score_count` 加 1。
-- 如果没有 hard fail，则 experiment status 为 `inconclusive`。
+- 如果没有 hard fail，则 experiment `risk_verdict.status` 为 `inconclusive`。
 
 ## Inconclusive
 
@@ -40,16 +59,29 @@ V2.1 的 gate 语义要保守。缺失 score 不应被当作 pass；无法判断
 
 - 该 rule 的 verdict 是 `inconclusive`。
 - experiment `inconclusive_count` 加 1。
-- 如果没有 hard fail，则 experiment status 为 `inconclusive`。
+- 如果没有 hard fail，则 experiment `risk_verdict.status` 为 `inconclusive`。
 
 ## Multi-Candidate Summary
 
 多 candidate 时，runner 按所有 candidate 的 gate results 汇总：
 
-- 任一 candidate hard fail => 总 verdict `fail`。
-- 无 hard fail，但任一 candidate missing/inconclusive => 总 verdict `inconclusive`。
-- 无 hard fail/missing/inconclusive，但任一 candidate soft warning => 总 verdict `warning`。
-- 所有 candidate 都 pass => 总 verdict `pass`。
+- 任一 candidate hard fail => 总 `risk_verdict.status = fail`。
+- 无 hard fail，但任一 candidate missing/inconclusive => 总 `risk_verdict.status = inconclusive`。
+- 无 hard fail/missing/inconclusive，但任一 candidate soft warning => 总 `risk_verdict.status = warning`。
+- 所有 candidate 都 pass => 总 `risk_verdict.status = pass`。
+
+## Final Decision Boundary
+
+`risk_verdict` 的输出对象固定包含：
+
+```json
+{
+  "scope": "regression_risk_only",
+  "is_final_experiment_judgment": false
+}
+```
+
+这表示它只能作为风险提示，不应替代人的实验判断。一个 candidate 可以在 `risk_verdict` 上是 `warning`，但仍然因为探索价值而进入下一轮人工复盘。
 
 ## Current Supported Conditions
 

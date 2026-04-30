@@ -29,6 +29,17 @@ function requireNumber(errors: string[], objectName: string, fieldName: string, 
   }
 }
 
+function requireOptionalString(
+  errors: string[],
+  filePath: string,
+  fieldName: string,
+  value: unknown,
+) {
+  if (value !== undefined && typeof value !== 'string') {
+    errors.push(`${filePath}.${fieldName} must be a string when present`)
+  }
+}
+
 function validateArtifact(filePath: string, artifact: JsonRecord): string[] {
   const errors: string[] = []
   requireString(errors, filePath, 'experiment_id', artifact.experiment_id)
@@ -41,19 +52,39 @@ function validateArtifact(filePath: string, artifact: JsonRecord): string[] {
   requireArray(errors, filePath, 'errors', artifact.errors)
   requireArray(errors, filePath, 'warnings', artifact.warnings)
 
-  const gateVerdict = artifact.gate_verdict as JsonRecord | undefined
-  if (!gateVerdict || typeof gateVerdict !== 'object' || Array.isArray(gateVerdict)) {
-    errors.push(`${filePath}.gate_verdict must be an object`)
+  const riskVerdict = (artifact.risk_verdict ?? artifact.gate_verdict) as JsonRecord | undefined
+  if (!riskVerdict || typeof riskVerdict !== 'object' || Array.isArray(riskVerdict)) {
+    errors.push(`${filePath}.risk_verdict or ${filePath}.gate_verdict must be an object`)
     return errors
   }
-  if (!gateStatuses.has(String(gateVerdict.status))) {
-    errors.push(`${filePath}.gate_verdict.status has invalid value: ${gateVerdict.status}`)
+  const verdictObjectName = artifact.risk_verdict ? 'risk_verdict' : 'gate_verdict'
+  if (!gateStatuses.has(String(riskVerdict.status))) {
+    errors.push(`${filePath}.${verdictObjectName}.status has invalid value: ${riskVerdict.status}`)
   }
-  requireNumber(errors, `${filePath}.gate_verdict`, 'hard_fail_count', gateVerdict.hard_fail_count)
-  requireNumber(errors, `${filePath}.gate_verdict`, 'soft_warning_count', gateVerdict.soft_warning_count)
-  requireNumber(errors, `${filePath}.gate_verdict`, 'missing_score_count', gateVerdict.missing_score_count)
-  requireNumber(errors, `${filePath}.gate_verdict`, 'inconclusive_count', gateVerdict.inconclusive_count)
-  requireNumber(errors, `${filePath}.gate_verdict`, 'candidate_count', gateVerdict.candidate_count)
+  requireNumber(errors, `${filePath}.${verdictObjectName}`, 'hard_fail_count', riskVerdict.hard_fail_count)
+  requireNumber(errors, `${filePath}.${verdictObjectName}`, 'soft_warning_count', riskVerdict.soft_warning_count)
+  requireNumber(errors, `${filePath}.${verdictObjectName}`, 'missing_score_count', riskVerdict.missing_score_count)
+  requireNumber(errors, `${filePath}.${verdictObjectName}`, 'inconclusive_count', riskVerdict.inconclusive_count)
+  requireNumber(errors, `${filePath}.${verdictObjectName}`, 'candidate_count', riskVerdict.candidate_count)
+  if (artifact.risk_verdict !== undefined) {
+    requireString(errors, `${filePath}.risk_verdict`, 'scope', riskVerdict.scope)
+    if (riskVerdict.is_final_experiment_judgment !== false) {
+      errors.push(`${filePath}.risk_verdict.is_final_experiment_judgment must be false`)
+    }
+  }
+  if (artifact.scorecard_summary !== undefined) {
+    requireArray(errors, filePath, 'scorecard_summary', artifact.scorecard_summary)
+  }
+  if (artifact.exploration_signals !== undefined) {
+    requireArray(errors, filePath, 'exploration_signals', artifact.exploration_signals)
+  }
+  requireOptionalString(
+    errors,
+    filePath,
+    'recommended_review_mode',
+    artifact.recommended_review_mode,
+  )
+  requireOptionalString(errors, filePath, 'verdict_boundary', artifact.verdict_boundary)
   return errors
 }
 

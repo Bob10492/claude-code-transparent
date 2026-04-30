@@ -20,6 +20,9 @@ interface CandidateExperimentResult {
   candidate_user_action_id: string
   compare_report: string
   gate_results: GateResult[]
+  scorecard_summary: ScorecardItem[]
+  exploration_signals: string[]
+  recommended_review_mode: ReviewMode
 }
 
 interface ScenarioExperimentResult {
@@ -44,13 +47,39 @@ interface GateResult {
   notes?: string
 }
 
-interface GateVerdict {
+interface RiskVerdict {
   status: 'pass' | 'warning' | 'fail' | 'inconclusive'
+  scope: 'regression_risk_only'
+  is_final_experiment_judgment: false
   hard_fail_count: number
   soft_warning_count: number
   missing_score_count: number
   inconclusive_count: number
   candidate_count: number
+  notes: string
+}
+
+type ReviewMode =
+  | 'regression_review'
+  | 'manual_review'
+  | 'exploratory_review'
+
+interface ScorecardItem {
+  scenario_id: string
+  candidate_variant_id: string
+  score_spec_id: string
+  direction: EvalScoreSpec['direction'] | 'unknown'
+  baseline_value: number | null
+  candidate_value: number | null
+  delta: number | null
+  interpretation:
+    | 'improved'
+    | 'regressed'
+    | 'unchanged'
+    | 'changed'
+    | 'missing'
+    | 'observed'
+    | 'not_applicable'
 }
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
@@ -216,6 +245,136 @@ function valueFor(scores: EvalScore[], scoreSpecId: string): number | null {
   return score?.score_value ?? null
 }
 
+function scorecardItem(params: {
+  scenarioId: string
+  candidateVariantId: string
+  scoreSpecId: string
+  spec: EvalScoreSpec | undefined
+  baselineValue: number | null
+  candidateValue: number | null
+}): ScorecardItem {
+  const {
+    scenarioId,
+    candidateVariantId,
+    scoreSpecId,
+    spec,
+    baselineValue,
+    candidateValue,
+  } = params
+  const delta =
+    baselineValue === null || candidateValue === null
+      ? null
+      : Number((candidateValue - baselineValue).toFixed(6))
+  let interpretation: ScorecardItem['interpretation'] = 'not_applicable'
+  if (baselineValue === null || candidateValue === null) {
+    interpretation = 'missing'
+  } else if (delta === 0) {
+    interpretation = 'unchanged'
+  } else if (!spec || spec.direction === 'observed_only') {
+    interpretation = 'observed'
+  } else if (spec.direction === 'lower_is_better') {
+    interpretation = candidateValue < baselineValue ? 'improved' : 'regressed'
+  } else if (spec.direction === 'higher_is_better' || spec.direction === 'boolean_pass') {
+    interpretation = candidateValue > baselineValue ? 'improved' : 'regressed'
+  } else {
+    interpretation = 'changed'
+  }
+  return {
+    scenario_id: scenarioId,
+    candidate_variant_id: candidateVariantId,
+    score_spec_id: scoreSpecId,
+    direction: spec?.direction ?? 'unknown',
+    baseline_value: baselineValue,
+    candidate_value: candidateValue,
+    delta,
+    interpretation,
+  }
+}
+
+function buildScorecardSummary(params: {
+  scenarioId: string
+  candidateVariantId: string
+  scoreSpecs: Map<string, EvalScoreSpec>
+  baselineScores: EvalScore[]
+  candidateScores: EvalScore[]
+}): ScorecardItem[] {
+  const {
+    scenarioId,
+    candidateVariantId,
+    scoreSpecs,
+    baselineScores,
+    candidateScores,
+  } = params
+  const scoreSpecIds = [
+    ...new Set([
+      ...baselineScores.map(scoreKey),
+      ...candidateScores.map(scoreKey),
+    ]),
+  ].sort()
+  return scoreSpecIds.map(scoreSpecId =>
+    scorecardItem({
+      scenarioId,
+      candidateVariantId,
+      scoreSpecId,
+      spec: scoreSpecs.get(scoreSpecId),
+      baselineValue: valueFor(baselineScores, scoreSpecId),
+      candidateValue: valueFor(candidateScores, scoreSpecId),
+    }),
+  )
+}
+
+function buildExplorationSignals(params: {
+  scorecard: ScorecardItem[]
+  gateResults: GateResult[]
+}): string[] {
+  const { scorecard, gateResults } = params
+  const signals: string[] = []
+  const changedScores = scorecard.filter(item =>
+    ['improved', 'regressed', 'changed', 'observed'].includes(item.interpretation),
+  )
+  const improvedScores = scorecard.filter(item => item.interpretation === 'improved')
+  const regressedScores = scorecard.filter(item => item.interpretation === 'regressed')
+  const hardOrSoftGateResults = gateResults.filter(result =>
+    result.verdict === 'hard_fail' || result.verdict === 'soft_warning',
+  )
+
+  if (changedScores.length > 0) {
+    signals.push(
+      `${changedScores.length} score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer.`,
+    )
+  }
+  if (improvedScores.length > 0 && regressedScores.length > 0) {
+    signals.push(
+      'Candidate shows a tradeoff pattern: at least one score improved while another regressed.',
+    )
+  }
+  if (hardOrSoftGateResults.length > 0 && improvedScores.length > 0) {
+    signals.push(
+      'Risk gate raised a warning/failure, but at least one score improved; this may be worth exploratory review instead of immediate rejection.',
+    )
+  }
+  if (signals.length === 0) {
+    signals.push(
+      'No exploratory signal was derived from the current automatic scorecard; manual review may still find qualitative differences.',
+    )
+  }
+  return signals
+}
+
+function recommendReviewMode(params: {
+  scorecard: ScorecardItem[]
+  gateResults: GateResult[]
+}): ReviewMode {
+  const { scorecard, gateResults } = params
+  const hasRisk = gateResults.some(result => result.verdict !== 'pass')
+  const hasTradeoff =
+    scorecard.some(item => item.interpretation === 'improved') &&
+    scorecard.some(item => item.interpretation === 'regressed')
+  if (hasTradeoff) return 'exploratory_review'
+  if (hasRisk) return 'manual_review'
+  return 'regression_review'
+}
+
 function regressionPct(params: {
   baselineValue: number | null
   candidateValue: number | null
@@ -371,7 +530,7 @@ function buildRecordRunArgs(params: {
   return args
 }
 
-function summarizeGate(results: ScenarioExperimentResult[]): GateVerdict {
+function summarizeRisk(results: ScenarioExperimentResult[]): RiskVerdict {
   const candidates = results.flatMap(result => result.candidates)
   const allGateResults = candidates.flatMap(candidate => candidate.gate_results)
   const hardFailCount = allGateResults.filter(result => result.verdict === 'hard_fail').length
@@ -387,12 +546,41 @@ function summarizeGate(results: ScenarioExperimentResult[]): GateVerdict {
           : softWarningCount > 0
             ? 'warning'
             : 'pass',
+    scope: 'regression_risk_only',
+    is_final_experiment_judgment: false,
     hard_fail_count: hardFailCount,
     soft_warning_count: softWarningCount,
     missing_score_count: missingScoreCount,
     inconclusive_count: inconclusiveCount,
     candidate_count: candidates.length,
+    notes:
+      'This verdict is only a regression-risk gate result. It is not a final judgment about model intelligence, harness value, or exploratory potential.',
   }
+}
+
+function aggregateScorecard(results: ScenarioExperimentResult[]): ScorecardItem[] {
+  return results.flatMap(result =>
+    result.candidates.flatMap(candidate => candidate.scorecard_summary),
+  )
+}
+
+function aggregateExplorationSignals(results: ScenarioExperimentResult[]): string[] {
+  return [
+    ...new Set(
+      results.flatMap(result =>
+        result.candidates.flatMap(candidate => candidate.exploration_signals),
+      ),
+    ),
+  ]
+}
+
+function aggregateReviewMode(results: ScenarioExperimentResult[]): ReviewMode {
+  const modes = results.flatMap(result =>
+    result.candidates.map(candidate => candidate.recommended_review_mode),
+  )
+  if (modes.includes('exploratory_review')) return 'exploratory_review'
+  if (modes.includes('manual_review')) return 'manual_review'
+  return 'regression_review'
 }
 
 function runRefs(results: ScenarioExperimentResult[]): string[] {
@@ -461,6 +649,16 @@ function buildMarkdownReport(params: {
               `| ${result.scenario_id} | ${result.candidate_variant_id} | ${result.rule_type} | ${result.score_spec_id} | ${result.verdict} | ${result.regression_pct ?? 'n/a'} |`,
           )
           .join('\n')
+  const scorecardRows = aggregateScorecard(results)
+    .map(
+      item =>
+        `| ${item.scenario_id} | ${item.candidate_variant_id} | ${item.score_spec_id} | ${item.baseline_value ?? 'n/a'} | ${item.candidate_value ?? 'n/a'} | ${item.delta ?? 'n/a'} | ${item.interpretation} |`,
+    )
+    .join('\n')
+  const explorationRows = aggregateExplorationSignals(results)
+    .map(signal => `- ${signal}`)
+    .join('\n')
+  const reviewMode = aggregateReviewMode(results)
 
   return `# V2.1 Experiment Summary: ${experiment.experiment_id}
 
@@ -481,22 +679,37 @@ This summary records a manifest-driven V2.1 experiment run. In bind-existing mod
 
 ## 设计思路
 
-V2.1 intentionally does not execute the harness automatically. It turns existing V1 traces into comparable V2 runs, then runs the existing scorer and comparison scripts.
+V2.1 intentionally does not execute the harness automatically. It turns existing V1 traces into comparable V2 runs, then runs scorer, comparison, and regression-risk gate scripts.
 
-## Verdict
+## Risk Verdict
 
 - hard_failures: ${hardFailures.length}
 - soft_warnings: ${softWarnings.length}
 - missing_or_inconclusive: ${missingOrInconclusive.length}
-- gate_status: ${hardFailures.length > 0 ? 'failed' : missingOrInconclusive.length > 0 ? 'inconclusive' : softWarnings.length > 0 ? 'warning' : 'passed'}
+- risk_status: ${hardFailures.length > 0 ? 'failed' : missingOrInconclusive.length > 0 ? 'inconclusive' : softWarnings.length > 0 ? 'warning' : 'passed'}
+- scope: regression_risk_only
+- final_experiment_judgment: false
+- recommended_review_mode: ${reviewMode}
+
+This section is a regression-risk gate, not a final judgment about whether the harness change is valuable.
+
+## Scorecard Summary
+
+| scenario | candidate_variant | score | baseline | candidate | delta | interpretation |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+${scorecardRows || '| n/a | n/a | n/a | n/a | n/a | n/a | n/a |'}
+
+## Exploration Signals
+
+${explorationRows || '- No exploration signal generated.'}
 
 ## Runs
 
-| scenario | repeat | baseline_run | candidate_variant | candidate_run | gate | compare_report |
+| scenario | repeat | baseline_run | candidate_variant | candidate_run | risk_gate | compare_report |
 | --- | ---: | --- | --- | --- | --- | --- |
 ${rows}
 
-## Gate Results
+## Risk Gate Details
 
 | scenario | candidate_variant | rule_type | score_spec | verdict | regression_pct |
 | --- | --- | --- | --- | --- | ---: |
@@ -635,18 +848,36 @@ async function main(): Promise<void> {
           candidateRunId,
         ])
 
+        const gateResults = evaluateGate({
+          scenarioId,
+          candidateVariantId,
+          gatePolicy,
+          scoreSpecs,
+          baselineScores,
+          candidateScores,
+        })
+        const scorecard = buildScorecardSummary({
+          scenarioId,
+          candidateVariantId,
+          scoreSpecs,
+          baselineScores,
+          candidateScores,
+        })
+
         candidates.push({
           candidate_variant_id: candidateVariantId,
           candidate_run_id: candidateRunId,
           candidate_user_action_id: candidateActionId,
           compare_report: extractCreatedReport(compareOutput),
-          gate_results: evaluateGate({
-            scenarioId,
-            candidateVariantId,
-            gatePolicy,
-            scoreSpecs,
-            baselineScores,
-            candidateScores,
+          gate_results: gateResults,
+          scorecard_summary: scorecard,
+          exploration_signals: buildExplorationSignals({
+            scorecard,
+            gateResults,
+          }),
+          recommended_review_mode: recommendReviewMode({
+            scorecard,
+            gateResults,
           }),
         })
       }
@@ -676,7 +907,10 @@ async function main(): Promise<void> {
   )
   const outputMarkdownRel = path.relative(repoRoot, outputMarkdownPath)
   const generatedAt = new Date().toISOString()
-  const gateVerdict = summarizeGate(results)
+  const riskVerdict = summarizeRisk(results)
+  const scorecardSummary = aggregateScorecard(results)
+  const explorationSignals = aggregateExplorationSignals(results)
+  const recommendedReviewMode = aggregateReviewMode(results)
   const warningMessages = results
     .flatMap(result => result.candidates.flatMap(candidate => candidate.gate_results))
     .filter(result => result.verdict === 'soft_warning' || result.verdict === 'missing' || result.verdict === 'inconclusive')
@@ -702,7 +936,14 @@ async function main(): Promise<void> {
         run_refs: runRefs(results),
         score_refs: scoreRefs(results),
         report_refs: reportRefs(results, outputMarkdownRel),
-        gate_verdict: gateVerdict,
+        risk_verdict: riskVerdict,
+        gate_verdict: riskVerdict,
+        verdict_boundary:
+          'risk_verdict/gate_verdict is regression-risk-only and is not a final experiment judgment.',
+        scorecard_summary: scorecardSummary,
+        exploration_signals: explorationSignals,
+        recommended_review_mode: recommendedReviewMode,
+        final_decision: null,
         errors: errorMessages,
         warnings: warningMessages,
         experiment,

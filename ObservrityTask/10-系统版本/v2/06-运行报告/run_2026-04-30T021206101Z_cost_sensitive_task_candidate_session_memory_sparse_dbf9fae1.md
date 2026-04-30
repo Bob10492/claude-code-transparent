@@ -1,11 +1,11 @@
-# V2 Run Report: run_2026-04-28T162901612Z_cost_sensitive_task_baseline_default_1d5eb5e1
+# V2 Run Report: run_2026-04-30T021206101Z_cost_sensitive_task_candidate_session_memory_sparse_dbf9fae1
 
 ## 理解清单
 
 - scenario: cost_sensitive_task (Cost Sensitive Task)
-- variant: baseline_default (Baseline Default)
-- user_action_id: 1d5eb5e1-2fe0-42fa-9450-7b05d6367976
-- root_query_id: 15ecf197-b1c6-47e2-8d94-df1f88f0d822
+- variant: candidate_session_memory_sparse (Candidate Session Memory Sparse)
+- user_action_id: dbf9fae1-0a5a-4f50-aba7-02047ced9390
+- root_query_id: f15ca52c-e702-448a-9cd8-8d5c942ff4e2
 - observability_db_ref: .observability\observability_v1.duckdb
 
 ## 预期效果
@@ -21,35 +21,32 @@ The report does not judge final answer quality by itself. It records trace-backe
 - binding_mode: fact_only
 - bind_passed: true
 - binding_failure_reason: n/a
-- started_at: 2026-04-24T04:48:30.824Z
-- duration_ms: 88207
-- query_count: 5
-- subagent_count: 4
-- tool_call_count: 22
-- total_prompt_input_tokens: 397412
-- total_billed_tokens: 400399
+- started_at: 2026-04-24T04:55:36.952Z
+- duration_ms: 46081
+- query_count: 3
+- subagent_count: 2
+- tool_call_count: 15
+- total_prompt_input_tokens: 348534
+- total_billed_tokens: 352691
 - root_turn_count: 4
 - root_terminal_reason: completed
 - recovery_count: 0
 
 ## Tools
 
-- Edit: count=11, closed=11, failed=0
-- Read: count=5, closed=5, failed=0
-- Glob: count=3, closed=3, failed=0
-- Write: count=3, closed=3, failed=0
+- Read: count=8, closed=8, failed=0
+- Edit: count=5, closed=5, failed=0
+- Glob: count=2, closed=2, failed=0
 
 ## Subagents
 
-- prompt_suggestion: count=1, trigger=suggestion_generation_allowed
 - session_memory: count=1, trigger=token_threshold_and_tool_threshold
 - extract_memories: count=1, trigger=post_turn_background_extraction
-- session_memory: count=1, trigger=token_threshold_and_natural_break
 
 ## Scores
 
 - task_success.main_chain_observed: pass (1)
-- efficiency.total_billed_tokens: observed (400399)
+- efficiency.total_billed_tokens: observed (352691)
+- decision_quality.subagent_count_observed: observed (2)
 - stability.recovery_absence: pass (1)
 - controllability.turn_limit_basic: pass (1)
-- decision_quality.subagent_count_observed: observed (4)

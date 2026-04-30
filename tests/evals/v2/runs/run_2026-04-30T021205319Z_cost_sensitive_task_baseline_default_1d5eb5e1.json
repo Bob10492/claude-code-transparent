@@ -1,6 +1,6 @@
 {
   "run": {
-    "run_id": "run_2026-04-28T162901612Z_cost_sensitive_task_baseline_default_1d5eb5e1",
+    "run_id": "run_2026-04-30T021205319Z_cost_sensitive_task_baseline_default_1d5eb5e1",
     "scenario_id": "cost_sensitive_task",
     "variant_id": "baseline_default",
     "started_at": "2026-04-24T04:48:30.824Z",
@@ -135,13 +135,13 @@
         "failed_count": "0"
       },
       {
-        "tool_name": "Glob",
+        "tool_name": "Write",
         "tool_count": 3,
         "closed_count": "3",
         "failed_count": "0"
       },
       {
-        "tool_name": "Write",
+        "tool_name": "Glob",
         "tool_count": 3,
         "closed_count": "3",
         "failed_count": "0"
@@ -156,13 +156,6 @@
         "avg_duration_ms": 8029
       },
       {
-        "subagent_reason": "session_memory",
-        "subagent_trigger_kind": "post_sampling_hook",
-        "subagent_trigger_detail": "token_threshold_and_tool_threshold",
-        "subagent_count": 1,
-        "avg_duration_ms": 33043
-      },
-      {
         "subagent_reason": "extract_memories",
         "subagent_trigger_kind": "stop_hook_background",
         "subagent_trigger_detail": "post_turn_background_extraction",
@@ -175,6 +168,13 @@
         "subagent_trigger_detail": "token_threshold_and_natural_break",
         "subagent_count": 1,
         "avg_duration_ms": 40480
+      },
+      {
+        "subagent_reason": "session_memory",
+        "subagent_trigger_kind": "post_sampling_hook",
+        "subagent_trigger_detail": "token_threshold_and_tool_threshold",
+        "subagent_count": 1,
+        "avg_duration_ms": 33043
       }
     ],
     "recoveries": []
