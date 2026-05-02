@@ -208,7 +208,7 @@ export class StructuredIO {
       jsonStringify({
         type: 'user',
         content,
-        uuid: '',
+        uuid: randomUUID(),
         session_id: '',
         message: { role: 'user', content },
         parent_tool_use_id: null,

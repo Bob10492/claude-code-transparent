@@ -65,11 +65,23 @@ export type EvalExperimentActionBinding =
   | EvalExperimentFlatActionBinding
   | EvalExperimentNestedActionBinding
 
+export interface EvalExperimentExecutionConfig {
+  adapter?: 'cli_print' | 'disabled'
+  timeout_ms?: number
+  max_turns?: number
+  allow_fallback_to_bind_existing?: boolean
+  require_config_snapshot?: boolean
+  env?: Record<string, string | number | boolean>
+  command?: string
+  args?: string[]
+}
+
 export interface EvalExperimentV21 extends EvalExperiment {
   scenario_ids?: string[]
   repeat_count?: number
   score_spec_ids?: string[]
   gate_policy_id?: string
   mode?: 'bind_existing' | 'execute_harness'
+  execution?: EvalExperimentExecutionConfig
   action_bindings?: EvalExperimentActionBinding[]
 }

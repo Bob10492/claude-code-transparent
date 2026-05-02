@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto"
+import { spawnSync } from "node:child_process"
 import {
   existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
   statSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs"
 import { basename, join, relative, resolve } from "node:path"
@@ -44,6 +46,11 @@ type EventRecord = {
   cwd?: string | null
   git_branch?: string | null
   build_version?: string | null
+  experiment_id?: string | null
+  scenario_id?: string | null
+  variant_id?: string | null
+  benchmark_run_id?: string | null
+  eval_run_id?: string | null
   payload?: Record<string, JsonValue> | null
 }
 
@@ -99,16 +106,23 @@ const repoRoot = resolve(import.meta.dir, "..", "..")
 const observabilityDir = join(repoRoot, ".observability")
 const snapshotsDir = join(observabilityDir, "snapshots")
 const duckdbExe = join(repoRoot, "tools", "duckdb", "duckdb.exe")
-const databasePath = join(observabilityDir, "observability_v1.duckdb")
-const sqlPath = join(observabilityDir, "load_observability_v1.sql")
+const defaultDatabasePath = join(observabilityDir, "observability_v1.duckdb")
+const sqlPath = join(
+  observabilityDir,
+  `load_observability_v1.${process.pid}.${Date.now()}.sql`,
+)
 
 function fail(message: string): never {
   console.error(message)
   process.exit(1)
 }
 
-function parseArgs(argv: string[]): { eventsFile?: string; date?: string } {
-  const parsed: { eventsFile?: string; date?: string } = {}
+function parseArgs(argv: string[]): {
+  eventsFile?: string
+  date?: string
+  dbPath?: string
+} {
+  const parsed: { eventsFile?: string; date?: string; dbPath?: string } = {}
   for (let index = 0; index < argv.length; index += 1) {
     const current = argv[index]
     if (current === "--events-file") {
@@ -118,6 +132,11 @@ function parseArgs(argv: string[]): { eventsFile?: string; date?: string } {
     }
     if (current === "--date") {
       parsed.date = argv[index + 1]
+      index += 1
+      continue
+    }
+    if (current === "--db-path") {
+      parsed.dbPath = argv[index + 1]
       index += 1
     }
   }
@@ -370,6 +389,24 @@ function inferString(value: JsonValue | undefined, key: string): string | null {
   return typeof current === "string" ? current : null
 }
 
+function topLevelOrPayloadString(event: EventRecord, key: keyof EventRecord): string | null {
+  const value = event[key]
+  if (typeof value === "string" && value.trim() !== "") return value
+  return inferString(event.payload, String(key))
+}
+
+function nonEmptyString(value: string | null | undefined): string | null {
+  return typeof value === "string" && value.trim() !== "" ? value : null
+}
+
+function shouldReplacePlaceholder(
+  current: unknown,
+  next: string | null | undefined,
+): next is string {
+  if (!next || next.trim() === "") return false
+  return current === null || current === undefined || current === "" || current === "unknown"
+}
+
 function inferNumber(value: JsonValue | undefined, key: string): number | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null
@@ -437,14 +474,17 @@ function normalizeAgentName(
   subagentType: string | null | undefined,
   subagentReason: string | null | undefined,
 ): string | null {
-  const candidate = subagentReason ?? subagentType ?? querySource
+  const candidate =
+    (subagentReason && subagentReason !== "unknown" ? subagentReason : null) ??
+    (subagentType && subagentType !== "unknown" ? subagentType : null) ??
+    querySource
   if (!candidate) {
     return null
   }
   if (candidate === "side_question") {
     return "side_query"
   }
-  if (candidate.startsWith("repl_main_thread")) {
+  if (candidate === "sdk" || candidate.startsWith("repl_main_thread")) {
     return "main_thread"
   }
   if (candidate.startsWith("agent:builtin:")) {
@@ -464,7 +504,11 @@ function normalizeSourceGroup(
   if (!agentName && !querySource) {
     return null
   }
-  if (agentName === "main_thread" || querySource?.startsWith("repl_main_thread")) {
+  if (
+    agentName === "main_thread" ||
+    querySource === "sdk" ||
+    querySource?.startsWith("repl_main_thread")
+  ) {
     return "main_thread"
   }
   if (
@@ -591,6 +635,7 @@ if (!existsSync(duckdbExe)) {
 mkdirSync(observabilityDir, { recursive: true })
 
 const args = parseArgs(process.argv.slice(2))
+const databasePath = args.dbPath ? resolve(args.dbPath) : defaultDatabasePath
 const eventsPath = resolveEventsPath(args)
 if (!existsSync(eventsPath)) {
   fail(`Events file not found: ${eventsPath}`)
@@ -855,12 +900,18 @@ for (const [index, event] of events.entries()) {
   existing.query_source ||= event.query_source ?? null
   existing.subagent_id ||= event.subagent_id ?? null
   existing.subagent_type ||= event.subagent_type ?? null
-  existing.subagent_reason ||= subagentReason
+  if (shouldReplacePlaceholder(existing.subagent_reason, subagentReason)) {
+    existing.subagent_reason = subagentReason
+  }
   existing.subagent_trigger_kind ||= subagentTriggerKind
   existing.subagent_trigger_detail ||= subagentTriggerDetail
   existing.subagent_trigger_payload_json ||= subagentTriggerPayloadJson
-  existing.agent_name ||= agentName
-  existing.source_group ||= sourceGroup
+  if (shouldReplacePlaceholder(existing.agent_name, agentName)) {
+    existing.agent_name = agentName
+  }
+  if (shouldReplacePlaceholder(existing.source_group, sourceGroup)) {
+    existing.source_group = sourceGroup
+  }
   existing.event_count = Number(existing.event_count) + 1
 
   if (tsMs < Number(existing.started_at_ms)) {
@@ -963,9 +1014,15 @@ for (const [index, event] of events.entries()) {
   existing.user_action_id ||= event.user_action_id ?? null
   existing.subagent_id ||= event.subagent_id ?? null
   existing.query_source ||= event.query_source ?? null
-  existing.subagent_reason ||= subagentReason
-  existing.agent_name ||= agentName
-  existing.source_group ||= sourceGroup
+  if (shouldReplacePlaceholder(existing.subagent_reason, subagentReason)) {
+    existing.subagent_reason = subagentReason
+  }
+  if (shouldReplacePlaceholder(existing.agent_name, agentName)) {
+    existing.agent_name = agentName
+  }
+  if (shouldReplacePlaceholder(existing.source_group, sourceGroup)) {
+    existing.source_group = sourceGroup
+  }
 
   if (event.loop_iter !== null && event.loop_iter !== undefined) {
     if (
@@ -1166,16 +1223,23 @@ for (const event of events) {
   existing.user_action_id ||= event.user_action_id ?? null
   existing.subagent_type ||= event.subagent_type ?? null
   existing.query_source ||= event.query_source ?? null
-  existing.subagent_reason ||= subagentReason
+  if (shouldReplacePlaceholder(existing.subagent_reason, subagentReason)) {
+    existing.subagent_reason = subagentReason
+  }
   existing.subagent_trigger_kind ||= subagentTriggerKind
   existing.subagent_trigger_detail ||= subagentTriggerDetail
   existing.subagent_trigger_payload_json ||= subagentTriggerPayloadJson
-  existing.agent_name ||= agentName
-  existing.source_group ||= normalizeSourceGroup(
+  if (shouldReplacePlaceholder(existing.agent_name, agentName)) {
+    existing.agent_name = agentName
+  }
+  const normalizedSourceGroup = normalizeSourceGroup(
     event.query_source ?? null,
     event.subagent_id ?? null,
     existing.agent_name as string | null,
   )
+  if (shouldReplacePlaceholder(existing.source_group, normalizedSourceGroup)) {
+    existing.source_group = normalizedSourceGroup
+  }
 
   if (event.event === "subagent.spawned") {
     existing.spawned_at = event.ts_wall
@@ -1251,8 +1315,9 @@ for (const [index, event] of events.entries()) {
   }
 
   existing.event_count = Number(existing.event_count) + 1
-  if (event.user_action_id) {
-    ;(existing.user_action_ids as Set<string>).add(event.user_action_id)
+  const normalizedUserActionId = nonEmptyString(event.user_action_id)
+  if (normalizedUserActionId) {
+    ;(existing.user_action_ids as Set<string>).add(normalizedUserActionId)
   }
   const effectiveQueryId = effectiveQueryIds[index]
   if (effectiveQueryId) {
@@ -1301,7 +1366,7 @@ const eventsRawRows = events.map((event, index) => {
     component: event.component ?? null,
     session_id: event.session_id ?? null,
     conversation_id: event.conversation_id ?? null,
-    user_action_id: event.user_action_id ?? null,
+    user_action_id: nonEmptyString(event.user_action_id),
     query_id: event.query_id ?? null,
     effective_query_id: effectiveQueryIds[index],
     turn_id: event.turn_id ?? null,
@@ -1323,6 +1388,11 @@ const eventsRawRows = events.map((event, index) => {
     cwd: event.cwd ?? null,
     git_branch: event.git_branch ?? null,
     build_version: event.build_version ?? null,
+    experiment_id: topLevelOrPayloadString(event, "experiment_id"),
+    scenario_id: topLevelOrPayloadString(event, "scenario_id"),
+    variant_id: topLevelOrPayloadString(event, "variant_id"),
+    benchmark_run_id: topLevelOrPayloadString(event, "benchmark_run_id"),
+    eval_run_id: topLevelOrPayloadString(event, "eval_run_id"),
     payload_json: compactJson(event.payload),
     snapshot_refs_json: compactJson(perEventSnapshotRefs[index] ?? []),
     raw_event_json: compactJson(event),
@@ -1549,6 +1619,38 @@ const buildMetaRows = [
 
 const sql = `
 BEGIN TRANSACTION;
+DROP VIEW IF EXISTS user_actions;
+DROP TABLE IF EXISTS user_actions;
+DROP VIEW IF EXISTS query_source_cost_share;
+DROP TABLE IF EXISTS query_source_cost_share;
+DROP VIEW IF EXISTS query_source_cost_share_daily;
+DROP TABLE IF EXISTS query_source_cost_share_daily;
+DROP VIEW IF EXISTS agent_cost_daily;
+DROP TABLE IF EXISTS agent_cost_daily;
+DROP VIEW IF EXISTS subagent_reason_daily;
+DROP TABLE IF EXISTS subagent_reason_daily;
+DROP VIEW IF EXISTS metrics_integrity_daily;
+DROP TABLE IF EXISTS metrics_integrity_daily;
+DROP VIEW IF EXISTS metrics_cost_daily;
+DROP TABLE IF EXISTS metrics_cost_daily;
+DROP VIEW IF EXISTS metrics_loop_daily;
+DROP TABLE IF EXISTS metrics_loop_daily;
+DROP VIEW IF EXISTS metrics_latency_daily;
+DROP TABLE IF EXISTS metrics_latency_daily;
+DROP VIEW IF EXISTS metrics_compression_daily;
+DROP TABLE IF EXISTS metrics_compression_daily;
+DROP VIEW IF EXISTS tool_calls_by_name;
+DROP TABLE IF EXISTS tool_calls_by_name;
+DROP VIEW IF EXISTS tool_calls_by_mode;
+DROP TABLE IF EXISTS tool_calls_by_mode;
+DROP VIEW IF EXISTS metrics_tools_daily;
+DROP TABLE IF EXISTS metrics_tools_daily;
+DROP VIEW IF EXISTS terminal_reason_distribution;
+DROP TABLE IF EXISTS terminal_reason_distribution;
+DROP VIEW IF EXISTS metrics_recovery_daily;
+DROP TABLE IF EXISTS metrics_recovery_daily;
+DROP VIEW IF EXISTS system_flags;
+DROP TABLE IF EXISTS system_flags;
 DROP TABLE IF EXISTS build_meta;
 DROP TABLE IF EXISTS events_raw;
 DROP TABLE IF EXISTS queries;
@@ -1604,6 +1706,11 @@ CREATE TABLE events_raw (
   cwd VARCHAR,
   git_branch VARCHAR,
   build_version VARCHAR,
+  experiment_id VARCHAR,
+  scenario_id VARCHAR,
+  variant_id VARCHAR,
+  benchmark_run_id VARCHAR,
+  eval_run_id VARCHAR,
   payload_json VARCHAR,
   snapshot_refs_json VARCHAR,
   raw_event_json VARCHAR
@@ -1841,6 +1948,11 @@ ${createInsertSql("events_raw", [
   "cwd",
   "git_branch",
   "build_version",
+  "experiment_id",
+  "scenario_id",
+  "variant_id",
+  "benchmark_run_id",
+  "eval_run_id",
   "payload_json",
   "snapshot_refs_json",
   "raw_event_json",
@@ -2065,7 +2177,12 @@ event_agg AS (
     COUNT(DISTINCT effective_query_id) FILTER (WHERE effective_query_id IS NOT NULL AND agent_name = 'main_thread') AS main_thread_query_count,
     COUNT(DISTINCT effective_query_id) FILTER (WHERE effective_query_id IS NOT NULL AND agent_name <> 'main_thread') AS subagent_query_count,
     COUNT(DISTINCT subagent_id) FILTER (WHERE subagent_id IS NOT NULL) AS subagent_count,
-    COUNT(DISTINCT tool_call_id) FILTER (WHERE tool_call_id IS NOT NULL) AS tool_call_count
+    COUNT(DISTINCT tool_call_id) FILTER (WHERE tool_call_id IS NOT NULL) AS tool_call_count,
+    MAX(experiment_id) FILTER (WHERE experiment_id IS NOT NULL) AS experiment_id,
+    MAX(scenario_id) FILTER (WHERE scenario_id IS NOT NULL) AS scenario_id,
+    MAX(variant_id) FILTER (WHERE variant_id IS NOT NULL) AS variant_id,
+    MAX(benchmark_run_id) FILTER (WHERE benchmark_run_id IS NOT NULL) AS benchmark_run_id,
+    MAX(eval_run_id) FILTER (WHERE eval_run_id IS NOT NULL) AS eval_run_id
   FROM events_raw
   WHERE user_action_id IS NOT NULL
   GROUP BY 1, 2
@@ -2084,6 +2201,11 @@ SELECT
   e.subagent_query_count,
   e.subagent_count,
   e.tool_call_count,
+  e.experiment_id,
+  e.scenario_id,
+  e.variant_id,
+  e.benchmark_run_id,
+  e.eval_run_id,
   COALESCE(u.raw_input_tokens, 0) AS raw_input_tokens,
   COALESCE(u.output_tokens, 0) AS output_tokens,
   COALESCE(u.cache_read_tokens, 0) AS cache_read_tokens,
@@ -2568,6 +2690,27 @@ COMMIT;
 `
 
 writeFileSync(sqlPath, sql, "utf8")
+
+for (const stalePath of [databasePath, `${databasePath}.wal`]) {
+  if (existsSync(stalePath)) {
+    unlinkSync(stalePath)
+  }
+}
+
+const applyResult = spawnSync(duckdbExe, [databasePath, `.read '${sqlPath}'`], {
+  cwd: repoRoot,
+  encoding: "utf8",
+})
+
+if (applyResult.status !== 0) {
+  const message =
+    String(applyResult.stderr ?? "").trim() ||
+    String(applyResult.stdout ?? "").trim() ||
+    String(applyResult.error?.message ?? "").trim()
+  fail(`DuckDB ETL apply failed: ${message}`)
+}
+
+unlinkSync(sqlPath)
 
 console.log(
   JSON.stringify(

@@ -4164,7 +4164,7 @@ async function run(): Promise<CommanderCommand> {
 				profileCheckpoint("before_print_import");
 				const { runHeadless } = await import("src/cli/print.js");
 				profileCheckpoint("after_print_import");
-				void runHeadless(
+				await runHeadless(
 					inputPrompt,
 					() => headlessStore.getState(),
 					headlessStore.setState,

@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { EvalScore } from '../../src/observability/v2/evalTypes'
+import type { EvalScenario, EvalScore, EvalVariant } from '../../src/observability/v2/evalTypes'
 import type {
   EvalExperimentActionBinding,
   EvalExperimentFlatActionBinding,
@@ -13,11 +13,20 @@ import type {
   EvalScoreSpec,
   EvalScoreSpecCollection,
 } from '../../src/observability/v2/evalExperimentTypes'
+import {
+  createRunIdentity,
+  executeHarnessAndCapture,
+  isExecuteHarnessDisabled,
+  type ExecuteHarnessResult,
+} from './v2_harness_execution'
 
 interface CandidateExperimentResult {
   candidate_variant_id: string
   candidate_run_id: string
   candidate_user_action_id: string
+  candidate_eval_run_id?: string
+  candidate_benchmark_run_id?: string
+  candidate_execution?: ExecuteHarnessResult
   compare_report: string
   gate_results: GateResult[]
   scorecard_summary: ScorecardItem[]
@@ -30,6 +39,9 @@ interface ScenarioExperimentResult {
   repeat_index: number
   baseline_run_id: string
   baseline_user_action_id: string
+  baseline_eval_run_id?: string
+  baseline_benchmark_run_id?: string
+  baseline_execution?: ExecuteHarnessResult
   candidates: CandidateExperimentResult[]
 }
 
@@ -156,6 +168,37 @@ async function loadGatePolicy(gatePolicyId?: string): Promise<EvalGatePolicy | u
   } catch {
     return undefined
   }
+}
+
+async function loadScenario(scenarioId: string): Promise<EvalScenario> {
+  const filePath = path.join(evalRoot, 'scenarios', `${scenarioId}.json`)
+  try {
+    return await readJson<EvalScenario>(filePath)
+  } catch {
+    throw new Error(`Scenario not found: ${scenarioId}`)
+  }
+}
+
+async function loadVariant(variantId: string): Promise<EvalVariant> {
+  const directPath = path.join(evalRoot, 'variants', `${variantId}.json`)
+  try {
+    return await readJson<EvalVariant>(directPath)
+  } catch {
+    // Fall through to template compatibility paths used by V2.1 samples.
+  }
+
+  const templatePath = path.join(evalRoot, 'variants', `${variantId}.template.json`)
+  try {
+    return await readJson<EvalVariant>(templatePath)
+  } catch {
+    // Fall through to baseline.template.json compatibility.
+  }
+
+  const baseline = await readJson<EvalVariant>(
+    path.join(evalRoot, 'variants', 'baseline.template.json'),
+  )
+  if (baseline.variant_id === variantId) return baseline
+  throw new Error(`Variant not found: ${variantId}`)
 }
 
 function normalizeGateRules(gatePolicy: EvalGatePolicy | undefined): EvalGatePolicyRule[] {
@@ -530,6 +573,24 @@ function buildRecordRunArgs(params: {
   return args
 }
 
+function requireCapturedAction(params: {
+  label: string
+  result: ExecuteHarnessResult
+}): string {
+  const { label, result } = params
+  if (result.execution.status !== 'completed') {
+    throw new Error(
+      `${label} execute_harness failed: ${result.execution.error ?? result.execution.status}`,
+    )
+  }
+  if (result.capture.status !== 'captured' || !result.capture.user_action_id) {
+    throw new Error(
+      `${label} action capture ${result.capture.status}: ${result.capture.error ?? 'no user_action_id'}`,
+    )
+  }
+  return result.capture.user_action_id
+}
+
 function summarizeRisk(results: ScenarioExperimentResult[]): RiskVerdict {
   const candidates = results.flatMap(result => result.candidates)
   const allGateResults = candidates.flatMap(candidate => candidate.gate_results)
@@ -660,7 +721,7 @@ function buildMarkdownReport(params: {
     .join('\n')
   const reviewMode = aggregateReviewMode(results)
 
-  return `# V2.1 Experiment Summary: ${experiment.experiment_id}
+  return `# V2 Experiment Summary: ${experiment.experiment_id}
 
 ## 理解清单
 
@@ -675,11 +736,11 @@ function buildMarkdownReport(params: {
 
 ## 预期效果
 
-This summary records a manifest-driven V2.1 experiment run. In bind-existing mode, every generated V2 run is backed by an existing V1 user_action_id.
+This summary records a manifest-driven V2 experiment run. In bind_existing mode, V2 binds existing V1 traces. In execute_harness mode, V2.2-alpha executes the scenario first, then captures the generated user_action_id through benchmark_run_id.
 
 ## 设计思路
 
-V2.1 intentionally does not execute the harness automatically. It turns existing V1 traces into comparable V2 runs, then runs scorer, comparison, and regression-risk gate scripts.
+The runner always scores only trace-backed V1 facts. V2.2-alpha adds an execution front half, but the score/compare/gate back half is the same fact-only pipeline used by V2.1.
 
 ## Risk Verdict
 
@@ -724,17 +785,28 @@ async function main(): Promise<void> {
 
   const experimentPath = await findExperimentPath(experimentArg)
   const experiment = await readJson<EvalExperimentV21>(experimentPath)
-  const mode = experiment.mode ?? 'bind_existing'
+  const requestedMode = experiment.mode ?? 'bind_existing'
+  const automationDisabled = isExecuteHarnessDisabled(args)
+  const mode =
+    requestedMode === 'execute_harness' && automationDisabled
+      ? 'bind_existing'
+      : requestedMode
 
-  if (mode === 'execute_harness') {
+  if (
+    requestedMode === 'execute_harness' &&
+    automationDisabled &&
+    experiment.execution?.allow_fallback_to_bind_existing === false
+  ) {
     throw new Error(
-      'execute_harness mode is not implemented yet: missing headless harness execution adapter',
+      'execute_harness is disabled and this experiment does not allow bind_existing fallback.',
     )
   }
   if (mode !== 'bind_existing') {
-    throw new Error(
-      `Unsupported V2.1 experiment mode: ${mode}`,
-    )
+    if (mode !== 'execute_harness') {
+      throw new Error(
+        `Unsupported V2 experiment mode: ${mode}`,
+      )
+    }
   }
 
   const scenarioIds = experiment.scenario_ids ?? []
@@ -766,36 +838,81 @@ async function main(): Promise<void> {
     }
   }
   const repeatCount = Math.max(experiment.repeat_count ?? 1, 1)
+  if (mode === 'execute_harness') {
+    if (scenarioIds.length !== 1) {
+      throw new Error('V2.2-alpha execute_harness supports exactly one scenario.')
+    }
+    if (experiment.candidate_variant_ids.length !== 1) {
+      throw new Error('V2.2-alpha execute_harness supports exactly one candidate variant.')
+    }
+    if (repeatCount !== 1) {
+      throw new Error('V2.2-alpha execute_harness supports repeat_count=1 only.')
+    }
+  }
   const results: ScenarioExperimentResult[] = []
 
-  for (const scenarioId of scenarioIds) {
-    for (const variantId of [experiment.baseline_variant_id, ...experiment.candidate_variant_ids]) {
-      const userActionId = findBoundUserActionId({
-        experiment,
-        scenarioId,
-        variantId,
-      })
-      if (!userActionId) {
-        throw new Error(
-          `Missing action binding for scenario=${scenarioId}, variant=${variantId}. V2.1 bind_existing mode requires user_action_id bindings.`,
-        )
+  if (mode === 'bind_existing') {
+    for (const scenarioId of scenarioIds) {
+      for (const variantId of [experiment.baseline_variant_id, ...experiment.candidate_variant_ids]) {
+        const userActionId = findBoundUserActionId({
+          experiment,
+          scenarioId,
+          variantId,
+        })
+        if (!userActionId) {
+          throw new Error(
+            `Missing action binding for scenario=${scenarioId}, variant=${variantId}. bind_existing mode requires user_action_id bindings.`,
+          )
+        }
       }
     }
   }
 
+  const executionStamp = new Date().toISOString().replace(/[:.]/g, '')
+
   for (const scenarioId of scenarioIds) {
-    const baselineUserActionId = findBoundUserActionId({
-      experiment,
-      scenarioId,
-      variantId: experiment.baseline_variant_id,
-    })
-    if (!baselineUserActionId) {
-      throw new Error(
-        `Missing action binding for scenario=${scenarioId}, variant=${experiment.baseline_variant_id}. V2.1 bind_existing mode requires user_action_id bindings.`,
-      )
-    }
+    const scenario = mode === 'execute_harness' ? await loadScenario(scenarioId) : undefined
 
     for (let repeatIndex = 1; repeatIndex <= repeatCount; repeatIndex += 1) {
+      let baselineUserActionId = findBoundUserActionId({
+        experiment,
+        scenarioId,
+        variantId: experiment.baseline_variant_id,
+      })
+      let baselineExecution: ExecuteHarnessResult | undefined
+      let baselineEvalRunId: string | undefined
+      let baselineBenchmarkRunId: string | undefined
+      if (mode === 'execute_harness') {
+        if (!scenario) throw new Error(`Scenario not found: ${scenarioId}`)
+        const baselineVariant = await loadVariant(experiment.baseline_variant_id)
+        const identity = createRunIdentity({
+          experimentId: experiment.experiment_id,
+          scenarioId,
+          variantId: experiment.baseline_variant_id,
+          stamp: executionStamp,
+        })
+        baselineEvalRunId = identity.eval_run_id
+        baselineBenchmarkRunId = identity.benchmark_run_id
+        baselineExecution = await executeHarnessAndCapture({
+          experimentId: experiment.experiment_id,
+          scenario,
+          variant: baselineVariant,
+          execution: experiment.execution,
+          evalRunId: identity.eval_run_id,
+          benchmarkRunId: identity.benchmark_run_id,
+          dbPath,
+        })
+        baselineUserActionId = requireCapturedAction({
+          label: `baseline scenario=${scenarioId} variant=${experiment.baseline_variant_id}`,
+          result: baselineExecution,
+        })
+      }
+      if (!baselineUserActionId) {
+        throw new Error(
+          `Missing action binding for scenario=${scenarioId}, variant=${experiment.baseline_variant_id}. bind_existing mode requires user_action_id bindings.`,
+        )
+      }
+
       const baselineOutput = runBunScript(
         'scripts/evals/v2_record_run.ts',
         buildRecordRunArgs({
@@ -814,11 +931,39 @@ async function main(): Promise<void> {
 
       const candidates: CandidateExperimentResult[] = []
       for (const candidateVariantId of experiment.candidate_variant_ids) {
-        const candidateActionId = findBoundUserActionId({
+        let candidateActionId = findBoundUserActionId({
           experiment,
           scenarioId,
           variantId: candidateVariantId,
         })
+        let candidateExecution: ExecuteHarnessResult | undefined
+        let candidateEvalRunId: string | undefined
+        let candidateBenchmarkRunId: string | undefined
+        if (mode === 'execute_harness') {
+          if (!scenario) throw new Error(`Scenario not found: ${scenarioId}`)
+          const candidateVariant = await loadVariant(candidateVariantId)
+          const identity = createRunIdentity({
+            experimentId: experiment.experiment_id,
+            scenarioId,
+            variantId: candidateVariantId,
+            stamp: executionStamp,
+          })
+          candidateEvalRunId = identity.eval_run_id
+          candidateBenchmarkRunId = identity.benchmark_run_id
+          candidateExecution = await executeHarnessAndCapture({
+            experimentId: experiment.experiment_id,
+            scenario,
+            variant: candidateVariant,
+            execution: experiment.execution,
+            evalRunId: identity.eval_run_id,
+            benchmarkRunId: identity.benchmark_run_id,
+            dbPath,
+          })
+          candidateActionId = requireCapturedAction({
+            label: `candidate scenario=${scenarioId} variant=${candidateVariantId}`,
+            result: candidateExecution,
+          })
+        }
         if (!candidateActionId) {
           throw new Error(
             `Missing candidate user_action_id for scenario=${scenarioId}, variant=${candidateVariantId}`,
@@ -868,6 +1013,9 @@ async function main(): Promise<void> {
           candidate_variant_id: candidateVariantId,
           candidate_run_id: candidateRunId,
           candidate_user_action_id: candidateActionId,
+          candidate_eval_run_id: candidateEvalRunId,
+          candidate_benchmark_run_id: candidateBenchmarkRunId,
+          candidate_execution: candidateExecution,
           compare_report: extractCreatedReport(compareOutput),
           gate_results: gateResults,
           scorecard_summary: scorecard,
@@ -887,6 +1035,9 @@ async function main(): Promise<void> {
         repeat_index: repeatIndex,
         baseline_run_id: baselineRunId,
         baseline_user_action_id: baselineUserActionId,
+        baseline_eval_run_id: baselineEvalRunId,
+        baseline_benchmark_run_id: baselineBenchmarkRunId,
+        baseline_execution: baselineExecution,
         candidates,
       })
     }
@@ -933,6 +1084,8 @@ async function main(): Promise<void> {
         manifest_ref: path.relative(repoRoot, experimentPath),
         generated_at: generatedAt,
         mode,
+        requested_mode: requestedMode,
+        automation_disabled: automationDisabled,
         run_refs: runRefs(results),
         score_refs: scoreRefs(results),
         report_refs: reportRefs(results, outputMarkdownRel),
@@ -948,7 +1101,21 @@ async function main(): Promise<void> {
         warnings: warningMessages,
         experiment,
         runner: {
+          requested_mode: requestedMode,
           mode,
+          automation_disabled: automationDisabled,
+          fallback_reason:
+            requestedMode === 'execute_harness' && mode === 'bind_existing'
+              ? 'execute_harness disabled by flag or environment; bind_existing fallback used'
+              : null,
+          execute_harness_alpha_limits:
+            mode === 'execute_harness'
+              ? {
+                  scenario_count: 1,
+                  candidate_count: 1,
+                  repeat_count: 1,
+                }
+              : null,
           score_spec_ids: experiment.score_spec_ids ?? [],
           gate_policy_id: experiment.gate_policy_id ?? null,
         },
@@ -969,8 +1136,8 @@ async function main(): Promise<void> {
     }),
   )
 
-  console.log(`Created V2.1 experiment summary: ${outputJsonRel}`)
-  console.log(`Created V2.1 experiment report: ${outputMarkdownRel}`)
+  console.log(`Created V2 experiment summary: ${outputJsonRel}`)
+  console.log(`Created V2 experiment report: ${outputMarkdownRel}`)
 }
 
 main().catch(error => {

@@ -1,0 +1,20 @@
+{
+  "scenario_id": "execute_harness_smoke_minimal",
+  "name": "Execute Harness Smoke Minimal",
+  "description": "Minimal real-model smoke for V2.2 execute_harness. The goal is to verify automatic execution, V1 event emission, benchmark_run_id capture, and V2 artifact generation with minimal task complexity.",
+  "input_prompt": "只回复 OK，不要做任何额外解释。",
+  "tags": ["smoke", "execute_harness", "v2_2"],
+  "expected_artifacts": [],
+  "expected_tools": [],
+  "expected_skills": [],
+  "expected_constraints": [
+    "Must finish in one turn",
+    "Must not modify files",
+    "Must not expand into unnecessary subagents"
+  ],
+  "max_turn_count": 1,
+  "max_total_billed_tokens": 60000,
+  "max_subagent_count": 0,
+  "owner": "local",
+  "status": "ready"
+}

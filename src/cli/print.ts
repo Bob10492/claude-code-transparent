@@ -5376,7 +5376,7 @@ function getStructuredIO(
         jsonStringify({
           type: 'user',
           content: inputPrompt,
-          uuid: '',
+          uuid: randomUUID(),
           session_id: '',
           message: {
             role: 'user',

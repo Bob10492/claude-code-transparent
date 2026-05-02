@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdir, readFile, rm, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 type JsonRecord = Record<string, unknown>
@@ -12,6 +12,7 @@ interface VerifyCase {
   expected_error?: string
   db_path?: string
   no_snapshot_db?: boolean
+  extra_args?: string[]
 }
 
 interface VerifyResult {
@@ -97,6 +98,20 @@ async function writeJson(filePath: string, value: unknown): Promise<void> {
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
 }
 
+async function findChildDir(parent: string, matcher: (name: string) => boolean): Promise<string> {
+  const entries = await readdir(parent, { withFileTypes: true })
+  const found = entries.find(entry => entry.isDirectory() && matcher(entry.name))
+  if (!found) throw new Error(`Directory not found under ${parent}`)
+  return path.join(parent, found.name)
+}
+
+async function resolveV2ReportRoot(): Promise<string> {
+  const taskRoot = path.join(repoRoot, 'ObservrityTask')
+  const versionsRoot = await findChildDir(taskRoot, name => name.startsWith('10-'))
+  const v2Root = path.join(versionsRoot, 'v2')
+  return await findChildDir(v2Root, name => name.startsWith('06-'))
+}
+
 function runBun(args: string[]) {
   return spawnSync('bun', ['run', ...args], {
     cwd: repoRoot,
@@ -105,7 +120,8 @@ function runBun(args: string[]) {
 }
 
 function extractOutputRef(output: string, label: string): string | undefined {
-  const match = output.match(new RegExp(`${label}:\\s*(.+)`))
+  const flexibleLabel = label.replace('V2.1', 'V2(?:\\\\.1)?')
+  const match = output.match(new RegExp(`${flexibleLabel}:\\s*(.+)`))
   return match?.[1]?.trim()
 }
 
@@ -125,6 +141,7 @@ async function cleanupGeneratedArtifacts(summaryRef?: string): Promise<void> {
     score_refs?: string[]
     report_refs?: string[]
   }
+  const v2ReportRoot = await resolveV2ReportRoot()
   const runReportRefs = (summary.run_refs ?? []).map(runRef => {
     const runId = path.basename(runRef, '.json')
     return path.join(
@@ -144,6 +161,56 @@ async function cleanupGeneratedArtifacts(summaryRef?: string): Promise<void> {
   ]
   for (const ref of refs) {
     await removeIfExists(relToAbs(ref))
+  }
+}
+
+async function cleanupGeneratedArtifactsResolved(summaryRef?: string): Promise<void> {
+  if (!summaryRef) return
+  const summaryPath = relToAbs(summaryRef)
+  const summary = JSON.parse(await readFile(summaryPath, 'utf8')) as {
+    run_refs?: string[]
+    score_refs?: string[]
+    report_refs?: string[]
+  }
+  const v2ReportRoot = await resolveV2ReportRoot()
+  const runReportRefs = (summary.run_refs ?? []).map(runRef =>
+    path.join(v2ReportRoot, `${path.basename(runRef, '.json')}.md`),
+  )
+  const refs = [
+    ...(summary.run_refs ?? []),
+    ...(summary.score_refs ?? []),
+    ...(summary.report_refs ?? []),
+    ...runReportRefs,
+    summaryRef,
+  ]
+  for (const ref of refs) {
+    await removeIfExists(relToAbs(ref))
+  }
+}
+
+async function listFilesInDir(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
+  return entries
+    .filter(entry => entry.isFile())
+    .map(entry => path.join(dir, entry.name))
+}
+
+async function listGeneratedArtifactFiles(): Promise<Set<string>> {
+  const v2ReportRoot = await resolveV2ReportRoot()
+  const files = [
+    ...(await listFilesInDir(path.join(repoRoot, 'tests', 'evals', 'v2', 'runs'))),
+    ...(await listFilesInDir(path.join(repoRoot, 'tests', 'evals', 'v2', 'scores'))),
+    ...(await listFilesInDir(v2ReportRoot)),
+  ]
+  return new Set(files.map(file => path.resolve(file)))
+}
+
+async function cleanupArtifactsCreatedAfter(before: Set<string>): Promise<void> {
+  const after = await listGeneratedArtifactFiles()
+  for (const filePath of after) {
+    if (!before.has(filePath)) {
+      await removeIfExists(filePath)
+    }
   }
 }
 
@@ -208,9 +275,11 @@ async function createMissingRootDb(): Promise<string> {
 async function runCase(testCase: VerifyCase): Promise<VerifyResult> {
   const manifestPath = path.join(manifestsRoot, `${testCase.case_id}.json`)
   await writeJson(manifestPath, testCase.manifest)
+  const beforeArtifacts = await listGeneratedArtifactFiles()
   const args = ['scripts/evals/v2_run_experiment.ts', '--experiment', manifestPath]
   if (testCase.db_path) args.push('--db', testCase.db_path)
   if (testCase.no_snapshot_db) args.push('--no-snapshot-db')
+  if (testCase.extra_args) args.push(...testCase.extra_args)
 
   const result = runBun(args)
   const output = [String(result.stdout ?? '').trim(), String(result.stderr ?? '').trim()]
@@ -220,6 +289,7 @@ async function runCase(testCase: VerifyCase): Promise<VerifyResult> {
   const reportRef = extractOutputRef(output, 'Created V2.1 experiment report')
 
   if (testCase.expect === 'failure') {
+    await cleanupArtifactsCreatedAfter(beforeArtifacts)
     const hasExpectedError =
       result.status !== 0 &&
       (!testCase.expected_error || output.includes(testCase.expected_error))
@@ -242,8 +312,9 @@ async function runCase(testCase: VerifyCase): Promise<VerifyResult> {
       passed = false
       errorExcerpt = schemaErrors.join('; ')
     }
-    await cleanupGeneratedArtifacts(summaryRef)
+    await cleanupGeneratedArtifactsResolved(summaryRef)
   }
+  await cleanupArtifactsCreatedAfter(beforeArtifacts)
 
   return {
     case_id: testCase.case_id,
@@ -398,11 +469,10 @@ async function main(): Promise<void> {
       }),
     },
     {
-      case_id: 'execute_harness_blocked',
-      description: 'execute_harness mode should fail with the explicit adapter error.',
-      expect: 'failure',
-      expected_error:
-        'execute_harness mode is not implemented yet: missing headless harness execution adapter',
+      case_id: 'execute_harness_disabled_fallback',
+      description: 'execute_harness can be disabled and falls back to bind_existing when action bindings are present.',
+      expect: 'success',
+      extra_args: ['--disable-execute-harness'],
       manifest: experiment({
         id: `v2_1_verify_execute_harness_${stamp}`,
         scenarioIds: ['cost_sensitive_task'],

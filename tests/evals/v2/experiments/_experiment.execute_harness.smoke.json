@@ -1,0 +1,38 @@
+{
+  "experiment_id": "execute_harness_smoke",
+  "name": "Execute Harness Smoke",
+  "goal": "Run one minimal real-model scenario through V2.2-alpha execute_harness, then capture the generated V1 user_action_id by benchmark_run_id.",
+  "baseline_variant_id": "baseline_default",
+  "candidate_variant_ids": ["candidate_session_memory_sparse"],
+  "scenario_set_id": "v2_2_alpha_smoke",
+  "scenario_ids": ["execute_harness_smoke_minimal"],
+  "repeat_count": 1,
+  "score_spec_ids": [
+    "task_success.main_chain_observed",
+    "efficiency.total_billed_tokens",
+    "decision_quality.subagent_count_observed",
+    "stability.recovery_absence",
+    "controllability.turn_limit_basic"
+  ],
+  "gate_policy_id": "default_v2_1_gate",
+  "mode": "execute_harness",
+  "execution": {
+    "adapter": "cli_print",
+    "timeout_ms": 180000,
+    "max_turns": 8,
+    "allow_fallback_to_bind_existing": true
+  },
+  "action_bindings": [
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "variant_id": "baseline_default",
+      "entry_user_action_id": "e0e2f2b7-7667-4fe2-85a4-17d09a12a5ce"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "variant_id": "candidate_session_memory_sparse",
+      "entry_user_action_id": "e0e2f2b7-7667-4fe2-85a4-17d09a12a5ce"
+    }
+  ],
+  "status": "ready"
+}

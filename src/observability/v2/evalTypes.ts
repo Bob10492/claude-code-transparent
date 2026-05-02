@@ -53,6 +53,14 @@ export interface EvalVariant {
   base_variant_id?: string
   git_commit?: string
   config_snapshot_ref?: string
+  env_overrides?: Record<string, string | number | boolean>
+  model_config?: {
+    model?: string
+    max_turns?: number
+    thinking?: 'enabled' | 'adaptive' | 'disabled'
+    max_budget_usd?: number
+  }
+  feature_gates?: Record<string, string | number | boolean>
   notes?: string
 }
 

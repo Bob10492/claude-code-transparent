@@ -12,6 +12,19 @@ export const HARNESS_SCHEMA_VERSION = '2026-04-19'
 
 type HarnessLevel = 'debug' | 'info' | 'warning' | 'error'
 
+export type EvalExecutionContext = {
+  experiment_id: string
+  scenario_id: string
+  variant_id: string
+  benchmark_run_id: string
+  eval_run_id: string
+}
+
+export function isQuerySendDebugEnabled(): boolean {
+  const value = process.env.CLAUDE_CODE_QUERY_SEND_DEBUG
+  return value === '1' || value === 'true' || value === 'TRUE'
+}
+
 export type HarnessSnapshotRef = {
   snapshot_ref: string
   bytes: number
@@ -43,6 +56,7 @@ export type HarnessEventInput = {
   cwd?: string | null
   git_branch?: string | null
   build_version?: string | null
+  eval_context?: EvalExecutionContext | null
   payload?: Record<string, unknown>
 }
 
@@ -70,6 +84,29 @@ async function ensureObservabilityDirs(): Promise<void> {
 function getEventLogPath(now: Date): string {
   const yyyymmdd = now.toISOString().slice(0, 10).replaceAll('-', '')
   return join(getObservabilityDir(), `events-${yyyymmdd}.jsonl`)
+}
+
+function nonEmptyEnv(name: string): string | null {
+  const value = process.env[name]
+  return value && value.trim() !== '' ? value : null
+}
+
+export function getEvalExecutionContextFromEnv(): EvalExecutionContext | null {
+  const experiment_id = nonEmptyEnv('CLAUDE_CODE_EVAL_EXPERIMENT_ID')
+  const scenario_id = nonEmptyEnv('CLAUDE_CODE_EVAL_SCENARIO_ID')
+  const variant_id = nonEmptyEnv('CLAUDE_CODE_EVAL_VARIANT_ID')
+  const benchmark_run_id = nonEmptyEnv('CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID')
+  const eval_run_id = nonEmptyEnv('CLAUDE_CODE_EVAL_RUN_ID')
+  if (!experiment_id || !scenario_id || !variant_id || !benchmark_run_id || !eval_run_id) {
+    return null
+  }
+  return {
+    experiment_id,
+    scenario_id,
+    variant_id,
+    benchmark_run_id,
+    eval_run_id,
+  }
 }
 
 function enqueueWrite(task: () => Promise<void>): Promise<void> {
@@ -129,6 +166,7 @@ export async function emitHarnessEvent(
   input: HarnessEventInput,
 ): Promise<void> {
   const now = new Date()
+  const evalContext = input.eval_context ?? getEvalExecutionContextFromEnv()
   const line = stableStringify({
     schema_version: HARNESS_SCHEMA_VERSION,
     ts_wall: now.toISOString(),
@@ -156,6 +194,11 @@ export async function emitHarnessEvent(
     cwd: input.cwd ?? getCwdState(),
     git_branch: input.git_branch ?? null,
     build_version: input.build_version ?? (MACRO.VERSION ?? 'unknown'),
+    experiment_id: evalContext?.experiment_id ?? null,
+    scenario_id: evalContext?.scenario_id ?? null,
+    variant_id: evalContext?.variant_id ?? null,
+    benchmark_run_id: evalContext?.benchmark_run_id ?? null,
+    eval_run_id: evalContext?.eval_run_id ?? null,
     payload: input.payload ?? {},
   })
 

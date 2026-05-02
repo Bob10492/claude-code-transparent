@@ -1,0 +1,372 @@
+{
+  "experiment_id": "execute_harness_smoke",
+  "manifest_ref": "tests\\evals\\v2\\experiments\\_experiment.execute_harness.smoke.json",
+  "generated_at": "2026-05-02T13:23:28.196Z",
+  "mode": "execute_harness",
+  "requested_mode": "execute_harness",
+  "automation_disabled": false,
+  "run_refs": [
+    "tests\\evals\\v2\\runs\\run_2026-05-02T132317110Z_execute_harness_smoke_minimal_baseline_default_1e3c516e.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-02T132328037Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_0acb35d4.json"
+  ],
+  "score_refs": [
+    "tests\\evals\\v2\\scores\\run_2026-05-02T132317110Z_execute_harness_smoke_minimal_baseline_default_1e3c516e.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-02T132328037Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_0acb35d4.scores.json"
+  ],
+  "report_refs": [
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-02T132317110Z_execute_harness_smoke_minimal_baseline_default_1e3c516e_vs_run_2026-05-02T132328037Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_0acb35d4.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_execute_harness_smoke_2026-05-02T132328195Z.md"
+  ],
+  "risk_verdict": {
+    "status": "pass",
+    "scope": "regression_risk_only",
+    "is_final_experiment_judgment": false,
+    "hard_fail_count": 0,
+    "soft_warning_count": 0,
+    "missing_score_count": 0,
+    "inconclusive_count": 0,
+    "candidate_count": 1,
+    "notes": "This verdict is only a regression-risk gate result. It is not a final judgment about model intelligence, harness value, or exploratory potential."
+  },
+  "gate_verdict": {
+    "status": "pass",
+    "scope": "regression_risk_only",
+    "is_final_experiment_judgment": false,
+    "hard_fail_count": 0,
+    "soft_warning_count": 0,
+    "missing_score_count": 0,
+    "inconclusive_count": 0,
+    "candidate_count": 1,
+    "notes": "This verdict is only a regression-risk gate result. It is not a final judgment about model intelligence, harness value, or exploratory potential."
+  },
+  "verdict_boundary": "risk_verdict/gate_verdict is regression-risk-only and is not a final experiment judgment.",
+  "scorecard_summary": [
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 26628,
+      "candidate_value": 26628,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    }
+  ],
+  "exploration_signals": [
+    "No exploratory signal was derived from the current automatic scorecard; manual review may still find qualitative differences."
+  ],
+  "recommended_review_mode": "regression_review",
+  "final_decision": null,
+  "errors": [],
+  "warnings": [],
+  "experiment": {
+    "experiment_id": "execute_harness_smoke",
+    "name": "Execute Harness Smoke",
+    "goal": "Run one minimal real-model scenario through V2.2-alpha execute_harness, then capture the generated V1 user_action_id by benchmark_run_id.",
+    "baseline_variant_id": "baseline_default",
+    "candidate_variant_ids": [
+      "candidate_session_memory_sparse"
+    ],
+    "scenario_set_id": "v2_2_alpha_smoke",
+    "scenario_ids": [
+      "execute_harness_smoke_minimal"
+    ],
+    "repeat_count": 1,
+    "score_spec_ids": [
+      "task_success.main_chain_observed",
+      "efficiency.total_billed_tokens",
+      "decision_quality.subagent_count_observed",
+      "stability.recovery_absence",
+      "controllability.turn_limit_basic"
+    ],
+    "gate_policy_id": "default_v2_1_gate",
+    "mode": "execute_harness",
+    "execution": {
+      "adapter": "cli_print",
+      "timeout_ms": 180000,
+      "max_turns": 8,
+      "allow_fallback_to_bind_existing": true
+    },
+    "action_bindings": [
+      {
+        "scenario_id": "execute_harness_smoke_minimal",
+        "variant_id": "baseline_default",
+        "entry_user_action_id": "e0e2f2b7-7667-4fe2-85a4-17d09a12a5ce"
+      },
+      {
+        "scenario_id": "execute_harness_smoke_minimal",
+        "variant_id": "candidate_session_memory_sparse",
+        "entry_user_action_id": "e0e2f2b7-7667-4fe2-85a4-17d09a12a5ce"
+      }
+    ],
+    "status": "ready"
+  },
+  "runner": {
+    "requested_mode": "execute_harness",
+    "mode": "execute_harness",
+    "automation_disabled": false,
+    "fallback_reason": null,
+    "execute_harness_alpha_limits": {
+      "scenario_count": 1,
+      "candidate_count": 1,
+      "repeat_count": 1
+    },
+    "score_spec_ids": [
+      "task_success.main_chain_observed",
+      "efficiency.total_billed_tokens",
+      "decision_quality.subagent_count_observed",
+      "stability.recovery_absence",
+      "controllability.turn_limit_basic"
+    ],
+    "gate_policy_id": "default_v2_1_gate"
+  },
+  "results": [
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "repeat_index": 1,
+      "baseline_run_id": "run_2026-05-02T132317110Z_execute_harness_smoke_minimal_baseline_default_1e3c516e",
+      "baseline_user_action_id": "1e3c516e-125b-4575-b3ee-5e7e6b45a8ed",
+      "baseline_eval_run_id": "eval_execute_harness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-02T132304712Z",
+      "baseline_benchmark_run_id": "bench_execute_harness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-02T132304712Z",
+      "baseline_execution": {
+        "execution": {
+          "status": "completed",
+          "stdoutRef": ".observability\\v2-harness-runs\\eval_execute_harness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-02T132304712Z\\stdout.txt",
+          "stderrRef": ".observability\\v2-harness-runs\\eval_execute_harness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-02T132304712Z\\stderr.txt"
+        },
+        "capture": {
+          "status": "captured",
+          "user_action_id": "1e3c516e-125b-4575-b3ee-5e7e6b45a8ed",
+          "match_count": 1
+        },
+        "variant_apply": {
+          "env": {
+            "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "execute_harness_smoke",
+            "CLAUDE_CODE_EVAL_SCENARIO_ID": "execute_harness_smoke_minimal",
+            "CLAUDE_CODE_EVAL_VARIANT_ID": "baseline_default",
+            "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_execute_harness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-02T132304712Z",
+            "CLAUDE_CODE_EVAL_RUN_ID": "eval_execute_harness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-02T132304712Z",
+            "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "path/to/baseline-config.json"
+          },
+          "cliArgs": [
+            "--max-turns",
+            "8"
+          ],
+          "metadata": {
+            "supported_variant_fields": [
+              "env_overrides",
+              "config_snapshot_ref",
+              "model_config",
+              "feature_gates"
+            ],
+            "config_snapshot_ref": "path/to/baseline-config.json",
+            "feature_gate_count": 0,
+            "env_override_count": 0,
+            "model_config": null
+          }
+        },
+        "benchmark_run_id": "bench_execute_harness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-02T132304712Z",
+        "eval_run_id": "eval_execute_harness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-02T132304712Z"
+      },
+      "candidates": [
+        {
+          "candidate_variant_id": "candidate_session_memory_sparse",
+          "candidate_run_id": "run_2026-05-02T132328037Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_0acb35d4",
+          "candidate_user_action_id": "0acb35d4-75b8-4219-86fc-ad5f291bc9ff",
+          "candidate_eval_run_id": "eval_execute_harness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-02T132304712Z",
+          "candidate_benchmark_run_id": "bench_execute_harness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-02T132304712Z",
+          "candidate_execution": {
+            "execution": {
+              "status": "completed",
+              "stdoutRef": ".observability\\v2-harness-runs\\eval_execute_harness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-02T132304712Z\\stdout.txt",
+              "stderrRef": ".observability\\v2-harness-runs\\eval_execute_harness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-02T132304712Z\\stderr.txt"
+            },
+            "capture": {
+              "status": "captured",
+              "user_action_id": "0acb35d4-75b8-4219-86fc-ad5f291bc9ff",
+              "match_count": 1
+            },
+            "variant_apply": {
+              "env": {
+                "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "execute_harness_smoke",
+                "CLAUDE_CODE_EVAL_SCENARIO_ID": "execute_harness_smoke_minimal",
+                "CLAUDE_CODE_EVAL_VARIANT_ID": "candidate_session_memory_sparse",
+                "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_execute_harness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-02T132304712Z",
+                "CLAUDE_CODE_EVAL_RUN_ID": "eval_execute_harness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-02T132304712Z",
+                "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "src/services/SessionMemory/sessionMemoryUtils.ts"
+              },
+              "cliArgs": [
+                "--max-turns",
+                "8"
+              ],
+              "metadata": {
+                "supported_variant_fields": [
+                  "env_overrides",
+                  "config_snapshot_ref",
+                  "model_config",
+                  "feature_gates"
+                ],
+                "config_snapshot_ref": "src/services/SessionMemory/sessionMemoryUtils.ts",
+                "feature_gate_count": 0,
+                "env_override_count": 0,
+                "model_config": null
+              }
+            },
+            "benchmark_run_id": "bench_execute_harness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-02T132304712Z",
+            "eval_run_id": "eval_execute_harness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-02T132304712Z"
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-02T132317110Z_execute_harness_smoke_minimal_baseline_default_1e3c516e_vs_run_2026-05-02T132328037Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_0acb35d4.md",
+          "gate_results": [
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 26628,
+              "candidate_value": 26628,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 26628,
+              "candidate_value": 26628,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 26628,
+              "candidate_value": 26628,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "No exploratory signal was derived from the current automatic scorecard; manual review may still find qualitative differences."
+          ],
+          "recommended_review_mode": "regression_review"
+        }
+      ]
+    }
+  ],
+  "created_at": "2026-05-02T13:23:28.196Z"
+}
