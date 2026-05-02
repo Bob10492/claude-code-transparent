@@ -4,7 +4,7 @@
 
 - This directory stores experiment-level JSON summaries.
 - V2.1 summaries are usually produced by `bind_existing`.
-- V2.2-alpha summaries may be produced by `execute_harness`, or by `execute_harness` disabled and falling back to `bind_existing`.
+- V2.2 summaries may be produced by `execute_harness`, or by `execute_harness` disabled and falling back to `bind_existing`.
 - The top-level schema is stable enough for regression checks and documentation.
 
 ## Required Top-Level Fields
@@ -15,6 +15,8 @@
 | `manifest_ref` | string | Manifest path used by the runner. |
 | `generated_at` | string | ISO timestamp. |
 | `mode` | string | Effective mode: `bind_existing` or `execute_harness`. |
+| `report_profile` | string | `smoke` or `real_experiment`. |
+| `evaluation_intent` | string or null | Usually `exploration` or `regression`. |
 | `requested_mode` | string | Manifest-requested mode, when present in newer artifacts. |
 | `automation_disabled` | boolean | Whether `execute_harness` was disabled and fallback was used. |
 | `run_refs` | string[] | Generated V2 run JSON refs. |
@@ -22,6 +24,9 @@
 | `report_refs` | string[] | Generated report refs. |
 | `risk_verdict` | object | Regression-risk verdict. Not final experiment judgment. |
 | `gate_verdict` | object | Compatibility alias for older readers. |
+| `experiment_validity` | object | Whether the experiment is interpretable as a smoke check or real runtime-difference check. |
+| `variant_effect_summary` | array | Candidate runtime-effect evidence summary. |
+| `runtime_difference_summary` | string[] | Flattened human-readable difference signals. |
 | `verdict_boundary` | string | Explicit boundary of verdict semantics. |
 | `scorecard_summary` | array | Baseline vs candidate score changes. |
 | `exploration_signals` | string[] | Automatic review hints. |
@@ -68,7 +73,9 @@ Newer artifacts include:
 }
 ```
 
-For actual V2.2-alpha automatic runs, `results[*].baseline_execution` and `results[*].candidates[*].candidate_execution` contain the adapter result, capture result, `benchmark_run_id`, and `eval_run_id`.
+For actual V2.2 automatic runs, `results[*].baseline_execution` and `results[*].candidates[*].candidate_execution` contain the adapter result, capture result, `benchmark_run_id`, and `eval_run_id`.
+
+Newer beta artifacts also include `results[*].candidates[*].experiment_validity` and `results[*].candidates[*].variant_effect_summary` so smoke and real experiments are not interpreted the same way.
 
 ## Boundary
 

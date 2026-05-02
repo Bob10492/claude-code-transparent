@@ -6,6 +6,9 @@ type JsonRecord = Record<string, unknown>
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const experimentRunsRoot = path.join(repoRoot, 'tests', 'evals', 'v2', 'experiment-runs')
 const gateStatuses = new Set(['pass', 'warning', 'fail', 'inconclusive'])
+const validityStatuses = new Set(['valid', 'invalid', 'inconclusive'])
+const reportProfiles = new Set(['smoke', 'real_experiment'])
+const evaluationIntents = new Set(['regression', 'exploration'])
 
 async function readJson(filePath: string): Promise<JsonRecord> {
   return JSON.parse(await readFile(filePath, 'utf8')) as JsonRecord
@@ -40,6 +43,12 @@ function requireOptionalString(
   }
 }
 
+function requireObject(errors: string[], filePath: string, fieldName: string, value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    errors.push(`${filePath}.${fieldName} must be an object`)
+  }
+}
+
 function validateArtifact(filePath: string, artifact: JsonRecord): string[] {
   const errors: string[] = []
   requireString(errors, filePath, 'experiment_id', artifact.experiment_id)
@@ -51,6 +60,19 @@ function validateArtifact(filePath: string, artifact: JsonRecord): string[] {
   requireArray(errors, filePath, 'report_refs', artifact.report_refs)
   requireArray(errors, filePath, 'errors', artifact.errors)
   requireArray(errors, filePath, 'warnings', artifact.warnings)
+  if (
+    artifact.report_profile !== undefined &&
+    !reportProfiles.has(String(artifact.report_profile))
+  ) {
+    errors.push(`${filePath}.report_profile has invalid value: ${artifact.report_profile}`)
+  }
+  if (
+    artifact.evaluation_intent !== undefined &&
+    artifact.evaluation_intent !== null &&
+    !evaluationIntents.has(String(artifact.evaluation_intent))
+  ) {
+    errors.push(`${filePath}.evaluation_intent has invalid value: ${artifact.evaluation_intent}`)
+  }
 
   const riskVerdict = (artifact.risk_verdict ?? artifact.gate_verdict) as JsonRecord | undefined
   if (!riskVerdict || typeof riskVerdict !== 'object' || Array.isArray(riskVerdict)) {
@@ -77,6 +99,25 @@ function validateArtifact(filePath: string, artifact: JsonRecord): string[] {
   }
   if (artifact.exploration_signals !== undefined) {
     requireArray(errors, filePath, 'exploration_signals', artifact.exploration_signals)
+  }
+  if (artifact.variant_effect_summary !== undefined) {
+    requireArray(errors, filePath, 'variant_effect_summary', artifact.variant_effect_summary)
+  }
+  if (artifact.runtime_difference_summary !== undefined) {
+    requireArray(errors, filePath, 'runtime_difference_summary', artifact.runtime_difference_summary)
+  }
+  if (artifact.experiment_validity !== undefined) {
+    requireObject(errors, filePath, 'experiment_validity', artifact.experiment_validity)
+    const validity = artifact.experiment_validity as JsonRecord
+    if (!validityStatuses.has(String(validity.status))) {
+      errors.push(
+        `${filePath}.experiment_validity.status has invalid value: ${validity.status}`,
+      )
+    }
+    requireOptionalString(errors, `${filePath}.experiment_validity`, 'profile', validity.profile)
+    requireOptionalString(errors, `${filePath}.experiment_validity`, 'reason', validity.reason)
+    requireArray(errors, `${filePath}.experiment_validity`, 'blockers', validity.blockers)
+    requireArray(errors, `${filePath}.experiment_validity`, 'warnings', validity.warnings)
   }
   requireOptionalString(
     errors,

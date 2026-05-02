@@ -38,6 +38,8 @@ export interface EvalScenario {
   expected_tools: string[]
   expected_skills: string[]
   expected_constraints: string[]
+  expected_observations?: string[]
+  evaluation_note?: string
   max_turn_count?: number
   max_total_billed_tokens?: number
   max_subagent_count?: number
@@ -116,5 +118,7 @@ export interface EvalExperiment {
   baseline_variant_id: string
   candidate_variant_ids: string[]
   scenario_set_id: string
+  report_profile?: 'smoke' | 'real_experiment'
+  evaluation_intent?: 'regression' | 'exploration'
   status: EvalExperimentStatus
 }

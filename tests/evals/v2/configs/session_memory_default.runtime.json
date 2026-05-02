@@ -1,0 +1,7 @@
+{
+  "config_id": "session_memory_default_runtime",
+  "session_memory_policy": {
+    "mode": "default",
+    "force_enabled": true
+  }
+}

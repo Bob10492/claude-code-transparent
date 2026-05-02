@@ -1,0 +1,27 @@
+{
+  "scenario_id": "session_memory_trigger_sensitive",
+  "name": "Session Memory Trigger Sensitive",
+  "description": "A real experiment scenario for V2.2-beta. It is intentionally designed to require many read-tool steps inside the current repository so session_memory policy differences can be observed with controlled cost.",
+  "input_prompt": "You are already inside the target repository root. Perform a read-only four-stage code inspection task and do not modify any files. Only use the exact relative file paths listed below. Do not search outside the current repository. Do not guess alternate absolute paths. If a listed file cannot be read, state that directly and continue without trying other repositories. Stage 1: read tests/evals/v2/README.md, tests/evals/v2/experiment-runs/README.md, and scripts/evals/v2_harness_execution.ts, then summarize how execute_harness works. Stage 2: read scripts/evals/v2_run_experiment.ts, scripts/evals/v2_compare_runs.ts, and scripts/evals/v2_record_run.ts, then summarize how V2 turns V1 evidence into run, score, compare, and experiment artifacts. Stage 3: read src/services/SessionMemory/sessionMemory.ts, src/services/SessionMemory/sessionMemoryUtils.ts, and src/observability/harness.ts, then summarize how session_memory is triggered and observed. Stage 4: read tests/evals/v2/variants/baseline.template.json, tests/evals/v2/variants/candidate_session_memory_sparse.json, and tests/evals/v2/configs/session_memory_sparse.runtime.json, then explain the expected difference between baseline and candidate session_memory policy. The final answer must contain exactly four top-level sections named Stage 1, Stage 2, Stage 3, and Stage 4.",
+  "tags": ["observability-v2", "session-memory", "runtime-diff", "real-experiment"],
+  "expected_artifacts": [],
+  "expected_tools": ["Read"],
+  "expected_skills": [],
+  "expected_constraints": [
+    "Must not modify files",
+    "Should inspect many files across many tool turns",
+    "Should keep the task readable and finite",
+    "The experiment goal is to expose session_memory runtime behavior, not to optimize final prose quality"
+  ],
+  "expected_observations": [
+    "A session_memory policy observation event should exist in V1 events",
+    "Baseline and candidate should expose different session_memory policies",
+    "Candidate should prefer natural-break-triggered session_memory updates"
+  ],
+  "evaluation_note": "This is a real runtime-difference scenario, not a smoke check. Success means the candidate policy is observed and interpretable in V1/V2 evidence.",
+  "max_turn_count": 14,
+  "max_total_billed_tokens": 220000,
+  "max_subagent_count": 6,
+  "owner": "local",
+  "status": "ready"
+}

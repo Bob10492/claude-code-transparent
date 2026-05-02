@@ -1,0 +1,32 @@
+{
+  "experiment_id": "session_memory_runtime_sparse_vs_default_manual_bind_existing",
+  "name": "Session Memory Runtime Sparse vs Default Manual Bind Existing",
+  "goal": "Fallback real experiment for V2.2.5. Use two manually executed real traces to verify that the session_memory runtime policy difference remains interpretable through bind_existing.",
+  "baseline_variant_id": "baseline_default",
+  "candidate_variant_ids": ["candidate_session_memory_sparse"],
+  "scenario_set_id": "v2_2_5_manual_real",
+  "scenario_ids": ["session_memory_trigger_sensitive"],
+  "repeat_count": 1,
+  "score_spec_ids": [
+    "task_success.main_chain_observed",
+    "decision_quality.session_memory_policy_observed",
+    "efficiency.total_billed_tokens",
+    "decision_quality.subagent_count_observed",
+    "stability.recovery_absence",
+    "controllability.turn_limit_basic"
+  ],
+  "gate_policy_id": "default_v2_1_gate",
+  "mode": "bind_existing",
+  "report_profile": "real_experiment",
+  "evaluation_intent": "exploration",
+  "action_bindings": [
+    {
+      "scenario_id": "session_memory_trigger_sensitive",
+      "baseline_user_action_id": "7b614b14-19d8-41db-8ee8-ebb61bc4b699",
+      "candidate_user_action_ids": {
+        "candidate_session_memory_sparse": "b118c7c4-18df-4ff0-b506-5b5454418b48"
+      }
+    }
+  ],
+  "status": "ready"
+}

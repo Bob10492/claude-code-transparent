@@ -1,0 +1,89 @@
+{
+  "verification_id": "v2_2_execute_harness_alpha_2026-05-02T162923305Z",
+  "generated_at": "2026-05-02T16:29:33.062Z",
+  "temp_root": ".observability\\v2-execute-harness-verification\\2026-05-02T162923305Z",
+  "passed": true,
+  "case_count": 9,
+  "failed_count": 0,
+  "note": "Success-path verification uses a fixture command to avoid model/API spend; the production default adapter is cli_print.",
+  "results": [
+    {
+      "case_id": "execute_harness_success_fixture",
+      "description": "execute_harness success path creates run, score, report, and risk verdict through benchmark_run_id capture.",
+      "passed": true,
+      "expected": "success",
+      "status": 0,
+      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_2_verify_success_2026-05-02T162923305Z_2026-05-02T162926620Z.json",
+      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_2_verify_success_2026-05-02T162923305Z_2026-05-02T162926620Z.md",
+      "artifacts_cleaned": true,
+      "error_excerpt": "Created V2 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_2_verify_success_2026-05-02T162923305Z_2026-05-02T162926620Z.json\nCreated V2 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_2_verify_success_2026-05-02T162923305Z_2026-05-02T162926620Z.md"
+    },
+    {
+      "case_id": "adapter_not_found",
+      "description": "Unsupported adapter should fail clearly.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Unsupported execute_harness adapter: not_real_adapter"
+    },
+    {
+      "case_id": "capture_failed",
+      "description": "Completed execution without matching benchmark_run_id should fail capture.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "baseline scenario=cost_sensitive_task variant=baseline_default action capture capture_failed: No user_action_id found for benchmark_run_id=bench_v2_2_verify_capture__cost_sensitive_task_baseline_default_a1218a4838d8"
+    },
+    {
+      "case_id": "ambiguous_capture",
+      "description": "Multiple user_action_id rows for one benchmark_run_id should fail capture.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "baseline scenario=cost_sensitive_task variant=baseline_default action capture ambiguous_capture: Multiple user_action_id values found for benchmark_run_id=bench_v2_2_verify_ambiguou_cost_sensitive_task_baseline_default_3c326d19fa92"
+    },
+    {
+      "case_id": "variant_apply_failed",
+      "description": "Strict config snapshot check should fail before execution when the referenced snapshot is missing.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Variant apply failed: config_snapshot_ref does not exist: manual"
+    },
+    {
+      "case_id": "scenario_missing",
+      "description": "Missing scenario manifest should fail before execution.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Scenario not found: not_real_scenario"
+    },
+    {
+      "case_id": "baseline_failure",
+      "description": "Baseline execution failure should stop the experiment.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "baseline scenario=cost_sensitive_task variant=baseline_default execute_harness failed: Fixture requested failure for variant baseline_default"
+    },
+    {
+      "case_id": "candidate_failure",
+      "description": "Candidate execution failure should stop the experiment after the baseline succeeds.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "candidate scenario=cost_sensitive_task variant=candidate_session_memory_sparse execute_harness failed: Fixture requested failure for variant candidate_session_memory_sparse"
+    },
+    {
+      "case_id": "disabled_fallback_to_bind_existing",
+      "description": "Automation can be disabled and fall back to bind_existing.",
+      "passed": true,
+      "expected": "success",
+      "status": 0,
+      "summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_2_verify_disabled_fallback_2026-05-02T162923305Z_2026-05-02T162933014Z.json",
+      "report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_2_verify_disabled_fallback_2026-05-02T162923305Z_2026-05-02T162933014Z.md",
+      "artifacts_cleaned": true,
+      "error_excerpt": "Created V2 experiment summary: tests\\evals\\v2\\experiment-runs\\v2_2_verify_disabled_fallback_2026-05-02T162923305Z_2026-05-02T162933014Z.json\nCreated V2 experiment report: ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_2_verify_disabled_fallback_2026-05-02T162923305Z_2026-05-02T162933014Z.md"
+    }
+  ]
+}

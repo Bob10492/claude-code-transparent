@@ -4,6 +4,6 @@
   "description": "Current default harness baseline used for comparison.",
   "change_layer": "mixed",
   "git_commit": "HEAD",
-  "config_snapshot_ref": "path/to/baseline-config.json",
-  "notes": "Use this as the default baseline unless a scenario explicitly requires another baseline."
+  "config_snapshot_ref": "tests/evals/v2/configs/session_memory_default.runtime.json",
+  "notes": "Default baseline. For V2.2-beta execute_harness experiments, the config snapshot provides a traceable runtime contract without changing the baseline policy away from default mode."
 }

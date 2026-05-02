@@ -41,6 +41,17 @@
       "version": "v2.1"
     },
     {
+      "score_spec_id": "decision_quality.session_memory_policy_observed",
+      "dimension": "decision_quality",
+      "subdimension": "session_memory_policy_observed",
+      "direction": "observed_only",
+      "formula": "1 if a session_memory.policy.observed event or equivalent run.variant_effect evidence exists, else 0",
+      "data_sources": ["V1 events_raw", "V2 run.variant_effect"],
+      "evidence_requirements": ["entry_user_action_id", "variant_effect"],
+      "automation_level": "automatic",
+      "version": "v2.2-beta"
+    },
+    {
       "score_spec_id": "stability.recovery_absence",
       "dimension": "stability",
       "subdimension": "recovery_absence",

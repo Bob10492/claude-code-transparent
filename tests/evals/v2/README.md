@@ -17,9 +17,9 @@ This directory stores the local-first V2 evaluation system.
 ## Modes
 
 - `bind_existing`: V2.1 stable mode. You provide existing V1 `user_action_id` values through `action_bindings`.
-- `execute_harness`: V2.2-alpha mode. The runner executes one scenario through the headless harness, injects eval context into V1 events, captures the generated `user_action_id` by `benchmark_run_id`, then reuses the same score/report/risk-verdict pipeline.
+- `execute_harness`: V2.2 mode. The runner executes one scenario through the headless harness, injects eval context into V1 events, captures the generated `user_action_id` by `benchmark_run_id`, then reuses the same score/report/risk-verdict pipeline.
 
-V2.2-alpha deliberately supports only 1 scenario, 1 baseline, 1 candidate, and `repeat_count=1`.
+Current V2.2-beta deliberately supports only 1 scenario, 1 baseline, 1 candidate, and `repeat_count=1`.
 
 ## Basic Commands
 
@@ -53,7 +53,7 @@ Run the current V2.1 sample:
 bun run scripts/evals/v2_run_experiment.ts --experiment session_memory_sparse_vs_default
 ```
 
-Run the V2.2-alpha smoke manifest with automatic execution enabled:
+Run the V2.2 smoke manifest with automatic execution enabled:
 
 ```powershell
 bun run scripts/evals/v2_run_experiment.ts --experiment tests/evals/v2/experiments/_experiment.execute_harness.smoke.json
@@ -71,6 +71,29 @@ Equivalent environment switch:
 $env:V2_2_EXECUTE_HARNESS='0'
 bun run scripts/evals/v2_run_experiment.ts --experiment tests/evals/v2/experiments/_experiment.execute_harness.smoke.json
 ```
+
+Run the V2.2-beta real runtime-difference experiment:
+
+```powershell
+bun run scripts/evals/v2_run_experiment.ts --experiment tests/evals/v2/experiments/session_memory_runtime_sparse_vs_default.json
+```
+
+Run the V2.2.5 manual fallback helper for one real trace:
+
+```powershell
+& 'scripts/evals/v2_manual_real_run.ps1' -ScenarioId 'session_memory_trigger_sensitive' -VariantId 'baseline_default' -ExperimentId 'session_memory_runtime_sparse_vs_default_manual' -MaxTurns 12
+```
+
+Run the V2.2.5 manual `bind_existing` fallback experiment:
+
+```powershell
+bun run scripts/evals/v2_run_experiment.ts --experiment tests/evals/v2/experiments/session_memory_runtime_sparse_vs_default_manual.bind_existing.json
+```
+
+Interpretation:
+
+- `smoke`: validates automatic execution, automatic capture, and automatic artifact generation.
+- `real_experiment`: asks whether the candidate changed runtime behavior in an observable and interpretable way.
 
 ## bind_existing Binding Shape
 
@@ -115,6 +138,7 @@ If capture returns zero matches, the run fails as `capture_failed`. If it return
 ```text
 tests/evals/v2/V2.1-bind_existing-usage.md
 tests/evals/v2/V2.2-execute_harness-alpha-usage.md
+tests/evals/v2/V2.2.5-real-experiment-closure.md
 tests/evals/v2/experiment-runs/README.md
 ```
 

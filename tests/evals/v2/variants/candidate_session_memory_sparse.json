@@ -1,10 +1,10 @@
 {
   "variant_id": "candidate_session_memory_sparse",
   "name": "Candidate Session Memory Sparse",
-  "description": "Increase the default session memory tool-call threshold from 3 to 6 to reduce background memory subagent cost.",
+  "description": "Use a sparser session_memory policy so background memory updates prefer natural breaks and higher thresholds.",
   "change_layer": "harness",
   "base_variant_id": "baseline_default",
   "git_commit": "HEAD",
-  "config_snapshot_ref": "src/services/SessionMemory/sessionMemoryUtils.ts",
-  "notes": "Token-saving harness candidate. Keeps natural-break trigger intact while reducing tool-threshold-triggered updates."
+  "config_snapshot_ref": "tests/evals/v2/configs/session_memory_sparse.runtime.json",
+  "notes": "V2.2-beta runtime contract: this candidate now carries a sparse session_memory policy through config_snapshot_ref. The sparse policy must be observed in V1/V2 evidence, not inferred from manifest text."
 }

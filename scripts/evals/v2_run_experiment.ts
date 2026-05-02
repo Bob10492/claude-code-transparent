@@ -2,7 +2,11 @@ import { spawnSync } from 'node:child_process'
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { EvalScenario, EvalScore, EvalVariant } from '../../src/observability/v2/evalTypes'
+import type {
+  EvalScenario,
+  EvalScore,
+  EvalVariant,
+} from '../../src/observability/v2/evalTypes'
 import type {
   EvalExperimentActionBinding,
   EvalExperimentFlatActionBinding,
@@ -20,6 +24,47 @@ import {
   type ExecuteHarnessResult,
 } from './v2_harness_execution'
 
+type JsonRecord = Record<string, unknown>
+type ExperimentProfile = 'smoke' | 'real_experiment'
+
+interface RunArtifact {
+  run: {
+    run_id: string
+    scenario_id: string
+    variant_id: string
+    entry_user_action_id?: string
+  }
+  variant_effect?: JsonRecord
+}
+
+interface VariantEffectSummary {
+  scenario_id: string
+  candidate_variant_id: string
+  baseline_variant_effect_observed: boolean
+  candidate_variant_effect_observed: boolean
+  runtime_difference_observed: boolean
+  baseline_policy_mode: string
+  candidate_policy_mode: string
+  summary: string[]
+}
+
+interface ExperimentValidity {
+  status: 'valid' | 'invalid' | 'inconclusive'
+  profile: ExperimentProfile
+  reason: string
+  blockers: string[]
+  warnings: string[]
+  checks: {
+    baseline_captured: boolean
+    candidate_captured: boolean
+    no_ambiguous_capture: boolean
+    score_evidence_present: boolean
+    variant_effect_observed: boolean
+    runtime_difference_observed: boolean
+    scenario_intent_matched: boolean
+  }
+}
+
 interface CandidateExperimentResult {
   candidate_variant_id: string
   candidate_run_id: string
@@ -27,6 +72,10 @@ interface CandidateExperimentResult {
   candidate_eval_run_id?: string
   candidate_benchmark_run_id?: string
   candidate_execution?: ExecuteHarnessResult
+  baseline_variant_effect?: JsonRecord
+  candidate_variant_effect?: JsonRecord
+  variant_effect_summary?: VariantEffectSummary
+  experiment_validity?: ExperimentValidity
   compare_report: string
   gate_results: GateResult[]
   scorecard_summary: ScorecardItem[]
@@ -95,8 +144,10 @@ interface ScorecardItem {
 }
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
+const bunExe = process.execPath
 const evalRoot = path.join(repoRoot, 'tests', 'evals', 'v2')
 const scoresRoot = path.join(evalRoot, 'scores')
+const runsRoot = path.join(evalRoot, 'runs')
 const experimentRunsRoot = path.join(evalRoot, 'experiment-runs')
 
 function parseArgs(argv: string[]): Record<string, string | boolean> {
@@ -118,6 +169,25 @@ function parseArgs(argv: string[]): Record<string, string | boolean> {
 
 async function readJson<T>(filePath: string): Promise<T> {
   return JSON.parse(await readFile(filePath, 'utf8')) as T
+}
+
+function asString(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function asBoolean(value: unknown): boolean {
+  return value === true
+}
+
+function asNumber(value: unknown): number {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string' && value.trim() !== '') return Number(value)
+  return 0
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string' && item.length > 0)
 }
 
 async function listJsonFiles(dir: string): Promise<string[]> {
@@ -248,7 +318,7 @@ function findBoundUserActionId(params: {
 }
 
 function runBunScript(script: string, args: string[]): string {
-  const result = spawnSync('bun', ['run', script, ...args], {
+  const result = spawnSync(bunExe, ['run', script, ...args], {
     cwd: repoRoot,
     encoding: 'utf8',
   })
@@ -277,6 +347,10 @@ function extractCreatedRunId(output: string): string {
 function extractCreatedReport(output: string): string {
   const match = output.match(/Created comparison report:\s*(.+)/)
   return match?.[1]?.trim() ?? ''
+}
+
+async function readRunArtifact(runId: string): Promise<RunArtifact> {
+  return readJson<RunArtifact>(path.join(runsRoot, `${runId}.json`))
 }
 
 function scoreKey(score: EvalScore): string {
@@ -369,16 +443,18 @@ function buildScorecardSummary(params: {
 function buildExplorationSignals(params: {
   scorecard: ScorecardItem[]
   gateResults: GateResult[]
+  experimentValidity?: ExperimentValidity
+  variantEffectSummary?: VariantEffectSummary
 }): string[] {
-  const { scorecard, gateResults } = params
+  const { scorecard, gateResults, experimentValidity, variantEffectSummary } = params
   const signals: string[] = []
   const changedScores = scorecard.filter(item =>
     ['improved', 'regressed', 'changed', 'observed'].includes(item.interpretation),
   )
   const improvedScores = scorecard.filter(item => item.interpretation === 'improved')
   const regressedScores = scorecard.filter(item => item.interpretation === 'regressed')
-  const hardOrSoftGateResults = gateResults.filter(result =>
-    result.verdict === 'hard_fail' || result.verdict === 'soft_warning',
+  const hardOrSoftGateResults = gateResults.filter(
+    result => result.verdict === 'hard_fail' || result.verdict === 'soft_warning',
   )
 
   if (changedScores.length > 0) {
@@ -396,6 +472,19 @@ function buildExplorationSignals(params: {
       'Risk gate raised a warning/failure, but at least one score improved; this may be worth exploratory review instead of immediate rejection.',
     )
   }
+  if (variantEffectSummary?.runtime_difference_observed) {
+    signals.push(
+      'A real runtime difference was observed between baseline and candidate; inspect policy evidence before reading score deltas.',
+    )
+  }
+  if (
+    experimentValidity?.profile === 'real_experiment' &&
+    experimentValidity.status !== 'valid'
+  ) {
+    signals.push(
+      `Real experiment validity is ${experimentValidity.status}; treat score deltas as provisional until the variant effect is clearly observed.`,
+    )
+  }
   if (signals.length === 0) {
     signals.push(
       'No exploratory signal was derived from the current automatic scorecard; manual review may still find qualitative differences.',
@@ -407,8 +496,13 @@ function buildExplorationSignals(params: {
 function recommendReviewMode(params: {
   scorecard: ScorecardItem[]
   gateResults: GateResult[]
+  experimentValidity?: ExperimentValidity
 }): ReviewMode {
-  const { scorecard, gateResults } = params
+  const { scorecard, gateResults, experimentValidity } = params
+  if (experimentValidity?.profile === 'real_experiment') {
+    if (experimentValidity.status === 'invalid') return 'manual_review'
+    if (experimentValidity.status === 'inconclusive') return 'exploratory_review'
+  }
   const hasRisk = gateResults.some(result => result.verdict !== 'pass')
   const hasTradeoff =
     scorecard.some(item => item.interpretation === 'improved') &&
@@ -595,9 +689,13 @@ function summarizeRisk(results: ScenarioExperimentResult[]): RiskVerdict {
   const candidates = results.flatMap(result => result.candidates)
   const allGateResults = candidates.flatMap(candidate => candidate.gate_results)
   const hardFailCount = allGateResults.filter(result => result.verdict === 'hard_fail').length
-  const softWarningCount = allGateResults.filter(result => result.verdict === 'soft_warning').length
+  const softWarningCount = allGateResults.filter(
+    result => result.verdict === 'soft_warning',
+  ).length
   const missingScoreCount = allGateResults.filter(result => result.verdict === 'missing').length
-  const inconclusiveCount = allGateResults.filter(result => result.verdict === 'inconclusive').length
+  const inconclusiveCount = allGateResults.filter(
+    result => result.verdict === 'inconclusive',
+  ).length
   return {
     status:
       hardFailCount > 0
@@ -671,21 +769,310 @@ function reportRefs(results: ScenarioExperimentResult[], experimentReport: strin
   ].filter(Boolean)
 }
 
+function hasPolicyEventObserved(variantEffect: JsonRecord | undefined): boolean {
+  return asBoolean(variantEffect?.policy_event_observed)
+}
+
+function hasVariantEffectObserved(variantEffect: JsonRecord | undefined): boolean {
+  return asBoolean(variantEffect?.variant_effect_observed)
+}
+
+function observedPolicyMode(variantEffect: JsonRecord | undefined): string {
+  const observedPolicy = variantEffect?.observed_policy
+  if (observedPolicy && typeof observedPolicy === 'object' && !Array.isArray(observedPolicy)) {
+    return asString((observedPolicy as JsonRecord).mode) || 'unknown'
+  }
+  return 'unknown'
+}
+
+function policySignature(variantEffect: JsonRecord | undefined): string {
+  const observedPolicy = variantEffect?.observed_policy
+  if (!observedPolicy || typeof observedPolicy !== 'object' || Array.isArray(observedPolicy)) {
+    return ''
+  }
+  return JSON.stringify(observedPolicy)
+}
+
+function runtimeDifferenceAnalysis(params: {
+  scenarioId: string
+  candidateVariantId: string
+  baselineVariantEffect: JsonRecord | undefined
+  candidateVariantEffect: JsonRecord | undefined
+  scorecard: ScorecardItem[]
+}): VariantEffectSummary {
+  const {
+    scenarioId,
+    candidateVariantId,
+    baselineVariantEffect,
+    candidateVariantEffect,
+    scorecard,
+  } = params
+  const summary: string[] = []
+  const baselineObserved = hasPolicyEventObserved(baselineVariantEffect)
+  const candidateObserved = hasPolicyEventObserved(candidateVariantEffect)
+  const candidateEffectObserved = hasVariantEffectObserved(candidateVariantEffect)
+  const baselineMode = observedPolicyMode(baselineVariantEffect)
+  const candidateMode = observedPolicyMode(candidateVariantEffect)
+  const baselinePolicySig = policySignature(baselineVariantEffect)
+  const candidatePolicySig = policySignature(candidateVariantEffect)
+  const baselineSubagentCount = asNumber(
+    baselineVariantEffect?.session_memory_subagent_count,
+  )
+  const candidateSubagentCount = asNumber(
+    candidateVariantEffect?.session_memory_subagent_count,
+  )
+  const baselineTriggerDetails = [
+    ...asStringArray(baselineVariantEffect?.session_memory_trigger_details),
+  ].sort()
+  const candidateTriggerDetails = [
+    ...asStringArray(candidateVariantEffect?.session_memory_trigger_details),
+  ].sort()
+  const triggerDetailsChanged =
+    baselineTriggerDetails.join('|') !== candidateTriggerDetails.join('|')
+  const policyChanged =
+    baselinePolicySig !== '' &&
+    candidatePolicySig !== '' &&
+    baselinePolicySig !== candidatePolicySig
+  const scoreChanged = scorecard.some(item =>
+    ['improved', 'regressed', 'changed', 'observed'].includes(item.interpretation),
+  )
+
+  if (baselineObserved) {
+    summary.push(`Baseline session_memory policy was observed with mode=${baselineMode}.`)
+  } else {
+    summary.push('Baseline session_memory policy was not observed in V1 events.')
+  }
+  if (candidateObserved) {
+    summary.push(`Candidate session_memory policy was observed with mode=${candidateMode}.`)
+  } else {
+    summary.push('Candidate session_memory policy was not observed in V1 events.')
+  }
+  if (candidateEffectObserved) {
+    summary.push('Candidate sparse-policy markers were observed in runtime evidence.')
+  }
+  if (policyChanged) {
+    summary.push('Observed baseline and candidate session_memory policies differ.')
+  }
+  if (baselineSubagentCount !== candidateSubagentCount) {
+    summary.push(
+      `Session_memory subagent count changed from ${baselineSubagentCount} to ${candidateSubagentCount}.`,
+    )
+  }
+  if (triggerDetailsChanged) {
+    summary.push(
+      `Session_memory trigger details changed from [${baselineTriggerDetails.join(', ') || 'none'}] to [${candidateTriggerDetails.join(', ') || 'none'}].`,
+    )
+  }
+  if (scoreChanged) {
+    summary.push('At least one score dimension changed between baseline and candidate.')
+  }
+
+  const runtimeDifferenceObserved =
+    candidateEffectObserved &&
+    (policyChanged ||
+      baselineSubagentCount !== candidateSubagentCount ||
+      triggerDetailsChanged)
+
+  if (!runtimeDifferenceObserved) {
+    summary.push(
+      'No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect.',
+    )
+  }
+
+  return {
+    scenario_id: scenarioId,
+    candidate_variant_id: candidateVariantId,
+    baseline_variant_effect_observed: baselineObserved,
+    candidate_variant_effect_observed: candidateEffectObserved,
+    runtime_difference_observed: runtimeDifferenceObserved,
+    baseline_policy_mode: baselineMode,
+    candidate_policy_mode: candidateMode,
+    summary,
+  }
+}
+
+function buildExperimentValidity(params: {
+  profile: ExperimentProfile
+  scenarioId: string
+  candidateVariantId: string
+  baselineExecution?: ExecuteHarnessResult
+  candidateExecution?: ExecuteHarnessResult
+  scorecard: ScorecardItem[]
+  variantEffectSummary: VariantEffectSummary
+}): ExperimentValidity {
+  const {
+    profile,
+    scenarioId,
+    candidateVariantId,
+    baselineExecution,
+    candidateExecution,
+    scorecard,
+    variantEffectSummary,
+  } = params
+  const baselineCaptured =
+    baselineExecution === undefined || baselineExecution.capture.status === 'captured'
+  const candidateCaptured =
+    candidateExecution === undefined || candidateExecution.capture.status === 'captured'
+  const noAmbiguousCapture =
+    baselineExecution?.capture.status !== 'ambiguous_capture' &&
+    candidateExecution?.capture.status !== 'ambiguous_capture'
+  const scoreEvidencePresent = scorecard.some(item => item.interpretation !== 'missing')
+  const variantEffectObserved = variantEffectSummary.candidate_variant_effect_observed
+  const scenarioIntentMatched =
+    profile === 'smoke'
+      ? baselineCaptured && candidateCaptured
+      : variantEffectObserved && variantEffectSummary.runtime_difference_observed
+
+  const blockers: string[] = []
+  const warnings: string[] = []
+  if (!baselineCaptured) {
+    blockers.push(
+      `baseline_not_captured: scenario=${scenarioId}, candidate=${candidateVariantId}`,
+    )
+  }
+  if (!candidateCaptured) {
+    blockers.push(
+      `candidate_not_captured: scenario=${scenarioId}, candidate=${candidateVariantId}`,
+    )
+  }
+  if (!noAmbiguousCapture) {
+    blockers.push(
+      `ambiguous_capture_present: scenario=${scenarioId}, candidate=${candidateVariantId}`,
+    )
+  }
+  if (!scoreEvidencePresent) {
+    blockers.push(
+      `score_evidence_missing: scenario=${scenarioId}, candidate=${candidateVariantId}`,
+    )
+  }
+  if (profile === 'real_experiment' && !variantEffectObserved) {
+    blockers.push(
+      `variant_effect_not_observed: scenario=${scenarioId}, candidate=${candidateVariantId}`,
+    )
+  }
+  if (
+    profile === 'real_experiment' &&
+    variantEffectObserved &&
+    !variantEffectSummary.runtime_difference_observed
+  ) {
+    warnings.push(
+      `runtime_difference_not_observed: scenario=${scenarioId}, candidate=${candidateVariantId}`,
+    )
+  }
+  if (profile === 'real_experiment' && !scenarioIntentMatched) {
+    warnings.push(
+      `scenario_intent_not_matched: scenario=${scenarioId}, candidate=${candidateVariantId}`,
+    )
+  }
+
+  const status: ExperimentValidity['status'] =
+    blockers.length > 0 ? 'invalid' : warnings.length > 0 ? 'inconclusive' : 'valid'
+  const reason =
+    status === 'valid'
+      ? profile === 'smoke'
+        ? 'Smoke check passed: execute_harness closed the automatic execution and capture loop.'
+        : 'Real experiment is valid: runtime effect was observed and the baseline/candidate difference is interpretable.'
+      : status === 'invalid'
+        ? `Experiment is invalid because: ${blockers.join('; ')}`
+        : `Experiment is inconclusive because: ${warnings.join('; ')}`
+
+  return {
+    status,
+    profile,
+    reason,
+    blockers,
+    warnings,
+    checks: {
+      baseline_captured: baselineCaptured,
+      candidate_captured: candidateCaptured,
+      no_ambiguous_capture: noAmbiguousCapture,
+      score_evidence_present: scoreEvidencePresent,
+      variant_effect_observed: variantEffectObserved,
+      runtime_difference_observed: variantEffectSummary.runtime_difference_observed,
+      scenario_intent_matched: scenarioIntentMatched,
+    },
+  }
+}
+
+function aggregateExperimentValidity(results: ScenarioExperimentResult[]): ExperimentValidity {
+  const validities = results.flatMap(result =>
+    result.candidates
+      .map(candidate => candidate.experiment_validity)
+      .filter((value): value is ExperimentValidity => Boolean(value)),
+  )
+  const blockers = validities.flatMap(validity => validity.blockers)
+  const warnings = validities.flatMap(validity => validity.warnings)
+  const status: ExperimentValidity['status'] =
+    validities.some(validity => validity.status === 'invalid')
+      ? 'invalid'
+      : validities.some(validity => validity.status === 'inconclusive')
+        ? 'inconclusive'
+        : 'valid'
+  const profile = validities[0]?.profile ?? 'smoke'
+  return {
+    status,
+    profile,
+    reason:
+      status === 'valid'
+        ? profile === 'smoke'
+          ? 'Smoke check remains healthy.'
+          : 'Real experiment remains interpretable.'
+        : status === 'invalid'
+          ? `At least one scenario/candidate pair is invalid: ${blockers.join('; ')}`
+          : `At least one scenario/candidate pair is inconclusive: ${warnings.join('; ')}`,
+    blockers,
+    warnings,
+    checks: {
+      baseline_captured: validities.every(validity => validity.checks.baseline_captured),
+      candidate_captured: validities.every(validity => validity.checks.candidate_captured),
+      no_ambiguous_capture: validities.every(validity => validity.checks.no_ambiguous_capture),
+      score_evidence_present: validities.every(validity => validity.checks.score_evidence_present),
+      variant_effect_observed: validities.every(validity => validity.checks.variant_effect_observed),
+      runtime_difference_observed: validities.every(
+        validity => validity.checks.runtime_difference_observed,
+      ),
+      scenario_intent_matched: validities.every(
+        validity => validity.checks.scenario_intent_matched,
+      ),
+    },
+  }
+}
+
+function aggregateVariantEffectSummary(results: ScenarioExperimentResult[]): VariantEffectSummary[] {
+  return results.flatMap(result =>
+    result.candidates
+      .map(candidate => candidate.variant_effect_summary)
+      .filter((value): value is VariantEffectSummary => Boolean(value)),
+  )
+}
+
 function buildMarkdownReport(params: {
   experiment: EvalExperimentV21
   results: ScenarioExperimentResult[]
   outputJson: string
+  riskVerdict: RiskVerdict
+  experimentValidity: ExperimentValidity
+  scorecardSummary: ScorecardItem[]
+  explorationSignals: string[]
+  recommendedReviewMode: ReviewMode
+  variantEffectSummary: VariantEffectSummary[]
 }): string {
-  const { experiment, results, outputJson } = params
+  const {
+    experiment,
+    results,
+    outputJson,
+    riskVerdict,
+    experimentValidity,
+    scorecardSummary,
+    explorationSignals,
+    recommendedReviewMode,
+    variantEffectSummary,
+  } = params
   const allGateResults = results.flatMap(result =>
     result.candidates.flatMap(candidate => candidate.gate_results),
   )
-  const hardFailures = allGateResults.filter(
-    result => result.verdict === 'hard_fail',
-  )
-  const softWarnings = allGateResults.filter(
-    result => result.verdict === 'soft_warning',
-  )
+  const hardFailures = allGateResults.filter(result => result.verdict === 'hard_fail')
+  const softWarnings = allGateResults.filter(result => result.verdict === 'soft_warning')
   const missingOrInconclusive = allGateResults.filter(
     result => result.verdict === 'missing' || result.verdict === 'inconclusive',
   )
@@ -696,7 +1083,8 @@ function buildMarkdownReport(params: {
         const gateSummary = candidate.gate_results.length
           ? `${candidate.gate_results.filter(gate => gate.verdict !== 'pass').length}/${candidate.gate_results.length} not passed`
           : 'not configured'
-        return `| ${result.scenario_id} | ${result.repeat_index} | ${result.baseline_run_id} | ${candidate.candidate_variant_id} | ${candidate.candidate_run_id} | ${gateSummary} | ${candidate.compare_report} |`
+        const validityStatus = candidate.experiment_validity?.status ?? 'unknown'
+        return `| ${result.scenario_id} | ${result.repeat_index} | ${result.baseline_run_id} | ${candidate.candidate_variant_id} | ${candidate.candidate_run_id} | ${validityStatus} | ${gateSummary} | ${candidate.compare_report} |`
       }),
     )
     .join('\n')
@@ -710,20 +1098,87 @@ function buildMarkdownReport(params: {
               `| ${result.scenario_id} | ${result.candidate_variant_id} | ${result.rule_type} | ${result.score_spec_id} | ${result.verdict} | ${result.regression_pct ?? 'n/a'} |`,
           )
           .join('\n')
-  const scorecardRows = aggregateScorecard(results)
+
+  const scorecardRows = scorecardSummary
     .map(
       item =>
         `| ${item.scenario_id} | ${item.candidate_variant_id} | ${item.score_spec_id} | ${item.baseline_value ?? 'n/a'} | ${item.candidate_value ?? 'n/a'} | ${item.delta ?? 'n/a'} | ${item.interpretation} |`,
     )
     .join('\n')
-  const explorationRows = aggregateExplorationSignals(results)
-    .map(signal => `- ${signal}`)
-    .join('\n')
-  const reviewMode = aggregateReviewMode(results)
+
+  const explorationRows = explorationSignals.map(signal => `- ${signal}`).join('\n')
+  const variantEffectRows =
+    variantEffectSummary.length === 0
+      ? '- No variant effect evidence summary was generated.'
+      : variantEffectSummary
+          .map(
+            item =>
+              `- ${item.scenario_id} / ${item.candidate_variant_id}: baseline_mode=${item.baseline_policy_mode}, candidate_mode=${item.candidate_policy_mode}, candidate_effect_observed=${item.candidate_variant_effect_observed}, runtime_difference_observed=${item.runtime_difference_observed}`,
+          )
+          .join('\n')
+
+  const runtimeDifferenceRows =
+    variantEffectSummary.length === 0
+      ? '- No runtime difference summary available.'
+      : variantEffectSummary
+          .flatMap(item =>
+            item.summary.map(
+              summary =>
+                `- ${item.scenario_id} / ${item.candidate_variant_id}: ${summary}`,
+            ),
+          )
+          .join('\n')
+
+  const validityRows = [
+    `- status: ${experimentValidity.status}`,
+    `- profile: ${experimentValidity.profile}`,
+    `- baseline_captured: ${experimentValidity.checks.baseline_captured}`,
+    `- candidate_captured: ${experimentValidity.checks.candidate_captured}`,
+    `- no_ambiguous_capture: ${experimentValidity.checks.no_ambiguous_capture}`,
+    `- score_evidence_present: ${experimentValidity.checks.score_evidence_present}`,
+    `- variant_effect_observed: ${experimentValidity.checks.variant_effect_observed}`,
+    `- runtime_difference_observed: ${experimentValidity.checks.runtime_difference_observed}`,
+    `- scenario_intent_matched: ${experimentValidity.checks.scenario_intent_matched}`,
+    `- reason: ${experimentValidity.reason}`,
+  ].join('\n')
+
+  const validityNotes = [
+    ...experimentValidity.blockers.map(item => `- blocker: ${item}`),
+    ...experimentValidity.warnings.map(item => `- warning: ${item}`),
+  ].join('\n')
+
+  const reportProfile: ExperimentProfile = experiment.report_profile ?? 'smoke'
+  const profileSection =
+    reportProfile === 'smoke'
+      ? `## Smoke Check
+
+- requested_mode: ${experiment.mode ?? 'bind_existing'}
+- execute_harness_loop_closed: ${experimentValidity.checks.baseline_captured && experimentValidity.checks.candidate_captured}
+- note: This profile validates the automatic pipeline, not harness value.`
+      : `## Real Experiment
+
+- requested_mode: ${experiment.mode ?? 'bind_existing'}
+- evaluation_intent: ${experiment.evaluation_intent ?? 'exploration'}
+- candidate_runtime_effect_observed: ${experimentValidity.checks.variant_effect_observed}
+- runtime_difference_observed: ${experimentValidity.checks.runtime_difference_observed}
+- note: This profile asks whether the candidate changed runtime behavior in an interpretable way.`
+
+  const interpretationLimits =
+    reportProfile === 'smoke'
+      ? [
+          '- Smoke only proves the automatic execute_harness -> capture -> run/score/report loop is healthy.',
+          '- Smoke does not prove a candidate harness change is beneficial.',
+        ].join('\n')
+      : [
+          '- This real experiment remains single-scenario and single-run; it is not yet a stability study.',
+          experimentValidity.checks.variant_effect_observed
+            ? '- Candidate runtime effect was observed, but qualitative harness value still needs broader experiments.'
+            : '- Candidate runtime effect was not observed cleanly enough; do not treat score deltas as a reliable judgment.',
+        ].join('\n')
 
   return `# V2 Experiment Summary: ${experiment.experiment_id}
 
-## 理解清单
+## Understanding
 
 - experiment: ${experiment.experiment_id}
 - mode: ${experiment.mode ?? 'bind_existing'}
@@ -734,25 +1189,41 @@ function buildMarkdownReport(params: {
 - gate_policy: ${experiment.gate_policy_id ?? 'not configured'}
 - output_json: ${outputJson}
 
-## 预期效果
+## Expected Outcome
 
-This summary records a manifest-driven V2 experiment run. In bind_existing mode, V2 binds existing V1 traces. In execute_harness mode, V2.2-alpha executes the scenario first, then captures the generated user_action_id through benchmark_run_id.
+This summary records a manifest-driven V2 experiment run. In bind_existing mode, V2 binds existing V1 traces. In execute_harness mode, V2 executes the scenario first, then captures the generated user_action_id through benchmark_run_id.
 
-## 设计思路
+## Design Rationale
 
-The runner always scores only trace-backed V1 facts. V2.2-alpha adds an execution front half, but the score/compare/gate back half is the same fact-only pipeline used by V2.1.
+The runner always scores only trace-backed V1 facts. V2.2-beta adds runtime-effect evidence and experiment-validity semantics so smoke and real experiments are not confused with each other.
+
+${profileSection}
 
 ## Risk Verdict
 
 - hard_failures: ${hardFailures.length}
 - soft_warnings: ${softWarnings.length}
 - missing_or_inconclusive: ${missingOrInconclusive.length}
-- risk_status: ${hardFailures.length > 0 ? 'failed' : missingOrInconclusive.length > 0 ? 'inconclusive' : softWarnings.length > 0 ? 'warning' : 'passed'}
+- risk_status: ${riskVerdict.status}
 - scope: regression_risk_only
 - final_experiment_judgment: false
-- recommended_review_mode: ${reviewMode}
+- recommended_review_mode: ${recommendedReviewMode}
 
 This section is a regression-risk gate, not a final judgment about whether the harness change is valuable.
+
+## Variant Effect Evidence
+
+${variantEffectRows}
+
+## Experiment Validity
+
+${validityRows}
+
+${validityNotes || '- No additional blockers or warnings.'}
+
+## Runtime Difference Summary
+
+${runtimeDifferenceRows}
 
 ## Scorecard Summary
 
@@ -766,8 +1237,8 @@ ${explorationRows || '- No exploration signal generated.'}
 
 ## Runs
 
-| scenario | repeat | baseline_run | candidate_variant | candidate_run | risk_gate | compare_report |
-| --- | ---: | --- | --- | --- | --- | --- |
+| scenario | repeat | baseline_run | candidate_variant | candidate_run | experiment_validity | risk_gate | compare_report |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
 ${rows}
 
 ## Risk Gate Details
@@ -775,6 +1246,10 @@ ${rows}
 | scenario | candidate_variant | rule_type | score_spec | verdict | regression_pct |
 | --- | --- | --- | --- | --- | ---: |
 ${gateRows}
+
+## Interpretation Limits
+
+${interpretationLimits}
 `
 }
 
@@ -801,12 +1276,8 @@ async function main(): Promise<void> {
       'execute_harness is disabled and this experiment does not allow bind_existing fallback.',
     )
   }
-  if (mode !== 'bind_existing') {
-    if (mode !== 'execute_harness') {
-      throw new Error(
-        `Unsupported V2 experiment mode: ${mode}`,
-      )
-    }
+  if (mode !== 'bind_existing' && mode !== 'execute_harness') {
+    throw new Error(`Unsupported V2 experiment mode: ${mode}`)
   }
 
   const scenarioIds = experiment.scenario_ids ?? []
@@ -820,9 +1291,7 @@ async function main(): Promise<void> {
   const snapshotDb = !Boolean(args['no-snapshot-db'])
   for (const scoreSpecId of experiment.score_spec_ids ?? []) {
     if (!scoreSpecs.has(scoreSpecId)) {
-      throw new Error(
-        `Experiment references missing score_spec_id: ${scoreSpecId}`,
-      )
+      throw new Error(`Experiment references missing score_spec_id: ${scoreSpecId}`)
     }
   }
   if (experiment.gate_policy_id && !gatePolicy) {
@@ -837,23 +1306,27 @@ async function main(): Promise<void> {
       )
     }
   }
+
   const repeatCount = Math.max(experiment.repeat_count ?? 1, 1)
   if (mode === 'execute_harness') {
     if (scenarioIds.length !== 1) {
-      throw new Error('V2.2-alpha execute_harness supports exactly one scenario.')
+      throw new Error('V2.2 execute_harness supports exactly one scenario.')
     }
     if (experiment.candidate_variant_ids.length !== 1) {
-      throw new Error('V2.2-alpha execute_harness supports exactly one candidate variant.')
+      throw new Error('V2.2 execute_harness supports exactly one candidate variant.')
     }
     if (repeatCount !== 1) {
-      throw new Error('V2.2-alpha execute_harness supports repeat_count=1 only.')
+      throw new Error('V2.2 execute_harness supports repeat_count=1 only.')
     }
   }
-  const results: ScenarioExperimentResult[] = []
 
+  const results: ScenarioExperimentResult[] = []
   if (mode === 'bind_existing') {
     for (const scenarioId of scenarioIds) {
-      for (const variantId of [experiment.baseline_variant_id, ...experiment.candidate_variant_ids]) {
+      for (const variantId of [
+        experiment.baseline_variant_id,
+        ...experiment.candidate_variant_ids,
+      ]) {
         const userActionId = findBoundUserActionId({
           experiment,
           scenarioId,
@@ -882,6 +1355,7 @@ async function main(): Promise<void> {
       let baselineExecution: ExecuteHarnessResult | undefined
       let baselineEvalRunId: string | undefined
       let baselineBenchmarkRunId: string | undefined
+
       if (mode === 'execute_harness') {
         if (!scenario) throw new Error(`Scenario not found: ${scenarioId}`)
         const baselineVariant = await loadVariant(experiment.baseline_variant_id)
@@ -907,6 +1381,7 @@ async function main(): Promise<void> {
           result: baselineExecution,
         })
       }
+
       if (!baselineUserActionId) {
         throw new Error(
           `Missing action binding for scenario=${scenarioId}, variant=${experiment.baseline_variant_id}. bind_existing mode requires user_action_id bindings.`,
@@ -928,6 +1403,7 @@ async function main(): Promise<void> {
       const baselineScores = await readJson<EvalScore[]>(
         path.join(scoresRoot, `${baselineRunId}.scores.json`),
       )
+      const baselineRunArtifact = await readRunArtifact(baselineRunId)
 
       const candidates: CandidateExperimentResult[] = []
       for (const candidateVariantId of experiment.candidate_variant_ids) {
@@ -939,6 +1415,7 @@ async function main(): Promise<void> {
         let candidateExecution: ExecuteHarnessResult | undefined
         let candidateEvalRunId: string | undefined
         let candidateBenchmarkRunId: string | undefined
+
         if (mode === 'execute_harness') {
           if (!scenario) throw new Error(`Scenario not found: ${scenarioId}`)
           const candidateVariant = await loadVariant(candidateVariantId)
@@ -964,6 +1441,7 @@ async function main(): Promise<void> {
             result: candidateExecution,
           })
         }
+
         if (!candidateActionId) {
           throw new Error(
             `Missing candidate user_action_id for scenario=${scenarioId}, variant=${candidateVariantId}`,
@@ -985,6 +1463,7 @@ async function main(): Promise<void> {
         const candidateScores = await readJson<EvalScore[]>(
           path.join(scoresRoot, `${candidateRunId}.scores.json`),
         )
+        const candidateRunArtifact = await readRunArtifact(candidateRunId)
 
         const compareOutput = runBunScript('scripts/evals/v2_compare_runs.ts', [
           '--baseline-run',
@@ -1008,6 +1487,22 @@ async function main(): Promise<void> {
           baselineScores,
           candidateScores,
         })
+        const variantEffect = runtimeDifferenceAnalysis({
+          scenarioId,
+          candidateVariantId,
+          baselineVariantEffect: baselineRunArtifact.variant_effect,
+          candidateVariantEffect: candidateRunArtifact.variant_effect,
+          scorecard,
+        })
+        const experimentValidityForCandidate = buildExperimentValidity({
+          profile: experiment.report_profile ?? 'smoke',
+          scenarioId,
+          candidateVariantId,
+          baselineExecution,
+          candidateExecution,
+          scorecard,
+          variantEffectSummary: variantEffect,
+        })
 
         candidates.push({
           candidate_variant_id: candidateVariantId,
@@ -1016,16 +1511,23 @@ async function main(): Promise<void> {
           candidate_eval_run_id: candidateEvalRunId,
           candidate_benchmark_run_id: candidateBenchmarkRunId,
           candidate_execution: candidateExecution,
+          baseline_variant_effect: baselineRunArtifact.variant_effect,
+          candidate_variant_effect: candidateRunArtifact.variant_effect,
+          variant_effect_summary: variantEffect,
+          experiment_validity: experimentValidityForCandidate,
           compare_report: extractCreatedReport(compareOutput),
           gate_results: gateResults,
           scorecard_summary: scorecard,
           exploration_signals: buildExplorationSignals({
             scorecard,
             gateResults,
+            experimentValidity: experimentValidityForCandidate,
+            variantEffectSummary: variantEffect,
           }),
           recommended_review_mode: recommendReviewMode({
             scorecard,
             gateResults,
+            experimentValidity: experimentValidityForCandidate,
           }),
         })
       }
@@ -1062,13 +1564,23 @@ async function main(): Promise<void> {
   const scorecardSummary = aggregateScorecard(results)
   const explorationSignals = aggregateExplorationSignals(results)
   const recommendedReviewMode = aggregateReviewMode(results)
+  const variantEffectSummary = aggregateVariantEffectSummary(results)
+  const experimentValidity = aggregateExperimentValidity(results)
+
   const warningMessages = results
     .flatMap(result => result.candidates.flatMap(candidate => candidate.gate_results))
-    .filter(result => result.verdict === 'soft_warning' || result.verdict === 'missing' || result.verdict === 'inconclusive')
+    .filter(
+      result =>
+        result.verdict === 'soft_warning' ||
+        result.verdict === 'missing' ||
+        result.verdict === 'inconclusive',
+    )
     .map(
       result =>
         `${result.verdict}: scenario=${result.scenario_id}, candidate=${result.candidate_variant_id}, score=${result.score_spec_id}`,
     )
+  warningMessages.push(...experimentValidity.warnings)
+
   const errorMessages = results
     .flatMap(result => result.candidates.flatMap(candidate => candidate.gate_results))
     .filter(result => result.verdict === 'hard_fail')
@@ -1076,6 +1588,8 @@ async function main(): Promise<void> {
       result =>
         `hard_fail: scenario=${result.scenario_id}, candidate=${result.candidate_variant_id}, score=${result.score_spec_id}`,
     )
+  errorMessages.push(...experimentValidity.blockers)
+
   await writeFile(
     outputJsonPath,
     `${JSON.stringify(
@@ -1086,11 +1600,16 @@ async function main(): Promise<void> {
         mode,
         requested_mode: requestedMode,
         automation_disabled: automationDisabled,
+        report_profile: experiment.report_profile ?? 'smoke',
+        evaluation_intent: experiment.evaluation_intent ?? null,
         run_refs: runRefs(results),
         score_refs: scoreRefs(results),
         report_refs: reportRefs(results, outputMarkdownRel),
         risk_verdict: riskVerdict,
         gate_verdict: riskVerdict,
+        experiment_validity: experimentValidity,
+        variant_effect_summary: variantEffectSummary,
+        runtime_difference_summary: variantEffectSummary.flatMap(item => item.summary),
         verdict_boundary:
           'risk_verdict/gate_verdict is regression-risk-only and is not a final experiment judgment.',
         scorecard_summary: scorecardSummary,
@@ -1133,6 +1652,12 @@ async function main(): Promise<void> {
       experiment,
       results,
       outputJson: outputJsonRel,
+      riskVerdict,
+      experimentValidity,
+      scorecardSummary,
+      explorationSignals,
+      recommendedReviewMode,
+      variantEffectSummary,
     }),
   )
 

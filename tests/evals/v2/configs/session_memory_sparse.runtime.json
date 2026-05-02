@@ -1,0 +1,10 @@
+{
+  "config_id": "session_memory_sparse_runtime",
+  "session_memory_policy": {
+    "mode": "sparse",
+    "force_enabled": true,
+    "natural_break_only": true,
+    "token_threshold_multiplier": 2,
+    "tool_threshold_multiplier": 2
+  }
+}

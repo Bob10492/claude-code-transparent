@@ -373,6 +373,7 @@ async function main(): Promise<void> {
       no_snapshot_db: true,
       manifest: fixtureExperiment({
         id: `v2_2_verify_variant_apply_failed_${stamp}`,
+        baselineVariantId: 'candidate_tool_router_v2',
         execution: {
           ...fixtureExecution(missingCaptureDb),
           require_config_snapshot: true,

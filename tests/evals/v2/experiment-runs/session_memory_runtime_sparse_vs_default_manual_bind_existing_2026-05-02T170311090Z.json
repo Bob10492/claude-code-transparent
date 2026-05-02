@@ -1,0 +1,429 @@
+{
+  "experiment_id": "session_memory_runtime_sparse_vs_default_manual_bind_existing",
+  "manifest_ref": "tests\\evals\\v2\\experiments\\session_memory_runtime_sparse_vs_default_manual.bind_existing.json",
+  "generated_at": "2026-05-02T17:03:11.092Z",
+  "mode": "bind_existing",
+  "requested_mode": "bind_existing",
+  "automation_disabled": false,
+  "report_profile": "real_experiment",
+  "evaluation_intent": "exploration",
+  "run_refs": [
+    "tests\\evals\\v2\\runs\\run_2026-05-02T170309880Z_session_memory_trigger_sensitive_baseline_default_7b614b14.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-02T170310924Z_session_memory_trigger_sensitive_candidate_session_memory_sparse_b118c7c4.json"
+  ],
+  "score_refs": [
+    "tests\\evals\\v2\\scores\\run_2026-05-02T170309880Z_session_memory_trigger_sensitive_baseline_default_7b614b14.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-02T170310924Z_session_memory_trigger_sensitive_candidate_session_memory_sparse_b118c7c4.scores.json"
+  ],
+  "report_refs": [
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-02T170309880Z_session_memory_trigger_sensitive_baseline_default_7b614b14_vs_run_2026-05-02T170310924Z_session_memory_trigger_sensitive_candidate_session_memory_sparse_b118c7c4.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_session_memory_runtime_sparse_vs_default_manual_bind_existing_2026-05-02T170311090Z.md"
+  ],
+  "risk_verdict": {
+    "status": "pass",
+    "scope": "regression_risk_only",
+    "is_final_experiment_judgment": false,
+    "hard_fail_count": 0,
+    "soft_warning_count": 0,
+    "missing_score_count": 0,
+    "inconclusive_count": 0,
+    "candidate_count": 1,
+    "notes": "This verdict is only a regression-risk gate result. It is not a final judgment about model intelligence, harness value, or exploratory potential."
+  },
+  "gate_verdict": {
+    "status": "pass",
+    "scope": "regression_risk_only",
+    "is_final_experiment_judgment": false,
+    "hard_fail_count": 0,
+    "soft_warning_count": 0,
+    "missing_score_count": 0,
+    "inconclusive_count": 0,
+    "candidate_count": 1,
+    "notes": "This verdict is only a regression-risk gate result. It is not a final judgment about model intelligence, harness value, or exploratory potential."
+  },
+  "experiment_validity": {
+    "status": "valid",
+    "profile": "real_experiment",
+    "reason": "Real experiment remains interpretable.",
+    "blockers": [],
+    "warnings": [],
+    "checks": {
+      "baseline_captured": true,
+      "candidate_captured": true,
+      "no_ambiguous_capture": true,
+      "score_evidence_present": true,
+      "variant_effect_observed": true,
+      "runtime_difference_observed": true,
+      "scenario_intent_matched": true
+    }
+  },
+  "variant_effect_summary": [
+    {
+      "scenario_id": "session_memory_trigger_sensitive",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "baseline_variant_effect_observed": true,
+      "candidate_variant_effect_observed": true,
+      "runtime_difference_observed": true,
+      "baseline_policy_mode": "default",
+      "candidate_policy_mode": "sparse",
+      "summary": [
+        "Baseline session_memory policy was observed with mode=default.",
+        "Candidate session_memory policy was observed with mode=sparse.",
+        "Candidate sparse-policy markers were observed in runtime evidence.",
+        "Observed baseline and candidate session_memory policies differ.",
+        "Session_memory subagent count changed from 2 to 1.",
+        "At least one score dimension changed between baseline and candidate."
+      ]
+    }
+  ],
+  "runtime_difference_summary": [
+    "Baseline session_memory policy was observed with mode=default.",
+    "Candidate session_memory policy was observed with mode=sparse.",
+    "Candidate sparse-policy markers were observed in runtime evidence.",
+    "Observed baseline and candidate session_memory policies differ.",
+    "Session_memory subagent count changed from 2 to 1.",
+    "At least one score dimension changed between baseline and candidate."
+  ],
+  "verdict_boundary": "risk_verdict/gate_verdict is regression-risk-only and is not a final experiment judgment.",
+  "scorecard_summary": [
+    {
+      "scenario_id": "session_memory_trigger_sensitive",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "session_memory_trigger_sensitive",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "decision_quality.session_memory_policy_observed",
+      "direction": "observed_only",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "session_memory_trigger_sensitive",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "direction": "lower_is_better",
+      "baseline_value": 2,
+      "candidate_value": 1,
+      "delta": -1,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "session_memory_trigger_sensitive",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 396401,
+      "candidate_value": 303392,
+      "delta": -93009,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "session_memory_trigger_sensitive",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "session_memory_trigger_sensitive",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    }
+  ],
+  "exploration_signals": [
+    "2 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer.",
+    "A real runtime difference was observed between baseline and candidate; inspect policy evidence before reading score deltas."
+  ],
+  "recommended_review_mode": "regression_review",
+  "final_decision": null,
+  "errors": [],
+  "warnings": [],
+  "experiment": {
+    "experiment_id": "session_memory_runtime_sparse_vs_default_manual_bind_existing",
+    "name": "Session Memory Runtime Sparse vs Default Manual Bind Existing",
+    "goal": "Fallback real experiment for V2.2.5. Use two manually executed real traces to verify that the session_memory runtime policy difference remains interpretable through bind_existing.",
+    "baseline_variant_id": "baseline_default",
+    "candidate_variant_ids": [
+      "candidate_session_memory_sparse"
+    ],
+    "scenario_set_id": "v2_2_5_manual_real",
+    "scenario_ids": [
+      "session_memory_trigger_sensitive"
+    ],
+    "repeat_count": 1,
+    "score_spec_ids": [
+      "task_success.main_chain_observed",
+      "decision_quality.session_memory_policy_observed",
+      "efficiency.total_billed_tokens",
+      "decision_quality.subagent_count_observed",
+      "stability.recovery_absence",
+      "controllability.turn_limit_basic"
+    ],
+    "gate_policy_id": "default_v2_1_gate",
+    "mode": "bind_existing",
+    "report_profile": "real_experiment",
+    "evaluation_intent": "exploration",
+    "action_bindings": [
+      {
+        "scenario_id": "session_memory_trigger_sensitive",
+        "baseline_user_action_id": "7b614b14-19d8-41db-8ee8-ebb61bc4b699",
+        "candidate_user_action_ids": {
+          "candidate_session_memory_sparse": "b118c7c4-18df-4ff0-b506-5b5454418b48"
+        }
+      }
+    ],
+    "status": "ready"
+  },
+  "runner": {
+    "requested_mode": "bind_existing",
+    "mode": "bind_existing",
+    "automation_disabled": false,
+    "fallback_reason": null,
+    "execute_harness_alpha_limits": null,
+    "score_spec_ids": [
+      "task_success.main_chain_observed",
+      "decision_quality.session_memory_policy_observed",
+      "efficiency.total_billed_tokens",
+      "decision_quality.subagent_count_observed",
+      "stability.recovery_absence",
+      "controllability.turn_limit_basic"
+    ],
+    "gate_policy_id": "default_v2_1_gate"
+  },
+  "results": [
+    {
+      "scenario_id": "session_memory_trigger_sensitive",
+      "repeat_index": 1,
+      "baseline_run_id": "run_2026-05-02T170309880Z_session_memory_trigger_sensitive_baseline_default_7b614b14",
+      "baseline_user_action_id": "7b614b14-19d8-41db-8ee8-ebb61bc4b699",
+      "candidates": [
+        {
+          "candidate_variant_id": "candidate_session_memory_sparse",
+          "candidate_run_id": "run_2026-05-02T170310924Z_session_memory_trigger_sensitive_candidate_session_memory_sparse_b118c7c4",
+          "candidate_user_action_id": "b118c7c4-18df-4ff0-b506-5b5454418b48",
+          "baseline_variant_effect": {
+            "effect_type": "session_memory_policy",
+            "policy_event_observed": true,
+            "variant_effect_observed": true,
+            "observed_policy": {
+              "mode": "default",
+              "source": "config_snapshot_session_memory_policy",
+              "gate_enabled": true,
+              "force_enabled": true,
+              "query_source_supported": true,
+              "natural_break_only": false,
+              "token_threshold_multiplier": 1,
+              "tool_threshold_multiplier": 1,
+              "minimum_message_tokens_to_init": 10000,
+              "minimum_tokens_between_update": 5000,
+              "tool_calls_between_updates": 6
+            },
+            "observed_at": "2026-05-02T16:54:20.319Z",
+            "observed_query_source": "sdk",
+            "session_memory_subagent_count": 2,
+            "session_memory_trigger_details": [
+              "token_threshold_and_tool_threshold"
+            ],
+            "reason": "Session-memory runtime policy was observed from V1 events."
+          },
+          "candidate_variant_effect": {
+            "effect_type": "session_memory_policy",
+            "policy_event_observed": true,
+            "variant_effect_observed": true,
+            "observed_policy": {
+              "mode": "sparse",
+              "source": "config_snapshot_session_memory_policy",
+              "gate_enabled": true,
+              "force_enabled": true,
+              "query_source_supported": true,
+              "natural_break_only": true,
+              "token_threshold_multiplier": 2,
+              "tool_threshold_multiplier": 2,
+              "minimum_message_tokens_to_init": 20000,
+              "minimum_tokens_between_update": 10000,
+              "tool_calls_between_updates": 12
+            },
+            "observed_at": "2026-05-02T16:59:26.237Z",
+            "observed_query_source": "sdk",
+            "session_memory_subagent_count": 1,
+            "session_memory_trigger_details": [
+              "token_threshold_and_tool_threshold"
+            ],
+            "reason": "Session-memory runtime policy was observed from V1 events."
+          },
+          "variant_effect_summary": {
+            "scenario_id": "session_memory_trigger_sensitive",
+            "candidate_variant_id": "candidate_session_memory_sparse",
+            "baseline_variant_effect_observed": true,
+            "candidate_variant_effect_observed": true,
+            "runtime_difference_observed": true,
+            "baseline_policy_mode": "default",
+            "candidate_policy_mode": "sparse",
+            "summary": [
+              "Baseline session_memory policy was observed with mode=default.",
+              "Candidate session_memory policy was observed with mode=sparse.",
+              "Candidate sparse-policy markers were observed in runtime evidence.",
+              "Observed baseline and candidate session_memory policies differ.",
+              "Session_memory subagent count changed from 2 to 1.",
+              "At least one score dimension changed between baseline and candidate."
+            ]
+          },
+          "experiment_validity": {
+            "status": "valid",
+            "profile": "real_experiment",
+            "reason": "Real experiment is valid: runtime effect was observed and the baseline/candidate difference is interpretable.",
+            "blockers": [],
+            "warnings": [],
+            "checks": {
+              "baseline_captured": true,
+              "candidate_captured": true,
+              "no_ambiguous_capture": true,
+              "score_evidence_present": true,
+              "variant_effect_observed": true,
+              "runtime_difference_observed": true,
+              "scenario_intent_matched": true
+            }
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-02T170309880Z_session_memory_trigger_sensitive_baseline_default_7b614b14_vs_run_2026-05-02T170310924Z_session_memory_trigger_sensitive_candidate_session_memory_sparse_b118c7c4.md",
+          "gate_results": [
+            {
+              "scenario_id": "session_memory_trigger_sensitive",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "session_memory_trigger_sensitive",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 396401,
+              "candidate_value": 303392,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "session_memory_trigger_sensitive",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 396401,
+              "candidate_value": 303392,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "session_memory_trigger_sensitive",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 2,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "session_memory_trigger_sensitive",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "session_memory_trigger_sensitive",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "decision_quality.session_memory_policy_observed",
+              "direction": "observed_only",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "session_memory_trigger_sensitive",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "direction": "lower_is_better",
+              "baseline_value": 2,
+              "candidate_value": 1,
+              "delta": -1,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "session_memory_trigger_sensitive",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 396401,
+              "candidate_value": 303392,
+              "delta": -93009,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "session_memory_trigger_sensitive",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "session_memory_trigger_sensitive",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "2 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer.",
+            "A real runtime difference was observed between baseline and candidate; inspect policy evidence before reading score deltas."
+          ],
+          "recommended_review_mode": "regression_review"
+        }
+      ]
+    }
+  ],
+  "created_at": "2026-05-02T17:03:11.092Z"
+}

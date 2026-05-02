@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import type { EvalScenario, EvalVariant } from '../../src/observability/v2/evalTypes'
@@ -59,9 +60,17 @@ export interface ExecuteHarnessResult {
 }
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
+const bunExe = process.execPath
+const nodeExe = process.env.CLAUDE_CODE_NODE_EXE?.trim() || 'node.exe'
 const duckdbExe = path.join(repoRoot, 'tools', 'duckdb', 'duckdb.exe')
 const defaultDbPath = path.join(repoRoot, '.observability', 'observability_v1.duckdb')
-const harnessRunsRoot = path.join(repoRoot, '.observability', 'v2-harness-runs')
+const harnessRunsRoot = path.join(repoRoot, '.observability', 'v2h')
+const windowsLauncherBridgePath = path.join(
+  repoRoot,
+  'scripts',
+  'evals',
+  'v2_windows_spawn_bridge.cjs',
+)
 
 function sqlString(value: string): string {
   return `'${value.replaceAll("'", "''")}'`
@@ -69,6 +78,16 @@ function sqlString(value: string): string {
 
 function sanitizeId(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '')
+}
+
+function artifactRunDirName(runId: string): string {
+  return createHash('sha1').update(runId).digest('hex').slice(0, 16)
+}
+
+function evalAlias(prefix: string, value: string): string {
+  const human = sanitizeId(value).slice(0, 12)
+  const hash = createHash('sha1').update(value).digest('hex').slice(0, 8)
+  return `${prefix}_${human}_${hash}`
 }
 
 function stringifyEnv(value: string | number | boolean): string {
@@ -83,6 +102,53 @@ function mergeEnvRecords(...records: Array<Record<string, string | number | bool
     }
   }
   return env
+}
+
+function spawnWithMergedEnv(
+  command: string,
+  args: string[],
+  options: {
+    cwd: string
+    encoding: BufferEncoding
+    timeout?: number
+    env: Record<string, string>
+    input?: string
+  },
+) {
+  if (process.platform !== 'win32') {
+    return spawnSync(command, args, {
+      cwd: options.cwd,
+      encoding: options.encoding,
+      timeout: options.timeout,
+      input: options.input,
+      env: {
+        ...process.env,
+        ...options.env,
+      },
+    })
+  }
+
+  const previousValues = new Map<string, string | undefined>()
+  for (const [key, value] of Object.entries(options.env)) {
+    previousValues.set(key, process.env[key])
+    process.env[key] = value
+  }
+  try {
+    return spawnSync(command, args, {
+      cwd: options.cwd,
+      encoding: options.encoding,
+      timeout: options.timeout,
+      input: options.input,
+    })
+  } finally {
+    for (const [key, previousValue] of previousValues.entries()) {
+      if (previousValue === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = previousValue
+      }
+    }
+  }
 }
 
 function featureGateEnvName(key: string): string {
@@ -125,9 +191,12 @@ function hasRelationColumn(dbPath: string, relation: string, column: string): bo
 
 export function buildEvalContextEnv(context: EvalExecutionContext): Record<string, string> {
   return {
-    CLAUDE_CODE_EVAL_EXPERIMENT_ID: context.experiment_id,
-    CLAUDE_CODE_EVAL_SCENARIO_ID: context.scenario_id,
-    CLAUDE_CODE_EVAL_VARIANT_ID: context.variant_id,
+    CLAUDE_CODE_EVAL_EXPERIMENT_ID: evalAlias('exp', context.experiment_id),
+    CLAUDE_CODE_EVAL_SCENARIO_ID: evalAlias('scn', context.scenario_id),
+    CLAUDE_CODE_EVAL_VARIANT_ID: evalAlias('var', context.variant_id),
+    CLAUDE_CODE_EVAL_EXPERIMENT_LABEL: context.experiment_id,
+    CLAUDE_CODE_EVAL_SCENARIO_LABEL: context.scenario_id,
+    CLAUDE_CODE_EVAL_VARIANT_LABEL: context.variant_id,
     CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID: context.benchmark_run_id,
     CLAUDE_CODE_EVAL_RUN_ID: context.eval_run_id,
   }
@@ -147,12 +216,15 @@ export function createRunIdentity(params: {
   variantId: string
   stamp: string
 }): { eval_run_id: string; benchmark_run_id: string } {
-  const base = sanitizeId(
-    `${params.experimentId}_${params.scenarioId}_${params.variantId}_${params.stamp}`,
+  const base = `${params.experimentId}_${params.scenarioId}_${params.variantId}_${params.stamp}`
+  const humanPrefix = sanitizeId(
+    `${params.experimentId.slice(0, 20)}_${params.scenarioId.slice(0, 20)}_${params.variantId.slice(0, 20)}`,
   )
+  const hash = createHash('sha1').update(base).digest('hex').slice(0, 12)
+  const identity = `${humanPrefix}_${hash}`
   return {
-    eval_run_id: `eval_${base}`,
-    benchmark_run_id: `bench_${base}`,
+    eval_run_id: `eval_${identity}`,
+    benchmark_run_id: `bench_${identity}`,
   }
 }
 
@@ -243,12 +315,15 @@ export class CliPrintHarnessExecutionAdapter implements HarnessExecutionAdapter 
   ) {}
 
   async execute(input: HarnessExecutionAdapterInput): Promise<HarnessExecutionAdapterOutput> {
-    const runDir = path.join(harnessRunsRoot, sanitizeId(input.runId))
+    const runDir = path.join(harnessRunsRoot, artifactRunDirName(input.runId))
     await mkdir(runDir, { recursive: true })
     const stdoutPath = path.join(runDir, 'stdout.txt')
     const stderrPath = path.join(runDir, 'stderr.txt')
     const commandPath = path.join(runDir, 'command.json')
-    const command = this.options.execution?.command ?? 'bun'
+    const promptPath = path.join(runDir, 'prompt.txt')
+    const launcherRequestPath = path.join(runDir, 'launcher-request.json')
+    const launcherResultPath = path.join(runDir, 'launcher-result.json')
+    const command = this.options.execution?.command ?? bunExe
     const defaultArgs = [
       'run',
       'src/entrypoints/cli.tsx',
@@ -256,11 +331,32 @@ export class CliPrintHarnessExecutionAdapter implements HarnessExecutionAdapter 
       '--output-format',
       'json',
       ...this.options.cliArgs,
-      input.prompt,
     ]
     const args = this.options.execution?.args
       ? expandTemplateArgs(this.options.execution.args, input)
       : defaultArgs
+    const promptViaStdin = !this.options.execution?.args
+    if (promptViaStdin) {
+      await writeFile(promptPath, input.prompt, 'utf8')
+    }
+    if (process.platform === 'win32') {
+      await writeFile(
+        launcherRequestPath,
+        `${JSON.stringify(
+          {
+            command,
+            args,
+            cwd: repoRoot,
+            env: this.options.env,
+            timeout_ms: input.timeoutMs,
+            stdin_text: promptViaStdin ? input.prompt : undefined,
+          },
+          null,
+          2,
+        )}\n`,
+        'utf8',
+      )
+    }
 
     await writeFile(
       commandPath,
@@ -268,6 +364,16 @@ export class CliPrintHarnessExecutionAdapter implements HarnessExecutionAdapter 
         {
           command,
           args,
+          prompt_transport: promptViaStdin ? 'stdin' : 'arg_template',
+          prompt_ref: promptViaStdin ? path.relative(repoRoot, promptPath) : null,
+          launcher_bridge_ref:
+            process.platform === 'win32'
+              ? path.relative(repoRoot, windowsLauncherBridgePath)
+              : null,
+          launcher_request_ref:
+            process.platform === 'win32'
+              ? path.relative(repoRoot, launcherRequestPath)
+              : null,
           timeout_ms: input.timeoutMs,
           env_keys: Object.keys(this.options.env).sort(),
         },
@@ -277,38 +383,97 @@ export class CliPrintHarnessExecutionAdapter implements HarnessExecutionAdapter 
       'utf8',
     )
 
-    const result = spawnSync(command, args, {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      timeout: input.timeoutMs,
-      env: {
-        ...process.env,
-        ...this.options.env,
-      },
-    })
-    await writeFile(stdoutPath, String(result.stdout ?? ''), 'utf8')
-    await writeFile(stderrPath, String(result.stderr ?? result.error?.message ?? ''), 'utf8')
+    let status: HarnessExecutionAdapterOutput['status'] = 'completed'
+    let stdoutText = ''
+    let stderrText = ''
+    let errorText = ''
+
+    if (process.platform === 'win32') {
+      const bridgeResult = spawnSync(
+        nodeExe,
+        [windowsLauncherBridgePath, '--request', launcherRequestPath, '--result', launcherResultPath],
+        {
+          cwd: repoRoot,
+          encoding: 'utf8',
+          timeout: input.timeoutMs + 10_000,
+        },
+      )
+      if (bridgeResult.status !== 0 && !existsSync(launcherResultPath)) {
+        stdoutText = String(bridgeResult.stdout ?? '')
+        stderrText = String(bridgeResult.stderr ?? bridgeResult.error?.message ?? '')
+        errorText =
+          stderrText.trim() ||
+          stdoutText.trim() ||
+          `Windows launcher bridge exited with status ${bridgeResult.status}`
+        status = bridgeResult.error?.name === 'ETIMEDOUT' ? 'timeout' : 'failed'
+      } else {
+        const launcherPayload = JSON.parse(await readFile(launcherResultPath, 'utf8')) as {
+          child_status?: number | null
+          stdout?: string
+          stderr?: string
+          error_name?: string | null
+          error_message?: string | null
+          timed_out?: boolean
+          signal?: string | null
+        }
+        stdoutText = String(launcherPayload.stdout ?? '')
+        stderrText = String(launcherPayload.stderr ?? launcherPayload.error_message ?? '')
+        if (launcherPayload.timed_out) {
+          status = 'timeout'
+          errorText = launcherPayload.error_message ?? 'Windows launcher bridge timed out'
+        } else if ((launcherPayload.child_status ?? 0) !== 0) {
+          status = 'failed'
+          errorText =
+            String(launcherPayload.stderr ?? '').trim() ||
+            String(launcherPayload.stdout ?? '').trim() ||
+            String(launcherPayload.error_message ?? '').trim() ||
+            (launcherPayload.signal
+              ? `command terminated by signal ${launcherPayload.signal}`
+              : `command exited with status ${launcherPayload.child_status}`)
+        }
+      }
+    } else {
+      const result = spawnWithMergedEnv(command, args, {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        timeout: input.timeoutMs,
+        env: this.options.env,
+        input: promptViaStdin ? input.prompt : undefined,
+      })
+      stdoutText = String(result.stdout ?? '')
+      stderrText = String(result.stderr ?? result.error?.message ?? '')
+      if (result.error && result.error.name === 'ETIMEDOUT') {
+        status = 'timeout'
+        errorText = result.error.message
+      } else if (result.status !== 0) {
+        status = 'failed'
+        errorText =
+          String(result.stderr ?? '').trim() ||
+          String(result.stdout ?? '').trim() ||
+          String(result.error?.message ?? '').trim() ||
+          `command exited with status ${result.status}`
+      }
+    }
+
+    await writeFile(stdoutPath, stdoutText, 'utf8')
+    await writeFile(stderrPath, stderrText, 'utf8')
 
     const stdoutRef = path.relative(repoRoot, stdoutPath)
     const stderrRef = path.relative(repoRoot, stderrPath)
-    if (result.error && result.error.name === 'ETIMEDOUT') {
+    if (status === 'timeout') {
       return {
         status: 'timeout',
         stdoutRef,
         stderrRef,
-        error: result.error.message,
+        error: errorText,
       }
     }
-    if (result.status !== 0) {
+    if (status === 'failed') {
       return {
         status: 'failed',
         stdoutRef,
         stderrRef,
-        error:
-          String(result.stderr ?? '').trim() ||
-          String(result.stdout ?? '').trim() ||
-          String(result.error?.message ?? '').trim() ||
-          `command exited with status ${result.status}`,
+        error: errorText,
       }
     }
     return {
@@ -333,7 +498,7 @@ export function createHarnessExecutionAdapter(params: {
 export function rebuildObservabilityDb(dbPath?: string): void {
   const args = ['run', 'scripts/observability/build_duckdb_etl.ts']
   if (dbPath) args.push('--db-path', dbPath)
-  const result = spawnSync('bun', args, {
+  const result = spawnSync(bunExe, args, {
     cwd: repoRoot,
     encoding: 'utf8',
   })

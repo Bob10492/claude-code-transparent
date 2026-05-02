@@ -11,6 +11,7 @@ export interface V2ScoreInput {
   tools: JsonRecord[]
   subagents: JsonRecord[]
   recoveries: JsonRecord[]
+  variantEffect?: JsonRecord
 }
 
 type V2ScoreScorer = (input: V2ScoreInput) => EvalScore
@@ -182,6 +183,28 @@ export const V2_SCORE_SCORERS: Record<string, V2ScoreScorer> = {
     evidence_ref: 'subagents',
     reason: 'Observed subagent count is a fact for later baseline vs candidate comparison.',
   }),
+
+  'decision_quality.session_memory_policy_observed': ({ runId, variantEffect }) => {
+    const observed =
+      variantEffect &&
+      (variantEffect.variant_effect_observed === true ||
+        variantEffect.policy_event_observed === true)
+        ? 1
+        : 0
+    return {
+      score_id: `${runId}_decision_quality_session_memory_policy_observed`,
+      run_id: runId,
+      dimension: 'decision_quality',
+      subdimension: 'session_memory_policy_observed',
+      score_value: observed,
+      score_label: 'observed',
+      evidence_ref: 'variant_effect',
+      reason:
+        observed === 1
+          ? 'Session-memory runtime policy was observed in trace-backed evidence.'
+          : 'No session-memory runtime policy observation was found for this run.',
+    }
+  },
 
   'controllability.subagent_count_budget': ({ runId, scenario, subagents }) => {
     const limit = scenario.max_subagent_count

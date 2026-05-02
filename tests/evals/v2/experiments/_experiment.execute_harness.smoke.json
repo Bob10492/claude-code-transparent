@@ -7,6 +7,8 @@
   "scenario_set_id": "v2_2_alpha_smoke",
   "scenario_ids": ["execute_harness_smoke_minimal"],
   "repeat_count": 1,
+  "report_profile": "smoke",
+  "evaluation_intent": "exploration",
   "score_spec_ids": [
     "task_success.main_chain_observed",
     "efficiency.total_billed_tokens",

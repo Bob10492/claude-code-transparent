@@ -4,8 +4,9 @@
  * without interrupting the main conversation flow.
  */
 
+import { existsSync, readFileSync } from 'fs'
 import { writeFile } from 'fs/promises'
-import memoize from 'lodash-es/memoize.js'
+import path from 'node:path'
 import { feature } from 'bun:bundle'
 import { getIsRemoteMode } from '../../bootstrap/state.js'
 import { getSystemPrompt } from '../../constants/prompts.js'
@@ -42,6 +43,7 @@ import { asSystemPrompt } from '../../utils/systemPromptType.js'
 import { getTokenUsage, tokenCountWithEstimation } from '../../utils/tokens.js'
 import { logEvent } from '../analytics/index.js'
 import { isAutoCompactEnabled } from '../compact/autoCompact.js'
+import { emitHarnessEvent } from '../../observability/harness.js'
 import {
   buildSessionMemoryUpdatePrompt,
   loadSessionMemoryTemplate,
@@ -98,12 +100,379 @@ function getSessionMemoryRemoteConfig(): Partial<SessionMemoryConfig> {
 // ============================================================================
 
 let lastMemoryMessageUuid: string | undefined
+let sessionMemoryRuntimeInitialized = false
+let sessionMemoryNaturalBreakOnly = false
+let sessionMemorySnapshotPolicyLoaded = false
+let sessionMemorySnapshotPolicy:
+  | {
+      mode?: string
+      natural_break_only?: boolean
+      token_threshold_multiplier?: number
+      tool_threshold_multiplier?: number
+      minimum_message_tokens_to_init?: number
+      minimum_tokens_between_update?: number
+      tool_calls_between_updates?: number
+      force_enabled?: boolean
+    }
+  | null = null
+let sessionMemoryRuntimePolicy: {
+  mode: 'default' | 'sparse' | 'custom'
+  source: string
+  gate_enabled: boolean
+  force_enabled: boolean
+  query_source_supported: boolean
+  natural_break_only: boolean
+  token_threshold_multiplier: number
+  tool_threshold_multiplier: number
+  minimum_message_tokens_to_init: number
+  minimum_tokens_between_update: number
+  tool_calls_between_updates: number
+} = {
+  mode: 'default',
+  source: 'default_config',
+  gate_enabled: false,
+  force_enabled: false,
+  query_source_supported: true,
+  natural_break_only: false,
+  token_threshold_multiplier: 1,
+  tool_threshold_multiplier: 1,
+  minimum_message_tokens_to_init:
+    DEFAULT_SESSION_MEMORY_CONFIG.minimumMessageTokensToInit,
+  minimum_tokens_between_update:
+    DEFAULT_SESSION_MEMORY_CONFIG.minimumTokensBetweenUpdate,
+  tool_calls_between_updates:
+    DEFAULT_SESSION_MEMORY_CONFIG.toolCallsBetweenUpdates,
+}
+const emittedPolicyObservationKeys = new Set<string>()
 
 /**
  * Reset the last memory message UUID (for testing)
  */
 export function resetLastMemoryMessageUuid(): void {
   lastMemoryMessageUuid = undefined
+  sessionMemoryRuntimeInitialized = false
+  sessionMemoryNaturalBreakOnly = false
+  sessionMemorySnapshotPolicyLoaded = false
+  sessionMemorySnapshotPolicy = null
+  emittedPolicyObservationKeys.clear()
+  sessionMemoryRuntimePolicy = {
+    mode: 'default',
+    source: 'default_config',
+    gate_enabled: false,
+    force_enabled: false,
+    query_source_supported: true,
+    natural_break_only: false,
+    token_threshold_multiplier: 1,
+    tool_threshold_multiplier: 1,
+    minimum_message_tokens_to_init:
+      DEFAULT_SESSION_MEMORY_CONFIG.minimumMessageTokensToInit,
+    minimum_tokens_between_update:
+      DEFAULT_SESSION_MEMORY_CONFIG.minimumTokensBetweenUpdate,
+    tool_calls_between_updates:
+      DEFAULT_SESSION_MEMORY_CONFIG.toolCallsBetweenUpdates,
+  }
+}
+
+function parseBooleanEnv(name: string): boolean | undefined {
+  const value = process.env[name]?.trim().toLowerCase()
+  if (!value) return undefined
+  if (['1', 'true', 'yes', 'on'].includes(value)) return true
+  if (['0', 'false', 'no', 'off'].includes(value)) return false
+  return undefined
+}
+
+function parsePositiveNumberEnv(name: string): number | undefined {
+  const raw = process.env[name]?.trim()
+  if (!raw) return undefined
+  const value = Number(raw)
+  if (!Number.isFinite(value) || value <= 0) return undefined
+  return value
+}
+
+function roundPositive(value: number): number {
+  return Math.max(1, Math.round(value))
+}
+
+function loadSessionMemorySnapshotPolicy():
+  | {
+      mode?: string
+      natural_break_only?: boolean
+      token_threshold_multiplier?: number
+      tool_threshold_multiplier?: number
+      minimum_message_tokens_to_init?: number
+      minimum_tokens_between_update?: number
+      tool_calls_between_updates?: number
+      force_enabled?: boolean
+    }
+  | null {
+  if (sessionMemorySnapshotPolicyLoaded) {
+    return sessionMemorySnapshotPolicy
+  }
+  sessionMemorySnapshotPolicyLoaded = true
+
+  const snapshotRef = process.env.CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF?.trim()
+  if (!snapshotRef || !snapshotRef.toLowerCase().endsWith('.json')) {
+    sessionMemorySnapshotPolicy = null
+    return sessionMemorySnapshotPolicy
+  }
+
+  const snapshotPath = path.isAbsolute(snapshotRef)
+    ? snapshotRef
+    : path.resolve(process.cwd(), snapshotRef)
+  if (!existsSync(snapshotPath)) {
+    sessionMemorySnapshotPolicy = null
+    return sessionMemorySnapshotPolicy
+  }
+
+  try {
+    const parsed = JSON.parse(readFileSync(snapshotPath, 'utf8')) as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      sessionMemorySnapshotPolicy = null
+      return sessionMemorySnapshotPolicy
+    }
+    const policy = (parsed as Record<string, unknown>).session_memory_policy
+    if (!policy || typeof policy !== 'object' || Array.isArray(policy)) {
+      sessionMemorySnapshotPolicy = null
+      return sessionMemorySnapshotPolicy
+    }
+    sessionMemorySnapshotPolicy = policy as typeof sessionMemorySnapshotPolicy
+    return sessionMemorySnapshotPolicy
+  } catch {
+    sessionMemorySnapshotPolicy = null
+    return sessionMemorySnapshotPolicy
+  }
+}
+
+function isEvalSessionMemorySdkAllowed(): boolean {
+  return (
+    Boolean(process.env.CLAUDE_CODE_EVAL_EXPERIMENT_ID) ||
+    parseBooleanEnv('CLAUDE_CODE_SESSION_MEMORY_ALLOW_SDK') === true
+  )
+}
+
+function isSessionMemoryQuerySourceSupported(
+  querySource: REPLHookContext['querySource'],
+): boolean {
+  return (
+    querySource === 'repl_main_thread' ||
+    (querySource === 'sdk' && isEvalSessionMemorySdkAllowed())
+  )
+}
+
+function buildSessionMemoryRuntimePolicy(params: {
+  gateEnabled: boolean
+  querySource: REPLHookContext['querySource']
+}): {
+  enabled: boolean
+  config: SessionMemoryConfig
+  policy: typeof sessionMemoryRuntimePolicy
+} {
+  const remoteConfig = getSessionMemoryRemoteConfig()
+  const snapshotPolicy = loadSessionMemorySnapshotPolicy()
+  const forceEnabled =
+    snapshotPolicy?.force_enabled === true ||
+    parseBooleanEnv('CLAUDE_CODE_SESSION_MEMORY_FORCE_ENABLE') === true
+  const querySourceSupported = isSessionMemoryQuerySourceSupported(
+    params.querySource,
+  )
+  const policyEnv = process.env.CLAUDE_CODE_SESSION_MEMORY_POLICY
+    ?.trim()
+    .toLowerCase()
+  let mode: 'default' | 'sparse' | 'custom' = 'default'
+  let source = 'default_or_remote_config'
+
+  const config: SessionMemoryConfig = {
+    minimumMessageTokensToInit:
+      remoteConfig.minimumMessageTokensToInit &&
+      remoteConfig.minimumMessageTokensToInit > 0
+        ? remoteConfig.minimumMessageTokensToInit
+        : DEFAULT_SESSION_MEMORY_CONFIG.minimumMessageTokensToInit,
+    minimumTokensBetweenUpdate:
+      remoteConfig.minimumTokensBetweenUpdate &&
+      remoteConfig.minimumTokensBetweenUpdate > 0
+        ? remoteConfig.minimumTokensBetweenUpdate
+        : DEFAULT_SESSION_MEMORY_CONFIG.minimumTokensBetweenUpdate,
+    toolCallsBetweenUpdates:
+      remoteConfig.toolCallsBetweenUpdates &&
+      remoteConfig.toolCallsBetweenUpdates > 0
+        ? remoteConfig.toolCallsBetweenUpdates
+        : DEFAULT_SESSION_MEMORY_CONFIG.toolCallsBetweenUpdates,
+  }
+
+  let tokenThresholdMultiplier =
+    (typeof snapshotPolicy?.token_threshold_multiplier === 'number' &&
+    snapshotPolicy.token_threshold_multiplier > 0
+      ? snapshotPolicy.token_threshold_multiplier
+      : undefined) ??
+    parsePositiveNumberEnv(
+      'CLAUDE_CODE_SESSION_MEMORY_TOKEN_THRESHOLD_MULTIPLIER',
+    ) ?? 1
+  let toolThresholdMultiplier =
+    (typeof snapshotPolicy?.tool_threshold_multiplier === 'number' &&
+    snapshotPolicy.tool_threshold_multiplier > 0
+      ? snapshotPolicy.tool_threshold_multiplier
+      : undefined) ??
+    parsePositiveNumberEnv(
+      'CLAUDE_CODE_SESSION_MEMORY_TOOL_THRESHOLD_MULTIPLIER',
+    ) ?? 1
+  let naturalBreakOnly =
+    (typeof snapshotPolicy?.natural_break_only === 'boolean'
+      ? snapshotPolicy.natural_break_only
+      : undefined) ??
+    parseBooleanEnv('CLAUDE_CODE_SESSION_MEMORY_NATURAL_BREAK_ONLY') ?? false
+
+  if (snapshotPolicy?.mode === 'sparse') {
+    mode = 'sparse'
+    source = 'config_snapshot_session_memory_policy'
+    if (tokenThresholdMultiplier === 1) tokenThresholdMultiplier = 2
+    if (toolThresholdMultiplier === 1) toolThresholdMultiplier = 2
+  } else if (typeof snapshotPolicy?.mode === 'string' && snapshotPolicy.mode) {
+    mode = snapshotPolicy.mode === 'default' ? 'default' : 'custom'
+    source = 'config_snapshot_session_memory_policy'
+  }
+
+  if (policyEnv === 'sparse') {
+    mode = 'sparse'
+    source = 'env_policy_sparse'
+    if (tokenThresholdMultiplier === 1) tokenThresholdMultiplier = 2
+    if (toolThresholdMultiplier === 1) toolThresholdMultiplier = 2
+    if (
+      parseBooleanEnv('CLAUDE_CODE_SESSION_MEMORY_NATURAL_BREAK_ONLY') ===
+      undefined
+    ) {
+      naturalBreakOnly = true
+    }
+  } else if (policyEnv) {
+    mode = 'custom'
+    source = `env_policy_${policyEnv}`
+  }
+
+  if (tokenThresholdMultiplier !== 1) {
+    config.minimumMessageTokensToInit = roundPositive(
+      config.minimumMessageTokensToInit * tokenThresholdMultiplier,
+    )
+    config.minimumTokensBetweenUpdate = roundPositive(
+      config.minimumTokensBetweenUpdate * tokenThresholdMultiplier,
+    )
+    if (source === 'default_or_remote_config') {
+      source = 'env_token_multiplier'
+    }
+  }
+  if (toolThresholdMultiplier !== 1) {
+    config.toolCallsBetweenUpdates = roundPositive(
+      config.toolCallsBetweenUpdates * toolThresholdMultiplier,
+    )
+    if (source === 'default_or_remote_config') {
+      source = 'env_tool_multiplier'
+    }
+  }
+
+  const minInitOverride = parsePositiveNumberEnv(
+    'CLAUDE_CODE_SESSION_MEMORY_MIN_INIT_TOKENS',
+  )
+  const minUpdateOverride = parsePositiveNumberEnv(
+    'CLAUDE_CODE_SESSION_MEMORY_MIN_TOKENS_BETWEEN_UPDATE',
+  )
+  const toolThresholdOverride = parsePositiveNumberEnv(
+    'CLAUDE_CODE_SESSION_MEMORY_TOOL_CALLS_BETWEEN_UPDATES',
+  )
+
+  const snapshotMinInit =
+    typeof snapshotPolicy?.minimum_message_tokens_to_init === 'number' &&
+    snapshotPolicy.minimum_message_tokens_to_init > 0
+      ? snapshotPolicy.minimum_message_tokens_to_init
+      : undefined
+  const snapshotMinUpdate =
+    typeof snapshotPolicy?.minimum_tokens_between_update === 'number' &&
+    snapshotPolicy.minimum_tokens_between_update > 0
+      ? snapshotPolicy.minimum_tokens_between_update
+      : undefined
+  const snapshotToolThreshold =
+    typeof snapshotPolicy?.tool_calls_between_updates === 'number' &&
+    snapshotPolicy.tool_calls_between_updates > 0
+      ? snapshotPolicy.tool_calls_between_updates
+      : undefined
+
+  if (snapshotMinInit !== undefined) {
+    config.minimumMessageTokensToInit = roundPositive(snapshotMinInit)
+    source = 'config_snapshot_session_memory_policy'
+  } else if (minInitOverride !== undefined) {
+    config.minimumMessageTokensToInit = roundPositive(minInitOverride)
+    source = 'env_absolute_threshold_override'
+  }
+  if (snapshotMinUpdate !== undefined) {
+    config.minimumTokensBetweenUpdate = roundPositive(snapshotMinUpdate)
+    source = 'config_snapshot_session_memory_policy'
+  } else if (minUpdateOverride !== undefined) {
+    config.minimumTokensBetweenUpdate = roundPositive(minUpdateOverride)
+    source = 'env_absolute_threshold_override'
+  }
+  if (snapshotToolThreshold !== undefined) {
+    config.toolCallsBetweenUpdates = roundPositive(snapshotToolThreshold)
+    source = 'config_snapshot_session_memory_policy'
+  } else if (toolThresholdOverride !== undefined) {
+    config.toolCallsBetweenUpdates = roundPositive(toolThresholdOverride)
+    source = 'env_absolute_threshold_override'
+  }
+
+  const policy = {
+    mode,
+    source,
+    gate_enabled: params.gateEnabled,
+    force_enabled: forceEnabled,
+    query_source_supported: querySourceSupported,
+    natural_break_only: naturalBreakOnly,
+    token_threshold_multiplier: tokenThresholdMultiplier,
+    tool_threshold_multiplier: toolThresholdMultiplier,
+    minimum_message_tokens_to_init: config.minimumMessageTokensToInit,
+    minimum_tokens_between_update: config.minimumTokensBetweenUpdate,
+    tool_calls_between_updates: config.toolCallsBetweenUpdates,
+  }
+
+  return {
+    enabled: (params.gateEnabled || forceEnabled) && querySourceSupported,
+    config,
+    policy,
+  }
+}
+
+function initSessionMemoryConfigIfNeeded(
+  querySource: REPLHookContext['querySource'],
+  gateEnabled: boolean,
+): typeof sessionMemoryRuntimePolicy {
+  if (!sessionMemoryRuntimeInitialized) {
+    const runtime = buildSessionMemoryRuntimePolicy({
+      gateEnabled,
+      querySource,
+    })
+    setSessionMemoryConfig(runtime.config)
+    sessionMemoryRuntimeInitialized = true
+    sessionMemoryNaturalBreakOnly = runtime.policy.natural_break_only
+    sessionMemoryRuntimePolicy = runtime.policy
+  }
+  return sessionMemoryRuntimePolicy
+}
+
+async function emitSessionMemoryPolicyObserved(
+  context: REPLHookContext,
+): Promise<void> {
+  const actionId = context.toolUseContext.userActionId ?? 'unknown-action'
+  const queryId = context.toolUseContext.queryTracking?.chainId ?? 'unknown-query'
+  const key = `${actionId}:${queryId}`
+  if (emittedPolicyObservationKeys.has(key)) return
+  emittedPolicyObservationKeys.add(key)
+  await emitHarnessEvent({
+    event: 'session_memory.policy.observed',
+    component: 'session_memory',
+    user_action_id: context.toolUseContext.userActionId ?? null,
+    query_id: context.toolUseContext.queryTracking?.chainId ?? null,
+    query_source: context.querySource ?? null,
+    subagent_id: context.toolUseContext.agentId ?? null,
+    subagent_type: context.toolUseContext.agentType ?? null,
+    payload: {
+      ...sessionMemoryRuntimePolicy,
+    },
+  })
 }
 
 function countToolCallsSince(
@@ -190,7 +559,9 @@ function evaluateSessionMemoryTrigger(messages: Message[]): {
   // Even if the tool call threshold is met, extraction won't happen until the
   // token threshold is also satisfied. This prevents excessive extractions.
   const shouldExtract =
-    (hasMetTokenThreshold && hasMetToolCallThreshold) ||
+    (hasMetTokenThreshold &&
+      !sessionMemoryNaturalBreakOnly &&
+      hasMetToolCallThreshold) ||
     (hasMetTokenThreshold && !hasToolCallsInLastTurn)
 
   let detail:
@@ -288,40 +659,6 @@ async function setupSessionMemoryFile(
   return { memoryPath, currentMemory }
 }
 
-/**
- * Initialize session memory config from remote config (lazy initialization).
- * Memoized - only runs once per session, subsequent calls return immediately.
- * Uses cached config values - non-blocking.
- */
-const initSessionMemoryConfigIfNeeded = memoize((): void => {
-  // Load config from cache (non-blocking, may be stale)
-  const remoteConfig = getSessionMemoryRemoteConfig()
-
-  // Only use remote values if they are explicitly set (non-zero positive numbers)
-  // This ensures sensible defaults aren't overridden by zero values
-  const config: SessionMemoryConfig = {
-    minimumMessageTokensToInit:
-      remoteConfig.minimumMessageTokensToInit &&
-      remoteConfig.minimumMessageTokensToInit > 0
-        ? remoteConfig.minimumMessageTokensToInit
-        : DEFAULT_SESSION_MEMORY_CONFIG.minimumMessageTokensToInit,
-    minimumTokensBetweenUpdate:
-      remoteConfig.minimumTokensBetweenUpdate &&
-      remoteConfig.minimumTokensBetweenUpdate > 0
-        ? remoteConfig.minimumTokensBetweenUpdate
-        : DEFAULT_SESSION_MEMORY_CONFIG.minimumTokensBetweenUpdate,
-    toolCallsBetweenUpdates:
-      remoteConfig.toolCallsBetweenUpdates &&
-      remoteConfig.toolCallsBetweenUpdates > 0
-        ? remoteConfig.toolCallsBetweenUpdates
-        : DEFAULT_SESSION_MEMORY_CONFIG.toolCallsBetweenUpdates,
-  }
-  setSessionMemoryConfig(config)
-})
-
-/**
- * Session memory post-sampling hook that extracts and updates session notes
- */
 // Track if we've logged the gate check failure this session (to avoid spam)
 let hasLoggedGateFailure = false
 
@@ -330,8 +667,11 @@ const extractSessionMemory = sequential(async function (
 ): Promise<void> {
   const { messages, toolUseContext, querySource } = context
 
-  // Only run session memory on main REPL thread
-  if (querySource !== 'repl_main_thread') {
+  const gateEnabled = isSessionMemoryGateEnabled()
+  const runtimePolicy = initSessionMemoryConfigIfNeeded(querySource, gateEnabled)
+  await emitSessionMemoryPolicyObserved(context)
+
+  if (!runtimePolicy.query_source_supported) {
     // Don't log this - it's expected for subagents, teammates, etc.
     return
   }
@@ -343,7 +683,7 @@ const extractSessionMemory = sequential(async function (
   }
 
   // Check gate lazily when hook runs (cached, non-blocking)
-  if (!isSessionMemoryGateEnabled()) {
+  if (!runtimePolicy.gate_enabled && !runtimePolicy.force_enabled) {
     // Log gate failure once per session (ant-only)
     if (process.env.USER_TYPE === 'ant' && !hasLoggedGateFailure) {
       hasLoggedGateFailure = true
@@ -351,9 +691,6 @@ const extractSessionMemory = sequential(async function (
     }
     return
   }
-
-  // Initialize config from remote (lazy, only once)
-  initSessionMemoryConfigIfNeeded()
 
   const triggerInfo = evaluateSessionMemoryTrigger(messages)
   if (!triggerInfo.shouldExtract) {
@@ -425,15 +762,18 @@ export function initSessionMemory(): void {
   if (getIsRemoteMode()) return
   // Session memory is used for compaction, so respect auto-compact settings
   const autoCompactEnabled = isAutoCompactEnabled()
+  const forceEnabled =
+    parseBooleanEnv('CLAUDE_CODE_SESSION_MEMORY_FORCE_ENABLE') === true
 
   // Log initialization state (ant-only to avoid noise in external logs)
   if (process.env.USER_TYPE === 'ant') {
     logEvent('tengu_session_memory_init', {
       auto_compact_enabled: autoCompactEnabled,
+      force_enabled: forceEnabled,
     })
   }
 
-  if (!autoCompactEnabled) {
+  if (!autoCompactEnabled && !forceEnabled) {
     return
   }
 

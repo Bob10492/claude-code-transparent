@@ -80,6 +80,27 @@ function asString(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
+function asBoolean(value: unknown): boolean {
+  return value === true
+}
+
+function parseJsonRecord(value: unknown): JsonRecord | undefined {
+  if (typeof value !== 'string' || value.trim() === '') return undefined
+  try {
+    const parsed = JSON.parse(value) as unknown
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as JsonRecord
+    }
+  } catch {
+    return undefined
+  }
+  return undefined
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.filter(Boolean))]
+}
+
 function queryDuckDb<T extends JsonRecord>(
   dbPath: string,
   sql: string,
@@ -102,6 +123,15 @@ function queryDuckDb<T extends JsonRecord>(
   const output = String(result.stdout ?? '').trim()
   if (!output) return []
   return JSON.parse(output) as T[]
+}
+
+function relationExists(dbPath: string, relation: string): boolean {
+  try {
+    const rows = queryDuckDb<{ name?: string }>(dbPath, 'SHOW TABLES;')
+    return rows.some(row => asString(row.name) === relation)
+  } catch {
+    return false
+  }
 }
 
 async function readJson<T>(filePath: string): Promise<T> {
@@ -183,6 +213,7 @@ function buildReport(params: {
   tools: JsonRecord[]
   subagents: JsonRecord[]
   recoveries: JsonRecord[]
+  variantEffect: JsonRecord
   scores: EvalScore[]
 }): string {
   const {
@@ -194,6 +225,7 @@ function buildReport(params: {
     tools,
     subagents,
     recoveries,
+    variantEffect,
     scores,
   } = params
   const toolSummary =
@@ -220,6 +252,9 @@ function buildReport(params: {
         `- ${score.dimension}.${score.subdimension}: ${score.score_label} (${score.score_value ?? 'n/a'})`,
     )
     .join('\n')
+  const policySummary = variantEffect.observed_policy
+    ? JSON.stringify(variantEffect.observed_policy, null, 2)
+    : 'null'
 
   return `# V2 Run Report: ${run.run_id}
 
@@ -262,6 +297,21 @@ ${toolSummary}
 ## Subagents
 
 ${subagentSummary}
+
+## Variant Effect Evidence
+
+- effect_type: ${asString(variantEffect.effect_type) || 'unknown'}
+- policy_event_observed: ${asBoolean(variantEffect.policy_event_observed)}
+- variant_effect_observed: ${asBoolean(variantEffect.variant_effect_observed)}
+- session_memory_subagent_count: ${asNumber(variantEffect.session_memory_subagent_count)}
+- session_memory_trigger_details: ${(variantEffect.session_memory_trigger_details as string[] | undefined)?.join(', ') || 'none'}
+- reason: ${asString(variantEffect.reason) || 'n/a'}
+
+### Observed Policy
+
+\`\`\`json
+${policySummary}
+\`\`\`
 
 ## Scores
 
@@ -330,6 +380,50 @@ async function main(): Promise<void> {
     dbPath,
     `SELECT * FROM metrics_integrity_daily WHERE event_date = ${sqlString(asString(action.event_date))} LIMIT 1;`,
   )[0]
+  const sessionMemoryPolicyRow = relationExists(dbPath, 'events_raw')
+    ? queryDuckDb<JsonRecord>(
+        dbPath,
+        `SELECT ts_wall, query_source, payload_json FROM events_raw WHERE user_action_id = ${sqlString(userActionId)} AND event_name = 'session_memory.policy.observed' ORDER BY ts_wall DESC LIMIT 1;`,
+      )[0]
+    : undefined
+  const observedPolicy = parseJsonRecord(sessionMemoryPolicyRow?.payload_json)
+  const sessionMemorySubagentRows = subagents.filter(
+    subagent => asString(subagent.subagent_reason) === 'session_memory',
+  )
+  const sessionMemorySubagentCount = sessionMemorySubagentRows.reduce(
+    (sum, subagent) => sum + asNumber(subagent.subagent_count),
+    0,
+  )
+  const sessionMemoryTriggerDetails = uniqueStrings(
+    sessionMemorySubagentRows.map(subagent =>
+      asString(subagent.subagent_trigger_detail),
+    ),
+  )
+  const variantEffect: JsonRecord = {
+    effect_type: 'session_memory_policy',
+    policy_event_observed: observedPolicy !== undefined,
+    variant_effect_observed:
+      variant.variant_id === 'candidate_session_memory_sparse'
+        ? observedPolicy !== undefined &&
+          (asString(observedPolicy.mode) === 'sparse' ||
+            asBoolean(observedPolicy.natural_break_only))
+        : observedPolicy !== undefined,
+    observed_policy: observedPolicy ?? null,
+    observed_at: asString(sessionMemoryPolicyRow?.ts_wall),
+    observed_query_source: asString(sessionMemoryPolicyRow?.query_source),
+    session_memory_subagent_count: sessionMemorySubagentCount,
+    session_memory_trigger_details: sessionMemoryTriggerDetails,
+    reason:
+      observedPolicy !== undefined
+        ? variant.variant_id === 'candidate_session_memory_sparse' &&
+          !(
+            asString(observedPolicy.mode) === 'sparse' ||
+            asBoolean(observedPolicy.natural_break_only)
+          )
+          ? 'Session-memory policy was observed, but the candidate sparse policy markers were not present.'
+          : 'Session-memory runtime policy was observed from V1 events.'
+        : 'No session-memory policy observation event was found for this run.',
+  }
 
   const runId = sanitizeId(
     `run_${new Date().toISOString().replaceAll(':', '').replaceAll('.', '')}_${scenario.scenario_id}_${variant.variant_id}_${userActionId.slice(0, 8)}`,
@@ -369,6 +463,7 @@ async function main(): Promise<void> {
     tools,
     subagents,
     recoveries,
+    variantEffect,
   }, requestedScoreSpecIds)
 
   const runsDir = path.join(evalRoot, 'runs')
@@ -379,7 +474,7 @@ async function main(): Promise<void> {
 
   await writeFile(
     path.join(runsDir, `${runId}.json`),
-    `${JSON.stringify({ run, binding, scenario, variant, evidence: { action, rootQuery, tools, subagents, recoveries } }, null, 2)}\n`,
+    `${JSON.stringify({ run, binding, scenario, variant, evidence: { action, rootQuery, tools, subagents, recoveries }, variant_effect: variantEffect }, null, 2)}\n`,
   )
   await writeFile(
     path.join(scoresDir, `${runId}.scores.json`),
@@ -396,6 +491,7 @@ async function main(): Promise<void> {
       tools,
       subagents,
       recoveries,
+      variantEffect,
       scores,
     }),
   )

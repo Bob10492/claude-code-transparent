@@ -41,6 +41,8 @@ const scoreDirections = new Set([
 ])
 const automationLevels = new Set(['automatic', 'manual_review', 'mixed'])
 const experimentModes = new Set(['bind_existing', 'execute_harness'])
+const reportProfiles = new Set(['smoke', 'real_experiment'])
+const evaluationIntents = new Set(['regression', 'exploration'])
 
 interface ValidationContext {
   scenarioIds: Set<string>
@@ -93,6 +95,17 @@ function requireOptionalNumber(
   }
 }
 
+function requireOptionalString(
+  errors: string[],
+  objectName: string,
+  fieldName: string,
+  value: unknown,
+) {
+  if (value !== undefined && typeof value !== 'string') {
+    errors.push(`${objectName}.${fieldName} must be a string when present`)
+  }
+}
+
 function isFlatActionBinding(
   binding: EvalExperimentActionBinding,
 ): binding is EvalExperimentFlatActionBinding {
@@ -134,6 +147,10 @@ function validateScenario(filePath: string, scenario: EvalScenario): string[] {
   requireArray(errors, filePath, 'expected_tools', scenario.expected_tools)
   requireArray(errors, filePath, 'expected_skills', scenario.expected_skills)
   requireArray(errors, filePath, 'expected_constraints', scenario.expected_constraints)
+  if (scenario.expected_observations !== undefined) {
+    requireArray(errors, filePath, 'expected_observations', scenario.expected_observations)
+  }
+  requireOptionalString(errors, filePath, 'evaluation_note', scenario.evaluation_note)
   requireOptionalNumber(errors, filePath, 'max_turn_count', scenario.max_turn_count)
   requireOptionalNumber(
     errors,
@@ -224,6 +241,20 @@ function validateExperiment(
     !experimentModes.has(experiment.mode)
   ) {
     errors.push(`${filePath}.mode has invalid value: ${experiment.mode}`)
+  }
+  if (
+    experiment.report_profile !== undefined &&
+    !reportProfiles.has(experiment.report_profile)
+  ) {
+    errors.push(`${filePath}.report_profile has invalid value: ${experiment.report_profile}`)
+  }
+  if (
+    experiment.evaluation_intent !== undefined &&
+    !evaluationIntents.has(experiment.evaluation_intent)
+  ) {
+    errors.push(
+      `${filePath}.evaluation_intent has invalid value: ${experiment.evaluation_intent}`,
+    )
   }
   if (experiment.action_bindings !== undefined) {
     requireArray(errors, filePath, 'action_bindings', experiment.action_bindings)

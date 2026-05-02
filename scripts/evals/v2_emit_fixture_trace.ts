@@ -15,6 +15,13 @@ function requiredEnv(name: string): string {
   return value
 }
 
+function requiredContextEnv(primary: string, fallback?: string): string {
+  const direct = process.env[primary]
+  if (direct && direct.trim() !== '') return direct
+  if (fallback) return requiredEnv(fallback)
+  return requiredEnv(primary)
+}
+
 function sqlString(value: string): string {
   return `'${value.replaceAll("'", "''")}'`
 }
@@ -27,9 +34,18 @@ function writeFixtureDb(params: {
   endedAt: string
 }) {
   const benchmarkRunId = requiredEnv('CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID')
-  const experimentId = requiredEnv('CLAUDE_CODE_EVAL_EXPERIMENT_ID')
-  const scenarioId = requiredEnv('CLAUDE_CODE_EVAL_SCENARIO_ID')
-  const variantId = requiredEnv('CLAUDE_CODE_EVAL_VARIANT_ID')
+  const experimentId = requiredContextEnv(
+    'CLAUDE_CODE_EVAL_EXPERIMENT_LABEL',
+    'CLAUDE_CODE_EVAL_EXPERIMENT_ID',
+  )
+  const scenarioId = requiredContextEnv(
+    'CLAUDE_CODE_EVAL_SCENARIO_LABEL',
+    'CLAUDE_CODE_EVAL_SCENARIO_ID',
+  )
+  const variantId = requiredContextEnv(
+    'CLAUDE_CODE_EVAL_VARIANT_LABEL',
+    'CLAUDE_CODE_EVAL_VARIANT_ID',
+  )
   const evalRunId = requiredEnv('CLAUDE_CODE_EVAL_RUN_ID')
   const sql = [
     'CREATE TABLE IF NOT EXISTS user_actions(event_date VARCHAR, user_action_id VARCHAR, started_at VARCHAR, started_at_ms BIGINT, ended_at VARCHAR, ended_at_ms BIGINT, duration_ms BIGINT, event_count BIGINT, query_count BIGINT, main_thread_query_count BIGINT, subagent_query_count BIGINT, subagent_count BIGINT, tool_call_count BIGINT, experiment_id VARCHAR, scenario_id VARCHAR, variant_id VARCHAR, benchmark_run_id VARCHAR, eval_run_id VARCHAR, raw_input_tokens BIGINT, output_tokens BIGINT, cache_read_tokens BIGINT, cache_create_tokens BIGINT, total_prompt_input_tokens BIGINT, total_billed_tokens BIGINT, main_thread_total_prompt_input_tokens BIGINT, subagent_total_prompt_input_tokens BIGINT);',
@@ -66,8 +82,10 @@ async function main(): Promise<void> {
   const userActionId = randomUUID()
   const queryId = randomUUID()
   const fixtureDbPath = process.env.V2_FIXTURE_DB_PATH
-  if (process.env.V2_FIXTURE_FAIL_VARIANT === process.env.CLAUDE_CODE_EVAL_VARIANT_ID) {
-    throw new Error(`Fixture requested failure for variant ${process.env.CLAUDE_CODE_EVAL_VARIANT_ID}`)
+  const fixtureVariantId =
+    process.env.CLAUDE_CODE_EVAL_VARIANT_LABEL ?? process.env.CLAUDE_CODE_EVAL_VARIANT_ID
+  if (process.env.V2_FIXTURE_FAIL_VARIANT === fixtureVariantId) {
+    throw new Error(`Fixture requested failure for variant ${fixtureVariantId}`)
   }
   if (fixtureDbPath) {
     writeFixtureDb({
@@ -98,9 +116,18 @@ async function main(): Promise<void> {
     user_action_id: userActionId,
     query_id: queryId,
     query_source: 'repl_main_thread',
-    experiment_id: requiredEnv('CLAUDE_CODE_EVAL_EXPERIMENT_ID'),
-    scenario_id: requiredEnv('CLAUDE_CODE_EVAL_SCENARIO_ID'),
-    variant_id: requiredEnv('CLAUDE_CODE_EVAL_VARIANT_ID'),
+    experiment_id: requiredContextEnv(
+      'CLAUDE_CODE_EVAL_EXPERIMENT_LABEL',
+      'CLAUDE_CODE_EVAL_EXPERIMENT_ID',
+    ),
+    scenario_id: requiredContextEnv(
+      'CLAUDE_CODE_EVAL_SCENARIO_LABEL',
+      'CLAUDE_CODE_EVAL_SCENARIO_ID',
+    ),
+    variant_id: requiredContextEnv(
+      'CLAUDE_CODE_EVAL_VARIANT_LABEL',
+      'CLAUDE_CODE_EVAL_VARIANT_ID',
+    ),
     benchmark_run_id: requiredEnv('CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID'),
     eval_run_id: requiredEnv('CLAUDE_CODE_EVAL_RUN_ID'),
     cwd: repoRoot,
