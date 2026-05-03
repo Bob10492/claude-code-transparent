@@ -1,0 +1,32 @@
+{
+  "run_group_id": "group_v2_4_long_context_real_smoke_long_context_fact_retrieval_real_smoke_baseline_default_2026-05-03T145605757Z",
+  "experiment_id": "v2_4_long_context_real_smoke",
+  "scenario_id": "long_context_fact_retrieval_real_smoke",
+  "variant_id": "baseline_default",
+  "repeat_count": 1,
+  "run_ids": [
+    "run_2026-05-03T145624015Z_long_context_fact_retrieval_real_smoke_baseline_default_4015c73b"
+  ],
+  "status": "completed",
+  "started_at": "2026-05-03T14:56:10.802Z",
+  "ended_at": "2026-05-03T14:56:17.911Z",
+  "aggregate_summary_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_4_long_context_real_smoke_2026-05-03T145644822Z.md",
+  "stability_metrics": {
+    "repeat_success_rate": 1,
+    "capture_failure_rate": 0,
+    "total_billed_tokens_mean": 27189,
+    "total_billed_tokens_min": 27189,
+    "total_billed_tokens_max": 27189,
+    "total_billed_tokens_stddev": 0,
+    "e2e_duration_mean": 7109,
+    "e2e_duration_min": 7109,
+    "e2e_duration_max": 7109,
+    "e2e_duration_stddev": 0,
+    "tool_call_count_variance": 0,
+    "subagent_count_variance": 0,
+    "turn_count_variance": 0,
+    "recovery_rate": 0
+  },
+  "flaky_status": "inconclusive",
+  "failures": []
+}

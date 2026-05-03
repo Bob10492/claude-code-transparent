@@ -1,0 +1,12 @@
+{
+  "variant_id": "candidate_long_context_fixture_guarded",
+  "name": "Candidate Long Context Fixture Guarded",
+  "description": "V2.4 fixture-only candidate used to simulate better long-context governance in fixture_trace without claiming a real runtime product improvement.",
+  "change_layer": "harness",
+  "base_variant_id": "baseline_default",
+  "git_commit": "HEAD",
+  "env_overrides": {
+    "V2_FIXTURE_VARIANT_KIND": "long_context_guarded"
+  },
+  "notes": "Use only in fixture_trace long-context smoke. This variant is a deterministic simulation helper for V2.4."
+}

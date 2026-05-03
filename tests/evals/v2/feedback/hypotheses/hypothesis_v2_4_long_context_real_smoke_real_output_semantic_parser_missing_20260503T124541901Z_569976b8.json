@@ -1,0 +1,26 @@
+{
+  "hypothesis_id": "hypothesis_v2_4_long_context_real_smoke_real_output_semantic_parser_missing_20260503T124541901Z_569976b8",
+  "based_on_finding_ids": [
+    "finding_v2_4_long_context_real_smoke_constraint_retention_rate_missing_long_context_f_20260503T124541901Z_b497c06c",
+    "finding_v2_4_long_context_real_smoke_retrieved_fact_hit_rate_missing_long_context_fac_20260503T124541901Z_2f6593de"
+  ],
+  "depends_on_finding_refs": [
+    "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/long_context_summary/0/constraint_retention_rate_mean",
+    "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/long_context_summary/0/retrieved_fact_hit_rate_mean"
+  ],
+  "hypothesis": "The current real-smoke evaluator lacks a lightweight semantic output parser, so fact retrieval and constraint retention cannot yet be auto-judged from runtime outputs.",
+  "confidence": "medium",
+  "falsifiable_by": [
+    "Implement a lightweight real-smoke output parser and rerun long_context_fact_retrieval_real_smoke.",
+    "Verify retrieved_fact_hit_rate and constraint_retention_rate become non-null without inflating distractor_confusion_count."
+  ],
+  "supporting_evidence_refs": [
+    "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/long_context_summary/0/constraint_retention_rate_mean",
+    "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/long_context_summary/0/retrieved_fact_hit_rate_mean"
+  ],
+  "risks": [
+    "A parser that is too narrow can miss valid answers.",
+    "A parser that is too loose can create false positives."
+  ],
+  "fact_or_inference": "inference"
+}

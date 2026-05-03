@@ -12,6 +12,7 @@ export interface V2ScoreInput {
   subagents: JsonRecord[]
   recoveries: JsonRecord[]
   variantEffect?: JsonRecord
+  longContext?: JsonRecord
 }
 
 type V2ScoreScorer = (input: V2ScoreInput) => EvalScore
@@ -30,6 +31,45 @@ function scoreLabel(value: number): string {
   if (value >= 1) return 'pass'
   if (value > 0) return 'partial'
   return 'fail'
+}
+
+function longContextStringArray(evidence: JsonRecord | undefined, key: string): string[] {
+  const value = evidence?.[key]
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string' && item.length > 0)
+}
+
+function longContextNumber(evidence: JsonRecord | undefined, key: string): number | null {
+  if (!evidence || evidence[key] === undefined || evidence[key] === null) return null
+  return asNumber(evidence[key])
+}
+
+function ratio(numerator: number, denominator: number): number | null {
+  if (denominator <= 0) return null
+  return Number((numerator / denominator).toFixed(6))
+}
+
+function contextManualReviewScore(
+  params: Pick<V2ScoreInput, 'runId' | 'longContext' | 'scenario'>,
+): EvalScore {
+  const { runId, longContext, scenario } = params
+  const questions =
+    longContextStringArray(longContext, 'manual_review_questions').length > 0
+      ? longContextStringArray(longContext, 'manual_review_questions')
+      : scenario.manual_review_questions ?? []
+  return {
+    score_id: `${runId}_context_manual_review_required`,
+    run_id: runId,
+    dimension: 'context',
+    subdimension: 'manual_review_required',
+    score_value: questions.length > 0 ? 1 : 0,
+    score_label: questions.length > 0 ? 'manual_review_required' : 'not_applicable',
+    evidence_ref: 'long_context_evidence.manual_review_questions',
+    reason:
+      questions.length > 0
+        ? `Manual review remains required. Questions: ${questions.join(' | ')}`
+        : 'No manual review questions were configured for this run.',
+  }
 }
 
 export function scoreKey(score: EvalScore): string {
@@ -224,6 +264,167 @@ export const V2_SCORE_SCORERS: Record<string, V2ScoreScorer> = {
           : `subagent_count=${count}; budget=${limit}.`,
     }
   },
+
+  'context.retained_constraint_count': ({ runId, longContext }) => {
+    const retained = longContextStringArray(
+      longContext,
+      'observed_retained_constraints',
+    ).length
+    return {
+      score_id: `${runId}_context_retained_constraint_count`,
+      run_id: runId,
+      dimension: 'context',
+      subdimension: 'retained_constraint_count',
+      score_value: retained,
+      score_label: 'observed',
+      evidence_ref: 'long_context_evidence.observed_retained_constraints',
+      reason: `Observed ${retained} retained constraints from long-context evidence.`,
+    }
+  },
+
+  'context.lost_constraint_count': ({ runId, longContext }) => {
+    const lost = longContextStringArray(longContext, 'observed_lost_constraints').length
+    return {
+      score_id: `${runId}_context_lost_constraint_count`,
+      run_id: runId,
+      dimension: 'context',
+      subdimension: 'lost_constraint_count',
+      score_value: lost,
+      score_label: 'observed',
+      evidence_ref: 'long_context_evidence.observed_lost_constraints',
+      reason: `Observed ${lost} lost constraints from long-context evidence.`,
+    }
+  },
+
+  'context.constraint_retention_rate': ({ runId, longContext }) => {
+    const retained = longContextStringArray(
+      longContext,
+      'observed_retained_constraints',
+    ).length
+    const lost = longContextStringArray(longContext, 'observed_lost_constraints').length
+    const value = ratio(retained, retained + lost)
+    return {
+      score_id: `${runId}_context_constraint_retention_rate`,
+      run_id: runId,
+      dimension: 'context',
+      subdimension: 'constraint_retention_rate',
+      score_value: value,
+      score_label: value === null ? 'inconclusive' : scoreLabel(value),
+      evidence_ref: 'long_context_evidence.observed_retained_constraints',
+      reason:
+        value === null
+          ? 'No retained/lost constraint evidence was available.'
+          : `Constraint retention rate=${value} from retained=${retained}, lost=${lost}.`,
+    }
+  },
+
+  'context.retrieved_fact_hit_rate': ({ runId, longContext }) => {
+    const retrieved = longContextStringArray(longContext, 'observed_retrieved_facts').length
+    const missed = longContextStringArray(longContext, 'observed_missed_facts').length
+    const value = ratio(retrieved, retrieved + missed)
+    return {
+      score_id: `${runId}_context_retrieved_fact_hit_rate`,
+      run_id: runId,
+      dimension: 'context',
+      subdimension: 'retrieved_fact_hit_rate',
+      score_value: value,
+      score_label: value === null ? 'inconclusive' : scoreLabel(value),
+      evidence_ref: 'long_context_evidence.observed_retrieved_facts',
+      reason:
+        value === null
+          ? 'No retrieved/missed fact evidence was available.'
+          : `Retrieved fact hit rate=${value} from hits=${retrieved}, missed=${missed}.`,
+    }
+  },
+
+  'context.distractor_confusion_count': ({ runId, longContext }) => {
+    const confusions = longContextStringArray(longContext, 'observed_confusions').length
+    return {
+      score_id: `${runId}_context_distractor_confusion_count`,
+      run_id: runId,
+      dimension: 'context',
+      subdimension: 'distractor_confusion_count',
+      score_value: confusions,
+      score_label: 'observed',
+      evidence_ref: 'long_context_evidence.observed_confusions',
+      reason: `Observed ${confusions} distractor confusions from long-context evidence.`,
+    }
+  },
+
+  'context.total_prompt_input_tokens': ({ runId, action }) => ({
+    score_id: `${runId}_context_total_prompt_input_tokens`,
+    run_id: runId,
+    dimension: 'context',
+    subdimension: 'total_prompt_input_tokens',
+    score_value: asNumber(action.total_prompt_input_tokens),
+    score_label: 'observed',
+    evidence_ref: 'user_actions.total_prompt_input_tokens',
+    reason: 'Raw prompt-input cost fact from V1 user_actions.',
+  }),
+
+  'context.compaction_trigger_count': ({ runId, longContext }) => {
+    const count = longContextNumber(longContext, 'compaction_trigger_count')
+    return {
+      score_id: `${runId}_context_compaction_trigger_count`,
+      run_id: runId,
+      dimension: 'context',
+      subdimension: 'compaction_trigger_count',
+      score_value: count,
+      score_label: count === null ? 'inconclusive' : 'observed',
+      evidence_ref: 'long_context_evidence.compaction_trigger_count',
+      reason:
+        count === null
+          ? 'No compaction trigger evidence was available.'
+          : `Observed compaction_trigger_count=${count}.`,
+    }
+  },
+
+  'context.compaction_saved_tokens': ({ runId, longContext }) => {
+    const saved = longContextNumber(longContext, 'compaction_saved_tokens')
+    return {
+      score_id: `${runId}_context_compaction_saved_tokens`,
+      run_id: runId,
+      dimension: 'context',
+      subdimension: 'compaction_saved_tokens',
+      score_value: saved,
+      score_label: saved === null ? 'inconclusive' : 'observed',
+      evidence_ref: 'long_context_evidence.compaction_saved_tokens',
+      reason:
+        saved === null
+          ? 'No compaction saved-token evidence was available.'
+          : `Observed compaction_saved_tokens=${saved}.`,
+    }
+  },
+
+  'context.success_under_context_pressure': ({ runId, rootQuery, longContext }) => {
+    const explicit = longContextNumber(longContext, 'success_under_context_pressure')
+    const value =
+      explicit !== null ? explicit : rootQuery ? 1 : 0
+    return {
+      score_id: `${runId}_context_success_under_context_pressure`,
+      run_id: runId,
+      dimension: 'context',
+      subdimension: 'success_under_context_pressure',
+      score_value: value,
+      score_label: scoreLabel(value),
+      evidence_ref:
+        explicit !== null
+          ? 'long_context_evidence.success_under_context_pressure'
+          : 'queries',
+      reason:
+        explicit !== null
+          ? `Fixture/runtime evidence marked success_under_context_pressure=${explicit}.`
+          : rootQuery
+            ? 'Fallback success signal: root query exists.'
+            : 'No root query or explicit success-under-pressure evidence was found.',
+    }
+  },
+
+  'context.manual_review_required': ({ runId, longContext, scenario }) =>
+    contextManualReviewScore({ runId, longContext, scenario }),
+
+  'context.manual_quality_review_required': ({ runId, longContext, scenario }) =>
+    contextManualReviewScore({ runId, longContext, scenario }),
 }
 
 export function listImplementedScoreSpecIds(): string[] {

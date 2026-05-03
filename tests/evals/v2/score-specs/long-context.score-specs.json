@@ -1,0 +1,154 @@
+{
+  "score_specs": [
+    {
+      "score_spec_id": "context.retained_constraint_count",
+      "dimension": "context",
+      "subdimension": "retained_constraint_count",
+      "direction": "higher_is_better",
+      "formula": "count(long_context.observed_retained_constraints)",
+      "data_sources": ["V2 run.long_context", "fixture long-context evidence"],
+      "evidence_requirements": [
+        "run.long_context.observed_retained_constraints"
+      ],
+      "automation_level": "automatic",
+      "version": "v2.4"
+    },
+    {
+      "score_spec_id": "context.lost_constraint_count",
+      "dimension": "context",
+      "subdimension": "lost_constraint_count",
+      "direction": "lower_is_better",
+      "formula": "count(long_context.observed_lost_constraints)",
+      "data_sources": ["V2 run.long_context", "fixture long-context evidence"],
+      "evidence_requirements": [
+        "run.long_context.observed_lost_constraints"
+      ],
+      "automation_level": "automatic",
+      "thresholds": {
+        "max_allowed_value": 0
+      },
+      "version": "v2.4"
+    },
+    {
+      "score_spec_id": "context.constraint_retention_rate",
+      "dimension": "context",
+      "subdimension": "constraint_retention_rate",
+      "direction": "higher_is_better",
+      "formula": "retained_constraint_count / (retained_constraint_count + lost_constraint_count)",
+      "data_sources": ["V2 run.long_context"],
+      "evidence_requirements": [
+        "run.long_context.observed_retained_constraints",
+        "run.long_context.observed_lost_constraints"
+      ],
+      "automation_level": "automatic",
+      "thresholds": {
+        "min_allowed_value": 0.8
+      },
+      "version": "v2.4"
+    },
+    {
+      "score_spec_id": "context.retrieved_fact_hit_rate",
+      "dimension": "context",
+      "subdimension": "retrieved_fact_hit_rate",
+      "direction": "higher_is_better",
+      "formula": "retrieved_fact_count / (retrieved_fact_count + missed_fact_count)",
+      "data_sources": ["V2 run.long_context"],
+      "evidence_requirements": [
+        "run.long_context.observed_retrieved_facts",
+        "run.long_context.observed_missed_facts"
+      ],
+      "automation_level": "automatic",
+      "thresholds": {
+        "min_allowed_value": 0.8
+      },
+      "version": "v2.4"
+    },
+    {
+      "score_spec_id": "context.distractor_confusion_count",
+      "dimension": "context",
+      "subdimension": "distractor_confusion_count",
+      "direction": "lower_is_better",
+      "formula": "count(long_context.observed_confusions)",
+      "data_sources": ["V2 run.long_context"],
+      "evidence_requirements": [
+        "run.long_context.observed_confusions"
+      ],
+      "automation_level": "automatic",
+      "thresholds": {
+        "max_allowed_value": 0
+      },
+      "version": "v2.4"
+    },
+    {
+      "score_spec_id": "context.total_prompt_input_tokens",
+      "dimension": "context",
+      "subdimension": "total_prompt_input_tokens",
+      "direction": "lower_is_better",
+      "formula": "user_actions.total_prompt_input_tokens for the run entry action",
+      "data_sources": ["V1 user_actions", "V2 run.long_context"],
+      "evidence_requirements": [
+        "entry_user_action_id",
+        "user_actions.total_prompt_input_tokens"
+      ],
+      "automation_level": "automatic",
+      "version": "v2.4"
+    },
+    {
+      "score_spec_id": "context.compaction_trigger_count",
+      "dimension": "context",
+      "subdimension": "compaction_trigger_count",
+      "direction": "observed_only",
+      "formula": "count(messages.compact_boundary.applied + messages.microcompact.applied)",
+      "data_sources": ["V1 events_raw", "V2 run.long_context"],
+      "evidence_requirements": [
+        "events_raw.event_name",
+        "run.long_context.compaction_trigger_count"
+      ],
+      "automation_level": "automatic",
+      "version": "v2.4"
+    },
+    {
+      "score_spec_id": "context.compaction_saved_tokens",
+      "dimension": "context",
+      "subdimension": "compaction_saved_tokens",
+      "direction": "observed_only",
+      "formula": "sum(payload.tokens_saved) across compaction-related events",
+      "data_sources": ["V1 events_raw", "V2 run.long_context"],
+      "evidence_requirements": [
+        "events_raw.payload_json",
+        "run.long_context.compaction_saved_tokens"
+      ],
+      "automation_level": "automatic",
+      "version": "v2.4"
+    },
+    {
+      "score_spec_id": "context.success_under_context_pressure",
+      "dimension": "context",
+      "subdimension": "success_under_context_pressure",
+      "direction": "higher_is_better",
+      "formula": "1 if the long-context fixture/run indicates the task still succeeded under pressure, else 0",
+      "data_sources": ["V2 run.long_context"],
+      "evidence_requirements": [
+        "run.long_context.success_under_context_pressure"
+      ],
+      "automation_level": "automatic",
+      "version": "v2.4",
+      "notes": "Real smoke may leave this score inconclusive when final semantic correctness cannot be inferred automatically."
+    },
+    {
+      "score_spec_id": "context.manual_review_required",
+      "dimension": "context",
+      "subdimension": "manual_review_required",
+      "direction": "observed_only",
+      "formula": "1 when the scenario still requires human review prompts, else 0",
+      "data_sources": ["V2 scenario", "V2 run.long_context"],
+      "evidence_requirements": [
+        "scenario.manual_review_questions",
+        "run.long_context.manual_review_questions"
+      ],
+      "automation_level": "mixed",
+      "version": "v2.4",
+      "notes": "This is not a quality score. It explicitly preserves the human-review lane for long-context evaluation."
+    }
+  ]
+}

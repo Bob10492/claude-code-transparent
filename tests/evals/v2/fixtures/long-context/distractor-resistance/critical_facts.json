@@ -1,0 +1,12 @@
+{
+  "facts": [
+    {
+      "id": "fixture_candidate_guarded",
+      "description": "The fixture-only long-context candidate is candidate_long_context_fixture_guarded."
+    },
+    {
+      "id": "active_fixture_smoke_manifest",
+      "description": "The active long-context fixture smoke manifest is _experiment.long_context.fixture_smoke.json."
+    }
+  ]
+}

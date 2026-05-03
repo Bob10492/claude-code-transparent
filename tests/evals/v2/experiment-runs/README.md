@@ -5,7 +5,8 @@
 - This directory stores experiment-level JSON summaries.
 - V2.1 summaries are usually produced by `bind_existing`.
 - V2.2 summaries may be produced by `execute_harness`, or by `execute_harness` disabled and falling back to `bind_existing`.
-- The top-level schema is stable enough for regression checks and documentation.
+- V2.3 adds batch-oriented fields such as `run_group_refs`, `stability_summary`, and `flaky_scenarios`.
+- V2.4 may additionally include `long_context_review_verdict` and `long_context_summary`.
 
 ## Required Top-Level Fields
 
@@ -31,9 +32,31 @@
 | `scorecard_summary` | array | Baseline vs candidate score changes. |
 | `exploration_signals` | string[] | Automatic review hints. |
 | `recommended_review_mode` | string | Suggested review mode. |
-| `final_decision` | null or object | Human final decision; runner keeps it `null`. |
 | `errors` | string[] | Hard failures or blocking runner errors. |
 | `warnings` | string[] | Soft warnings, missing scores, or inconclusive signals. |
+
+## V2.3 Batch Fields
+
+Batch-oriented artifacts may include:
+
+- `run_group_refs`
+- `stability_summary`
+- `flaky_scenarios`
+- `run_failures`
+
+These fields describe repeat aggregation and robustness status.
+
+## V2.4 Long-Context Fields
+
+Long-context artifacts may include:
+
+- `long_context_review_verdict`
+- `long_context_summary`
+
+Meaning:
+
+- `long_context_review_verdict`: overall review posture for the long-context experiment, such as `needs_manual_review`
+- `long_context_summary`: aggregated retention, retrieval, distractor, compaction, and prompt-cost evidence by `scenario + candidate`
 
 ## Risk Verdict Shape
 
@@ -73,9 +96,14 @@ Newer artifacts include:
 }
 ```
 
-For actual V2.2 automatic runs, `results[*].baseline_execution` and `results[*].candidates[*].candidate_execution` contain the adapter result, capture result, `benchmark_run_id`, and `eval_run_id`.
+For actual V2.2+ automatic runs, `results[*].baseline_execution` and `results[*].candidates[*].candidate_execution` contain adapter result, capture result, `benchmark_run_id`, and `eval_run_id`.
 
-Newer beta artifacts also include `results[*].candidates[*].experiment_validity` and `results[*].candidates[*].variant_effect_summary` so smoke and real experiments are not interpreted the same way.
+Newer beta and later artifacts may also include:
+
+- `results[*].candidates[*].experiment_validity`
+- `results[*].candidates[*].variant_effect_summary`
+
+so smoke and real experiments are not interpreted the same way.
 
 ## Boundary
 

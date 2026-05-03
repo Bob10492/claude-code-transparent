@@ -1,0 +1,108 @@
+{
+  "scenario_id": "long_context_fact_retrieval",
+  "name": "Long Context Fact Retrieval",
+  "description": "Verify that the agent can retrieve key facts from a longer context packet and ignore stale routing notes.",
+  "input_prompt": "Read tests/evals/v2/fixtures/long-context/fact-retrieval/context_body.md. Do not modify files. Return exactly four bullet points covering the CLI entrypoint, the formal capture key, the experiment-summary directory, and the read-only constraint.",
+  "tags": ["long-context", "fact-retrieval", "v2.4"],
+  "expected_artifacts": ["final_answer"],
+  "expected_tools": ["Read"],
+  "expected_skills": [],
+  "expected_constraints": [
+    "Return exactly four bullet points",
+    "Keep the task read-only"
+  ],
+  "expected_facts": [
+    "cli_entrypoint_cli_tsx",
+    "capture_key_benchmark_run_id",
+    "experiment_summary_dir"
+  ],
+  "forbidden_confusions": [
+    "old_entrypoint_main_tsx",
+    "fake_capture_key_latest_action"
+  ],
+  "manual_review_questions": [
+    "Did the answer really name src/entrypoints/cli.tsx rather than an archived entrypoint?",
+    "Did the answer preserve the four-bullet constraint without extra prose?"
+  ],
+  "context_profile_ref": "tests/evals/v2/fixtures/long-context/fact-retrieval",
+  "long_context_profile": {
+    "context_family": "retrieval",
+    "context_size_class": "medium",
+    "fixture_ref": "tests/evals/v2/fixtures/long-context/fact-retrieval",
+    "expected_retained_constraints": [
+      "four_bullets_only",
+      "read_only_task"
+    ],
+    "expected_retrieved_facts": [
+      "cli_entrypoint_cli_tsx",
+      "capture_key_benchmark_run_id",
+      "experiment_summary_dir"
+    ],
+    "distractor_refs": [
+      "old_entrypoint_main_tsx",
+      "fake_capture_key_latest_action"
+    ],
+    "forbidden_confusions": [
+      "old_entrypoint_main_tsx",
+      "fake_capture_key_latest_action"
+    ],
+    "manual_review_questions": [
+      "Did the answer really name src/entrypoints/cli.tsx rather than an archived entrypoint?",
+      "Did the answer preserve the four-bullet constraint without extra prose?"
+    ]
+  },
+  "expectations": [
+    {
+      "expectation_id": "retain_four_bullets_only",
+      "expectation_type": "retained_constraint",
+      "expectation_body": {
+        "constraint_id": "four_bullets_only",
+        "description": "Return exactly four bullet points."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "retrieve_capture_key",
+      "expectation_type": "retrieved_fact",
+      "expectation_body": {
+        "fact_id": "capture_key_benchmark_run_id",
+        "description": "The formal capture key is benchmark_run_id."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "avoid_old_entrypoint",
+      "expectation_type": "forbidden_confusion",
+      "expectation_body": {
+        "confusion_id": "old_entrypoint_main_tsx",
+        "description": "Do not report src/main.tsx as the active CLI entrypoint."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "watch_context_budget_retrieval",
+      "expectation_type": "context_budget",
+      "expectation_body": {
+        "metric": "total_prompt_input_tokens",
+        "description": "Track whether fact retrieval cost stays interpretable."
+      },
+      "severity": "medium"
+    },
+    {
+      "expectation_id": "manual_check_fact_selection",
+      "expectation_type": "manual_review",
+      "expectation_body": {
+        "questions": [
+          "Did the answer really name src/entrypoints/cli.tsx rather than an archived entrypoint?",
+          "Did the answer preserve the four-bullet constraint without extra prose?"
+        ]
+      },
+      "severity": "medium"
+    }
+  ],
+  "max_turn_count": 8,
+  "max_total_billed_tokens": 180000,
+  "max_subagent_count": 2,
+  "owner": "local",
+  "status": "ready"
+}

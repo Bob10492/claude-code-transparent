@@ -1,0 +1,12 @@
+{
+  "facts": [
+    {
+      "id": "runner_entrypoint",
+      "description": "The main batch runner entrypoint is scripts/evals/v2_run_experiment.ts."
+    },
+    {
+      "id": "prompt_metric_total_prompt_input_tokens",
+      "description": "The preferred prompt-cost metric is total_prompt_input_tokens."
+    }
+  ]
+}

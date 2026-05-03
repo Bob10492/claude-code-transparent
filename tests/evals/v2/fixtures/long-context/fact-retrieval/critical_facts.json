@@ -1,0 +1,16 @@
+{
+  "facts": [
+    {
+      "id": "cli_entrypoint_cli_tsx",
+      "description": "The current headless CLI entrypoint is src/entrypoints/cli.tsx."
+    },
+    {
+      "id": "capture_key_benchmark_run_id",
+      "description": "The formal execute_harness capture key is benchmark_run_id."
+    },
+    {
+      "id": "experiment_summary_dir",
+      "description": "Experiment summaries are stored under tests/evals/v2/experiment-runs/."
+    }
+  ]
+}

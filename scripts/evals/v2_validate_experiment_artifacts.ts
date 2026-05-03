@@ -9,6 +9,12 @@ const gateStatuses = new Set(['pass', 'warning', 'fail', 'inconclusive'])
 const validityStatuses = new Set(['valid', 'invalid', 'inconclusive'])
 const reportProfiles = new Set(['smoke', 'real_experiment'])
 const evaluationIntents = new Set(['regression', 'exploration'])
+const longContextReviewVerdicts = new Set([
+  'pass',
+  'warning',
+  'needs_manual_review',
+  'invalid',
+])
 
 async function readJson(filePath: string): Promise<JsonRecord> {
   return JSON.parse(await readFile(filePath, 'utf8')) as JsonRecord
@@ -117,6 +123,18 @@ function validateArtifact(filePath: string, artifact: JsonRecord): string[] {
   }
   if (artifact.runtime_difference_summary !== undefined) {
     requireArray(errors, filePath, 'runtime_difference_summary', artifact.runtime_difference_summary)
+  }
+  if (
+    artifact.long_context_review_verdict !== undefined &&
+    artifact.long_context_review_verdict !== null &&
+    !longContextReviewVerdicts.has(String(artifact.long_context_review_verdict))
+  ) {
+    errors.push(
+      `${filePath}.long_context_review_verdict has invalid value: ${artifact.long_context_review_verdict}`,
+    )
+  }
+  if (artifact.long_context_summary !== undefined) {
+    requireArray(errors, filePath, 'long_context_summary', artifact.long_context_summary)
   }
   if (artifact.experiment_validity !== undefined) {
     requireObject(errors, filePath, 'experiment_validity', artifact.experiment_validity)

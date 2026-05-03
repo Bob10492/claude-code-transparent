@@ -1,0 +1,16 @@
+{
+  "finding_id": "finding_v2_5_long_context_real_smoke_expectation_contrac_missing_score_count_positive_20260503T154626054Z_797c63b8",
+  "source_experiment_id": "v2_5_long_context_real_smoke_expectation_contract_v0",
+  "source_report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md",
+  "finding_type": "missing_score_count_positive",
+  "finding_kind": "missing_score",
+  "severity": "warning",
+  "scope": "experiment",
+  "scope_ref": "v2_5_long_context_real_smoke_expectation_contract_v0",
+  "summary": "The experiment still has 1 missing score(s).",
+  "evidence_ref": "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/risk_verdict/missing_score_count",
+  "is_blocking": false,
+  "requires_manual_judgement": false,
+  "auto_resolvable": true,
+  "fact_or_inference": "fact"
+}

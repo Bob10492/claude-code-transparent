@@ -1,0 +1,47 @@
+{
+  "experiment_id": "v2_4_long_context_fixture_smoke",
+  "name": "V2.4 Long Context Fixture Smoke",
+  "goal": "Verify the V2.4 long-context scenario, fixture, scorer, and batch-report pipeline without model/API spend.",
+  "baseline_variant_id": "baseline_default",
+  "candidate_variant_ids": [
+    "candidate_long_context_fixture_guarded"
+  ],
+  "scenario_set_id": "v2_4_long_context_fixture",
+  "scenario_ids": [
+    "long_context_constraint_retention",
+    "long_context_fact_retrieval",
+    "long_context_distractor_resistance",
+    "long_context_compaction_pressure"
+  ],
+  "repeat_count": 2,
+  "score_spec_ids": [
+    "task_success.main_chain_observed",
+    "efficiency.total_billed_tokens",
+    "stability.recovery_absence",
+    "controllability.turn_limit_basic",
+    "context.retained_constraint_count",
+    "context.lost_constraint_count",
+    "context.constraint_retention_rate",
+    "context.retrieved_fact_hit_rate",
+    "context.distractor_confusion_count",
+    "context.total_prompt_input_tokens",
+    "context.compaction_trigger_count",
+    "context.compaction_saved_tokens",
+    "context.success_under_context_pressure",
+    "context.manual_review_required"
+  ],
+  "gate_policy_id": "default_v2_1_gate",
+  "mode": "execute_harness",
+  "report_profile": "smoke",
+  "evaluation_intent": "exploration",
+  "execution": {
+    "adapter": "fixture_trace",
+    "db_path": ".observability/v2-long-context-fixture-smoke.duckdb",
+    "timeout_ms": 30000,
+    "failure_policy": "continue_on_failure",
+    "env": {
+      "V2_FIXTURE_DB_PATH": ".observability/v2-long-context-fixture-smoke.duckdb"
+    }
+  },
+  "status": "ready"
+}

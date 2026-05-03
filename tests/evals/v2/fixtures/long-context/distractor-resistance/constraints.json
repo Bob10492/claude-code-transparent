@@ -1,0 +1,14 @@
+{
+  "constraints": [
+    {
+      "id": "prefer_current_v24_files",
+      "description": "Prefer current V2.4 files over archived smoke examples.",
+      "severity": "hard"
+    },
+    {
+      "id": "read_only_task",
+      "description": "Keep the answer read-only.",
+      "severity": "hard"
+    }
+  ]
+}

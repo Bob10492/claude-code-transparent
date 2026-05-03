@@ -1,0 +1,17 @@
+{
+  "hypothesis_id": "hypothesis_v2_4_long_context_real_smoke_manual_review_boundary_still_open_20260503T103210763Z_a207056a",
+  "based_on_finding_ids": [
+    "finding_v2_4_long_context_real_smoke_long_context_review_verdict_needs_manual_review_20260503T103210763Z_aaceea39",
+    "finding_v2_4_long_context_real_smoke_manual_review_required_long_context_fact_retriev_20260503T103210763Z_acb6cee2"
+  ],
+  "hypothesis": "The current long-context evaluation boundary is still partially manual because the system can observe structure and governance, but not fully resolve final semantic correctness in real smoke.",
+  "confidence": "high",
+  "supporting_evidence_refs": [
+    "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/long_context_review_verdict",
+    "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/long_context_summary/0/manual_review_required"
+  ],
+  "risks": [
+    "Treating manual review signals as auto-pass would overstate evaluator certainty."
+  ],
+  "fact_or_inference": "inference"
+}

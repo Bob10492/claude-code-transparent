@@ -1,0 +1,82 @@
+{
+  "feedback_run_id": "feedback_run_v2_5_long_context_real_smoke_expectation_contrac_beta_20260503T154626054Z_5ed1c19e",
+  "taxonomy_version": "v2_5_beta",
+  "generated_at": "2026-05-03T15:46:26.054Z",
+  "source_experiment_id": "v2_5_long_context_real_smoke_expectation_contract_v0",
+  "source_experiment_run_ref": "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json",
+  "source_report_refs": [
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T153208617Z_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_0b6a625e_vs_run_2026-05-03T153229620Z_long_context_fact_retrieval_real_smoke_contract_v0_candidate_session_memory_sparse_a3fb1e0d.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md"
+  ],
+  "finding_refs": [
+    "tests/evals/v2/feedback/findings/finding_v2_5_long_context_real_smoke_expectation_contrac_long_context_review_verdict_needs_manual_review_20260503T154626054Z_72a1d044.json",
+    "tests/evals/v2/feedback/findings/finding_v2_5_long_context_real_smoke_expectation_contrac_risk_verdict_inconclusive_20260503T154626054Z_7e7d8ae0.json",
+    "tests/evals/v2/feedback/findings/finding_v2_5_long_context_real_smoke_expectation_contrac_missing_score_count_positive_20260503T154626054Z_797c63b8.json",
+    "tests/evals/v2/feedback/findings/finding_v2_5_long_context_real_smoke_expectation_contrac_manual_review_required_long_context_fact_retriev_20260503T154626054Z_5550e925.json",
+    "tests/evals/v2/feedback/findings/finding_v2_5_long_context_real_smoke_expectation_contrac_flaky_status_long_context_fact_retrieval_real_sm_20260503T154626054Z_537428d4.json",
+    "tests/evals/v2/feedback/findings/finding_v2_5_long_context_real_smoke_expectation_contrac_flaky_status_long_context_fact_retrieval_real_sm_20260503T154626054Z_1e601052.json"
+  ],
+  "hypothesis_refs": [
+    "tests/evals/v2/feedback/hypotheses/hypothesis_v2_5_long_context_real_smoke_expectation_contrac_manual_review_boundary_persisted_after_contract__20260503T154626054Z_46855661.json",
+    "tests/evals/v2/feedback/hypotheses/hypothesis_v2_5_long_context_real_smoke_expectation_contrac_runner_or_scenario_instability_20260503T154626054Z_d615b243.json"
+  ],
+  "proposal_refs": [
+    "tests/evals/v2/feedback/proposals/proposal_v2_5_long_context_real_smoke_expectation_contrac_stabilize_feedback_input_contract_after_contract_20260503T154626054Z_75dd25e4.json",
+    "tests/evals/v2/feedback/proposals/proposal_v2_5_long_context_real_smoke_expectation_contrac_stabilize_feedback_input_contract_v0_20260503T154626054Z_0bb87bd6.json"
+  ],
+  "candidate_proposal_refs": [
+    "tests/evals/v2/feedback/candidate-proposals/candidate_proposal_v2_5_long_context_real_smoke_expectation_contrac_candidate_feedback_input_contract_after_contract_20260503T154626054Z_b4723ba2.json",
+    "tests/evals/v2/feedback/candidate-proposals/candidate_proposal_v2_5_long_context_real_smoke_expectation_contrac_candidate_feedback_input_contract_v0_20260503T154626054Z_9131c8e3.json"
+  ],
+  "next_experiment_plan_refs": [
+    "tests/evals/v2/feedback/experiment-plans/experiment_plan_v2_5_long_context_real_smoke_expectation_contrac_candidate_feedback_input_contract_after_contract_20260503T154626054Z_2002193a.json",
+    "tests/evals/v2/feedback/experiment-plans/experiment_plan_v2_5_long_context_real_smoke_expectation_contrac_candidate_feedback_input_contract_v0_20260503T154626054Z_7c0d5a2f.json"
+  ],
+  "proposal_queue": {
+    "top_recommendation_proposal_ref": "tests/evals/v2/feedback/proposals/proposal_v2_5_long_context_real_smoke_expectation_contrac_stabilize_feedback_input_contract_after_contract_20260503T154626054Z_75dd25e4.json",
+    "recommended_now_proposal_refs": [
+      "tests/evals/v2/feedback/proposals/proposal_v2_5_long_context_real_smoke_expectation_contrac_stabilize_feedback_input_contract_after_contract_20260503T154626054Z_75dd25e4.json"
+    ],
+    "recommended_later_proposal_refs": [],
+    "deferred_proposal_refs": [
+      "tests/evals/v2/feedback/proposals/proposal_v2_5_long_context_real_smoke_expectation_contrac_stabilize_feedback_input_contract_v0_20260503T154626054Z_0bb87bd6.json"
+    ],
+    "blocked_proposal_refs": []
+  },
+  "blocking_finding_refs": [],
+  "manual_judgement_required_finding_refs": [
+    "tests/evals/v2/feedback/findings/finding_v2_5_long_context_real_smoke_expectation_contrac_long_context_review_verdict_needs_manual_review_20260503T154626054Z_72a1d044.json",
+    "tests/evals/v2/feedback/findings/finding_v2_5_long_context_real_smoke_expectation_contrac_manual_review_required_long_context_fact_retriev_20260503T154626054Z_5550e925.json"
+  ],
+  "auto_resolvable_finding_refs": [
+    "tests/evals/v2/feedback/findings/finding_v2_5_long_context_real_smoke_expectation_contrac_risk_verdict_inconclusive_20260503T154626054Z_7e7d8ae0.json",
+    "tests/evals/v2/feedback/findings/finding_v2_5_long_context_real_smoke_expectation_contrac_missing_score_count_positive_20260503T154626054Z_797c63b8.json"
+  ],
+  "approval_card": {
+    "current_top_recommendation_proposal_ref": "tests/evals/v2/feedback/proposals/proposal_v2_5_long_context_real_smoke_expectation_contrac_stabilize_feedback_input_contract_after_contract_20260503T154626054Z_75dd25e4.json",
+    "why_now": "The current source experiment already uses expectation_contract_v0, so repeating the same contract proposal would be a feedback-loop error rather than a useful next action.",
+    "why_not_others_yet": [
+      "proposal_v2_5_long_context_real_smoke_expectation_contrac_stabilize_feedback_input_contract_v0_20260503T154626054Z_0bb87bd6: deferred - The current sample has a stronger semantic-evidence gap than a true contract-breakage gap, so this should remain deferred."
+    ],
+    "approval_scope": "Only feedback extraction rules, feedback taxonomy, and report/queue logic may change.",
+    "do_not_touch": [
+      "src/query.ts",
+      "src/services/SessionMemory/sessionMemory.ts",
+      "src/services/api/claude.ts"
+    ],
+    "next_experiment_plan_ref": "tests/evals/v2/feedback/experiment-plans/experiment_plan_v2_5_long_context_real_smoke_expectation_contrac_candidate_feedback_input_contract_after_contract_20260503T154626054Z_2002193a.json",
+    "success_criteria": [
+      "Feedback queue semantics become stable and easier to approve.",
+      "Top recommendation remains unique.",
+      "No new schema ambiguity appears in feedback artifacts."
+    ],
+    "risks": [
+      "Treating manual review signals as auto-pass would overstate evaluator certainty."
+    ],
+    "manual_review_boundary": "Do not treat manual_review_required or needs_manual_review as automatic pass. Any approved proposal must preserve explicit human review for nuanced semantic checks."
+  },
+  "report_ref": "ObservrityTask/10-系统版本/v2/07-反馈报告/feedback_run_v2_5_long_context_real_smoke_expectation_contrac_beta_20260503T154626054Z_5ed1c19e.md",
+  "human_approval_required": true,
+  "status": "completed"
+}

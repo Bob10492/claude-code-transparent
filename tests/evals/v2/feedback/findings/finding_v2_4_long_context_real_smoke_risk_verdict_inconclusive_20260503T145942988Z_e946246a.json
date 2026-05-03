@@ -1,0 +1,16 @@
+{
+  "finding_id": "finding_v2_4_long_context_real_smoke_risk_verdict_inconclusive_20260503T145942988Z_e946246a",
+  "source_experiment_id": "v2_4_long_context_real_smoke",
+  "source_report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_4_long_context_real_smoke_2026-05-03T145644822Z.md",
+  "finding_type": "risk_verdict_inconclusive",
+  "finding_kind": "missing_score",
+  "severity": "warning",
+  "scope": "experiment",
+  "scope_ref": "v2_4_long_context_real_smoke",
+  "summary": "The regression-risk verdict is inconclusive for this experiment.",
+  "evidence_ref": "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T145644822Z.json#/risk_verdict/status",
+  "is_blocking": false,
+  "requires_manual_judgement": false,
+  "auto_resolvable": true,
+  "fact_or_inference": "fact"
+}

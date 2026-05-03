@@ -1,0 +1,24 @@
+{
+  "hypothesis_id": "hypothesis_v2_4_long_context_real_smoke_gate_inconclusive_due_to_missing_semantic_scores_20260503T124541901Z_f3494c13",
+  "based_on_finding_ids": [
+    "finding_v2_4_long_context_real_smoke_risk_verdict_inconclusive_20260503T124541901Z_72968af2",
+    "finding_v2_4_long_context_real_smoke_missing_score_count_positive_20260503T124541901Z_70cd437b"
+  ],
+  "depends_on_finding_refs": [
+    "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/risk_verdict/status",
+    "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/risk_verdict/missing_score_count"
+  ],
+  "hypothesis": "The regression-risk gate is inconclusive mainly because semantic long-context scores are still missing, not because the runner failed to execute.",
+  "confidence": "medium",
+  "falsifiable_by": [
+    "After parser output is bound into context scores, rerun the same real smoke and confirm whether risk_verdict becomes more decisive without hiding uncertainty."
+  ],
+  "supporting_evidence_refs": [
+    "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/risk_verdict/status",
+    "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/risk_verdict/missing_score_count"
+  ],
+  "risks": [
+    "If missing semantic scores are ignored, risk gating may appear healthier than the evidence supports."
+  ],
+  "fact_or_inference": "inference"
+}

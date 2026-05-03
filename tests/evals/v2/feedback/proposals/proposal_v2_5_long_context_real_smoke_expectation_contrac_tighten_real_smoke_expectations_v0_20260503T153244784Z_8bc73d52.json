@@ -1,0 +1,27 @@
+{
+  "proposal_id": "proposal_v2_5_long_context_real_smoke_expectation_contrac_tighten_real_smoke_expectations_v0_20260503T153244784Z_8bc73d52",
+  "based_on_hypothesis_ids": [
+    "hypothesis_v2_5_long_context_real_smoke_expectation_contrac_manual_review_boundary_still_open_20260503T153244784Z_89789b5b"
+  ],
+  "based_on_finding_ids": [
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_long_context_review_verdict_needs_manual_review_20260503T153244784Z_ba0288de",
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_manual_review_required_long_context_fact_retriev_20260503T153244784Z_0bf6f7ad"
+  ],
+  "proposal_type": "scenario_improvement",
+  "target_layer": "scenario",
+  "priority": "P1",
+  "queue_bucket": "top_recommendation",
+  "description": "Tighten long-context real-smoke expected facts, constraints, and review questions so the evaluator has clearer semantic anchors without pretending to be fully automatic.",
+  "expected_effect": "Reduce avoidable manual-review ambiguity while preserving an explicit human-review boundary for nuanced outputs.",
+  "why_now": "Semantic parsing is now present, so the next bottleneck is the real-smoke expectation contract and review-prompt precision.",
+  "why_not_now": null,
+  "blocking_finding_ids": [],
+  "manual_judgement_finding_ids": [
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_long_context_review_verdict_needs_manual_review_20260503T153244784Z_ba0288de",
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_manual_review_required_long_context_fact_retriev_20260503T153244784Z_0bf6f7ad"
+  ],
+  "risks": [
+    "Treating manual review signals as auto-pass would overstate evaluator certainty."
+  ],
+  "requires_human_approval": true
+}

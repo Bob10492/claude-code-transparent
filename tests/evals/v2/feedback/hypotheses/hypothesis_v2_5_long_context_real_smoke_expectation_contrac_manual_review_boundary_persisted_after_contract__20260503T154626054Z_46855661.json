@@ -1,0 +1,25 @@
+{
+  "hypothesis_id": "hypothesis_v2_5_long_context_real_smoke_expectation_contrac_manual_review_boundary_persisted_after_contract__20260503T154626054Z_46855661",
+  "based_on_finding_ids": [
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_long_context_review_verdict_needs_manual_review_20260503T154626054Z_72a1d044",
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_manual_review_required_long_context_fact_retriev_20260503T154626054Z_5550e925"
+  ],
+  "depends_on_finding_refs": [
+    "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/long_context_review_verdict",
+    "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/long_context_summary/0/manual_review_required"
+  ],
+  "hypothesis": "The tightened expectation contract is already in place, but manual review still remains open. The next bottleneck is feedback-loop deduplication and proposal stability, not another copy of the same scenario-contract recommendation.",
+  "confidence": "high",
+  "falsifiable_by": [
+    "Re-run feedback on the same expectation-contract artifact and confirm the queue no longer repeats the same expectation-contract recommendation as top priority.",
+    "Verify the next top recommendation, if any, shifts to feedback-system stabilization rather than a duplicate scenario contract."
+  ],
+  "supporting_evidence_refs": [
+    "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/long_context_review_verdict",
+    "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/long_context_summary/0/manual_review_required"
+  ],
+  "risks": [
+    "Treating manual review signals as auto-pass would overstate evaluator certainty."
+  ],
+  "fact_or_inference": "inference"
+}

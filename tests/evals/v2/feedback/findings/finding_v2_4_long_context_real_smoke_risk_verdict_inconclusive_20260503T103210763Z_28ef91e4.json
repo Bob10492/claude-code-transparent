@@ -1,0 +1,10 @@
+{
+  "finding_id": "finding_v2_4_long_context_real_smoke_risk_verdict_inconclusive_20260503T103210763Z_28ef91e4",
+  "source_experiment_id": "v2_4_long_context_real_smoke",
+  "source_report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_4_long_context_real_smoke_2026-05-03T060617173Z.md",
+  "finding_type": "risk_verdict_inconclusive",
+  "severity": "medium",
+  "summary": "The regression-risk verdict is inconclusive for this experiment.",
+  "evidence_ref": "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/risk_verdict/status",
+  "fact_or_inference": "fact"
+}

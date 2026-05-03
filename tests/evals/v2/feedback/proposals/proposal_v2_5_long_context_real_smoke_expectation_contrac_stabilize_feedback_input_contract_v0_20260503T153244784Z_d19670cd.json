@@ -1,0 +1,24 @@
+{
+  "proposal_id": "proposal_v2_5_long_context_real_smoke_expectation_contrac_stabilize_feedback_input_contract_v0_20260503T153244784Z_d19670cd",
+  "based_on_hypothesis_ids": [
+    "hypothesis_v2_5_long_context_real_smoke_expectation_contrac_runner_or_scenario_instability_20260503T153244784Z_9de1252e"
+  ],
+  "based_on_finding_ids": [
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_flaky_status_long_context_fact_retrieval_real_sm_20260503T153244784Z_3b395438",
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_flaky_status_long_context_fact_retrieval_real_sm_20260503T153244784Z_22ead42f"
+  ],
+  "proposal_type": "feedback_contract_improvement",
+  "target_layer": "feedback_system",
+  "priority": "P2",
+  "queue_bucket": "deferred",
+  "description": "Stabilize the upstream scenario or feedback input contract before trusting automated feedback suggestions for this branch of evaluation.",
+  "expected_effect": "Reduce noisy or ambiguous inputs before turning feedback artifacts into concrete candidate work items.",
+  "why_now": "This keeps the feedback system honest when stability evidence is weak or under-sampled.",
+  "why_not_now": "The current sample has a stronger semantic-evidence gap than a true contract-breakage gap, so this should remain deferred.",
+  "blocking_finding_ids": [],
+  "manual_judgement_finding_ids": [],
+  "risks": [
+    "Pursuing harness changes before stabilizing the evaluator could hide platform issues behind candidate noise."
+  ],
+  "requires_human_approval": true
+}

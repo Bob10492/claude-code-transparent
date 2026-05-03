@@ -1,0 +1,9 @@
+{
+  "verification_id": "v2_4_long_context_2026-05-03T055334949Z",
+  "generated_at": "2026-05-03T05:53:34.959Z",
+  "passed": true,
+  "inspected_summary_ref": "tests\\evals\\v2\\experiment-runs\\v2_4_long_context_fixture_smoke_2026-05-03T054818236Z.json",
+  "batch_report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_4_long_context_fixture_smoke_2026-05-03T054818236Z.md",
+  "long_context_review_verdict": "needs_manual_review",
+  "scenario_row_count": 4
+}

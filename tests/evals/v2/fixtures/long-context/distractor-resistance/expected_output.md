@@ -1,0 +1,3 @@
+- Active candidate: `candidate_long_context_fixture_guarded`
+- Active manifest: `_experiment.long_context.fixture_smoke.json`
+- Ignore archived V2.3 helper variant and old execute_harness smoke

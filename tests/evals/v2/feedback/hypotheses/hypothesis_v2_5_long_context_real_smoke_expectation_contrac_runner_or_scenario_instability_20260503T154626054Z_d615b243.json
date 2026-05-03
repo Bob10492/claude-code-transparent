@@ -1,0 +1,24 @@
+{
+  "hypothesis_id": "hypothesis_v2_5_long_context_real_smoke_expectation_contrac_runner_or_scenario_instability_20260503T154626054Z_d615b243",
+  "based_on_finding_ids": [
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_flaky_status_long_context_fact_retrieval_real_sm_20260503T154626054Z_537428d4",
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_flaky_status_long_context_fact_retrieval_real_sm_20260503T154626054Z_1e601052"
+  ],
+  "depends_on_finding_refs": [
+    "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/stability_summary/0/flaky_status",
+    "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/stability_summary/1/flaky_status"
+  ],
+  "hypothesis": "Observed instability suggests that runner mechanics or scenario contracts still need tightening before higher-trust automated feedback can be used.",
+  "confidence": "medium",
+  "falsifiable_by": [
+    "Increase repeat_count for the real smoke input and inspect whether flaky_status remains inconclusive or converges to stable."
+  ],
+  "supporting_evidence_refs": [
+    "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/stability_summary/0/flaky_status",
+    "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/stability_summary/1/flaky_status"
+  ],
+  "risks": [
+    "Pursuing harness changes before stabilizing the evaluator could hide platform issues behind candidate noise."
+  ],
+  "fact_or_inference": "inference"
+}

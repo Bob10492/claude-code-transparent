@@ -1,0 +1,14 @@
+{
+  "constraints": [
+    {
+      "id": "four_bullets_only",
+      "description": "Return exactly four bullet points.",
+      "severity": "hard"
+    },
+    {
+      "id": "read_only_task",
+      "description": "Do not modify files.",
+      "severity": "hard"
+    }
+  ]
+}

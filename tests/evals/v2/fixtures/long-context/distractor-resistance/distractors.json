@@ -1,0 +1,12 @@
+{
+  "distractors": [
+    {
+      "id": "old_variant_fixture_shadow",
+      "description": "candidate_eval_fixture_shadow is not the V2.4 long-context candidate."
+    },
+    {
+      "id": "old_execute_harness_smoke_manifest",
+      "description": "_experiment.execute_harness.smoke.json is not the long-context fixture smoke manifest."
+    }
+  ]
+}

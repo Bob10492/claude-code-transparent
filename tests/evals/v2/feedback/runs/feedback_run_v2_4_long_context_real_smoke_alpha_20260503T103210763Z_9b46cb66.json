@@ -1,0 +1,48 @@
+{
+  "feedback_run_id": "feedback_run_v2_4_long_context_real_smoke_alpha_20260503T103210763Z_9b46cb66",
+  "generated_at": "2026-05-03T10:32:10.763Z",
+  "source_experiment_id": "v2_4_long_context_real_smoke",
+  "source_experiment_run_ref": "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json",
+  "source_report_refs": [
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T060601212Z_long_context_fact_retrieval_real_smoke_baseline_default_b963e6da_vs_run_2026-05-03T060616987Z_long_context_fact_retrieval_real_smoke_candidate_session_memory_sparse_96004ff8.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_4_long_context_real_smoke_2026-05-03T060617173Z.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_4_long_context_real_smoke_2026-05-03T060617173Z.md"
+  ],
+  "finding_refs": [
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_long_context_review_verdict_needs_manual_review_20260503T103210763Z_aaceea39.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_risk_verdict_inconclusive_20260503T103210763Z_28ef91e4.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_missing_score_count_positive_20260503T103210763Z_5d5767ae.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_constraint_retention_rate_missing_long_context_f_20260503T103210763Z_bd4fc15b.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_retrieved_fact_hit_rate_missing_long_context_fac_20260503T103210763Z_e7b6a006.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_manual_review_required_long_context_fact_retriev_20260503T103210763Z_acb6cee2.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_flaky_status_long_context_fact_retrieval_real_sm_20260503T103210763Z_f63fd723.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_flaky_status_long_context_fact_retrieval_real_sm_20260503T103210763Z_2086d4ae.json"
+  ],
+  "hypothesis_refs": [
+    "tests/evals/v2/feedback/hypotheses/hypothesis_v2_4_long_context_real_smoke_real_output_semantic_parser_missing_20260503T103210763Z_e3ed5d57.json",
+    "tests/evals/v2/feedback/hypotheses/hypothesis_v2_4_long_context_real_smoke_manual_review_boundary_still_open_20260503T103210763Z_a207056a.json",
+    "tests/evals/v2/feedback/hypotheses/hypothesis_v2_4_long_context_real_smoke_gate_inconclusive_due_to_missing_semantic_scores_20260503T103210763Z_ac3b840c.json",
+    "tests/evals/v2/feedback/hypotheses/hypothesis_v2_4_long_context_real_smoke_runner_or_scenario_instability_20260503T103210763Z_21239a93.json"
+  ],
+  "proposal_refs": [
+    "tests/evals/v2/feedback/proposals/proposal_v2_4_long_context_real_smoke_add_long_context_output_parser_v0_20260503T103210763Z_19602146.json",
+    "tests/evals/v2/feedback/proposals/proposal_v2_4_long_context_real_smoke_tighten_real_smoke_expectations_v0_20260503T103210763Z_d022ab84.json",
+    "tests/evals/v2/feedback/proposals/proposal_v2_4_long_context_real_smoke_map_parser_output_to_context_scores_v0_20260503T103210763Z_a7718488.json",
+    "tests/evals/v2/feedback/proposals/proposal_v2_4_long_context_real_smoke_stabilize_feedback_input_contract_v0_20260503T103210763Z_b0a56fb4.json"
+  ],
+  "candidate_proposal_refs": [
+    "tests/evals/v2/feedback/candidate-proposals/candidate_proposal_v2_4_long_context_real_smoke_candidate_long_context_output_parser_v0_20260503T103210763Z_c72924f7.json",
+    "tests/evals/v2/feedback/candidate-proposals/candidate_proposal_v2_4_long_context_real_smoke_candidate_long_context_expectation_contract_v0_20260503T103210763Z_7f0974ed.json",
+    "tests/evals/v2/feedback/candidate-proposals/candidate_proposal_v2_4_long_context_real_smoke_candidate_long_context_score_binding_v0_20260503T103210763Z_d3a111b9.json",
+    "tests/evals/v2/feedback/candidate-proposals/candidate_proposal_v2_4_long_context_real_smoke_candidate_feedback_input_contract_v0_20260503T103210763Z_2d4e45cb.json"
+  ],
+  "next_experiment_plan_refs": [
+    "tests/evals/v2/feedback/experiment-plans/experiment_plan_v2_4_long_context_real_smoke_candidate_long_context_output_parser_v0_20260503T103210763Z_4d4bb400.json",
+    "tests/evals/v2/feedback/experiment-plans/experiment_plan_v2_4_long_context_real_smoke_candidate_long_context_expectation_contract_v0_20260503T103210763Z_6f16a48e.json",
+    "tests/evals/v2/feedback/experiment-plans/experiment_plan_v2_4_long_context_real_smoke_candidate_long_context_score_binding_v0_20260503T103210763Z_f6ca0f37.json",
+    "tests/evals/v2/feedback/experiment-plans/experiment_plan_v2_4_long_context_real_smoke_candidate_feedback_input_contract_v0_20260503T103210763Z_d1610f7f.json"
+  ],
+  "report_ref": "ObservrityTask/10-系统版本/v2/07-反馈报告/feedback_run_v2_4_long_context_real_smoke_alpha_20260503T103210763Z_9b46cb66.md",
+  "human_approval_required": true,
+  "status": "completed"
+}

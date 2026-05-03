@@ -3,6 +3,8 @@ import { spawnSync } from 'node:child_process'
 import { appendFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
 
+import { buildLongContextFixtureEvidence } from './v2_harness_execution'
+
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const observabilityDir = path.join(repoRoot, '.observability')
 const duckdbExe = path.join(repoRoot, 'tools', 'duckdb', 'duckdb.exe')
@@ -32,6 +34,7 @@ function writeFixtureDb(params: {
   queryId: string
   startedAt: string
   endedAt: string
+  longContextFixture?: Awaited<ReturnType<typeof buildLongContextFixtureEvidence>>
 }) {
   const benchmarkRunId = requiredEnv('CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID')
   const experimentId = requiredContextEnv(
@@ -47,6 +50,12 @@ function writeFixtureDb(params: {
     'CLAUDE_CODE_EVAL_VARIANT_ID',
   )
   const evalRunId = requiredEnv('CLAUDE_CODE_EVAL_RUN_ID')
+  const tokenBase =
+    params.longContextFixture?.tokenBase ??
+    (variantId.includes('sparse') ? 100 : 110)
+  const turnCount = params.longContextFixture?.turnCount ?? 1
+  const subagentCount = params.longContextFixture?.subagentCount ?? 0
+  const toolCallCount = params.longContextFixture?.toolCallCount ?? 0
   const sql = [
     'CREATE TABLE IF NOT EXISTS user_actions(event_date VARCHAR, user_action_id VARCHAR, started_at VARCHAR, started_at_ms BIGINT, ended_at VARCHAR, ended_at_ms BIGINT, duration_ms BIGINT, event_count BIGINT, query_count BIGINT, main_thread_query_count BIGINT, subagent_query_count BIGINT, subagent_count BIGINT, tool_call_count BIGINT, experiment_id VARCHAR, scenario_id VARCHAR, variant_id VARCHAR, benchmark_run_id VARCHAR, eval_run_id VARCHAR, raw_input_tokens BIGINT, output_tokens BIGINT, cache_read_tokens BIGINT, cache_create_tokens BIGINT, total_prompt_input_tokens BIGINT, total_billed_tokens BIGINT, main_thread_total_prompt_input_tokens BIGINT, subagent_total_prompt_input_tokens BIGINT);',
     'CREATE TABLE IF NOT EXISTS queries(query_id VARCHAR, user_action_id VARCHAR, agent_name VARCHAR, started_at VARCHAR, turn_count BIGINT, terminal_reason VARCHAR);',
@@ -54,9 +63,25 @@ function writeFixtureDb(params: {
     'CREATE TABLE IF NOT EXISTS subagents(user_action_id VARCHAR, subagent_reason VARCHAR, subagent_trigger_kind VARCHAR, subagent_trigger_detail VARCHAR, duration_ms BIGINT);',
     'CREATE TABLE IF NOT EXISTS recoveries(user_action_id VARCHAR, event_name VARCHAR, ts_wall VARCHAR);',
     'CREATE TABLE IF NOT EXISTS metrics_integrity_daily(event_date VARCHAR, strict_query_completion_rate DOUBLE, strict_turn_state_closure_rate DOUBLE, tool_lifecycle_closure_rate DOUBLE, subagent_lifecycle_closure_rate DOUBLE);',
-    `INSERT INTO user_actions VALUES (${sqlString(params.startedAt.slice(0, 10))}, ${sqlString(params.userActionId)}, ${sqlString(params.startedAt)}, 0, ${sqlString(params.endedAt)}, 10, 10, 2, 1, 1, 0, 0, 0, ${sqlString(experimentId)}, ${sqlString(scenarioId)}, ${sqlString(variantId)}, ${sqlString(benchmarkRunId)}, ${sqlString(evalRunId)}, 100, 10, 0, 0, 100, 110, 100, 0);`,
-    `INSERT INTO queries VALUES (${sqlString(params.queryId)}, ${sqlString(params.userActionId)}, 'main_thread', ${sqlString(params.startedAt)}, 1, 'fixture_completed');`,
+    'CREATE TABLE IF NOT EXISTS events_raw(user_action_id VARCHAR, event_name VARCHAR, ts_wall VARCHAR, query_source VARCHAR, payload_json VARCHAR);',
+    'CREATE TABLE IF NOT EXISTS long_context_evidence(user_action_id VARCHAR, scenario_id VARCHAR, variant_id VARCHAR, payload_json VARCHAR);',
+    `INSERT INTO user_actions VALUES (${sqlString(params.startedAt.slice(0, 10))}, ${sqlString(params.userActionId)}, ${sqlString(params.startedAt)}, 0, ${sqlString(params.endedAt)}, 10, 10, 2, 1, 1, 0, ${subagentCount}, ${toolCallCount}, ${sqlString(experimentId)}, ${sqlString(scenarioId)}, ${sqlString(variantId)}, ${sqlString(benchmarkRunId)}, ${sqlString(evalRunId)}, ${tokenBase - 10}, 10, 0, 0, ${tokenBase - 10}, ${tokenBase}, ${tokenBase - 10}, 0);`,
+    `INSERT INTO queries VALUES (${sqlString(params.queryId)}, ${sqlString(params.userActionId)}, 'main_thread', ${sqlString(params.startedAt)}, ${turnCount}, 'fixture_completed');`,
     `INSERT INTO metrics_integrity_daily VALUES (${sqlString(params.startedAt.slice(0, 10))}, 1, 1, 1, 1);`,
+    ...Array.from({ length: toolCallCount }, (_, index) =>
+      `INSERT INTO tools VALUES (${sqlString(params.userActionId)}, ${sqlString(index === 0 ? 'Read' : 'Search')}, true, false);`,
+    ),
+    ...Array.from({ length: subagentCount }, () =>
+      `INSERT INTO subagents VALUES (${sqlString(params.userActionId)}, 'session_memory', 'context_pressure', ${sqlString(scenarioId)}, 12);`,
+    ),
+    ...((params.longContextFixture?.events ?? []).map((event, index) =>
+      `INSERT INTO events_raw VALUES (${sqlString(params.userActionId)}, ${sqlString(event.event_name)}, ${sqlString(new Date(new Date(params.startedAt).getTime() + index + 1).toISOString())}, 'main_thread', ${sqlString(JSON.stringify(event.payload))});`,
+    )),
+    ...(params.longContextFixture
+      ? [
+          `INSERT INTO long_context_evidence VALUES (${sqlString(params.userActionId)}, ${sqlString(scenarioId)}, ${sqlString(variantId)}, ${sqlString(JSON.stringify(params.longContextFixture.payload))});`,
+        ]
+      : []),
   ].join('\n')
   const result = spawnSync(duckdbExe, [params.dbPath, sql], {
     cwd: repoRoot,
@@ -84,16 +109,27 @@ async function main(): Promise<void> {
   const fixtureDbPath = process.env.V2_FIXTURE_DB_PATH
   const fixtureVariantId =
     process.env.CLAUDE_CODE_EVAL_VARIANT_LABEL ?? process.env.CLAUDE_CODE_EVAL_VARIANT_ID
+  const scenarioId =
+    process.env.CLAUDE_CODE_EVAL_SCENARIO_LABEL ?? process.env.CLAUDE_CODE_EVAL_SCENARIO_ID
   if (process.env.V2_FIXTURE_FAIL_VARIANT === fixtureVariantId) {
     throw new Error(`Fixture requested failure for variant ${fixtureVariantId}`)
   }
   if (fixtureDbPath) {
+    const longContextFixture =
+      scenarioId && fixtureVariantId
+        ? await buildLongContextFixtureEvidence({
+            scenarioId,
+            variantId: fixtureVariantId,
+            env: process.env as Record<string, string>,
+          })
+        : null
     writeFixtureDb({
       dbPath: fixtureDbPath,
       userActionId,
       queryId,
       startedAt: now.toISOString(),
       endedAt,
+      longContextFixture,
     })
     if (process.env.V2_FIXTURE_DUPLICATE_CAPTURE === '1') {
       writeFixtureDb({

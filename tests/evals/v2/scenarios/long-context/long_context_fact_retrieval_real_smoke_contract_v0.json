@@ -1,0 +1,126 @@
+{
+  "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+  "name": "Long Context Fact Retrieval Real Smoke Contract v0",
+  "description": "A tightened long-context real-smoke scenario that keeps the same factual task but narrows the final-answer contract and manual-review questions.",
+  "input_prompt": "You are inside the repository. This is a read-only long-context retrieval task. Do not modify files. Return exactly four bullet points and nothing else. Use the context packet below.\n\n[Context Packet Start]\n## Evaluation Workspace Brief\n\nThis is a read-only retrieval task inside the repository.\n\n### Hard Constraints\n\n1. Use exactly four bullet points in the final answer.\n2. Do not modify files.\n3. Do not add any heading, numbering, preface, epilogue, or commentary.\n4. Preserve the bullet order defined below.\n\n### Required Bullet Order\n\n- Bullet 1 must identify the active headless CLI entrypoint and include the exact literal `src/entrypoints/cli.tsx`.\n- Bullet 2 must identify the formal execute_harness capture key and include the exact literal `benchmark_run_id`.\n- Bullet 3 must identify the experiment-summary directory and include the exact literal `tests/evals/v2/experiment-runs/`.\n- Bullet 4 must restate the read-only rule and explicitly include the sentence `Do not modify files.`\n\n### Key Facts\n\n- The current headless CLI entrypoint is `src/entrypoints/cli.tsx`.\n- The formal capture key for execute_harness binding is `benchmark_run_id`.\n- Experiment summaries are stored under `tests/evals/v2/experiment-runs/`.\n\n### Supplemental Context\n\n- The runner can fall back to `bind_existing` when automation is disabled and the manifest allows it.\n- Batch reports are written as Markdown.\n\n### Legacy / Distractor Material\n\n- Older notes mention `src/main.tsx` as the CLI entrypoint.\n- A stale debugging note says \"just grab the latest user_action_id\".\n- Those two statements are intentionally outdated.\n[Context Packet End]",
+  "tags": [
+    "long-context",
+    "fact-retrieval",
+    "v2.5",
+    "real-smoke",
+    "expectation-contract"
+  ],
+  "expected_artifacts": [
+    "final_answer"
+  ],
+  "expected_tools": [],
+  "expected_skills": [],
+  "expected_constraints": [
+    "Return exactly four bullet points in the required order",
+    "Keep the task read-only and explicitly restate it in bullet 4",
+    "Do not add extra prose before or after the bullets"
+  ],
+  "expected_facts": [
+    "cli_entrypoint_cli_tsx",
+    "capture_key_benchmark_run_id",
+    "experiment_summary_dir"
+  ],
+  "forbidden_confusions": [
+    "old_entrypoint_main_tsx",
+    "fake_capture_key_latest_action"
+  ],
+  "manual_review_questions": [
+    "Did bullet 1 include the exact literal `src/entrypoints/cli.tsx` and avoid any archived or paraphrased entrypoint?",
+    "Did bullet 4 explicitly include the sentence `Do not modify files.` with no extra prose before the first bullet or after the fourth bullet?"
+  ],
+  "context_profile_ref": "tests/evals/v2/fixtures/long-context/fact-retrieval",
+  "long_context_profile": {
+    "context_family": "retrieval",
+    "context_size_class": "medium",
+    "fixture_ref": "tests/evals/v2/fixtures/long-context/fact-retrieval",
+    "expected_retained_constraints": [
+      "four_bullets_only",
+      "read_only_task"
+    ],
+    "expected_retrieved_facts": [
+      "cli_entrypoint_cli_tsx",
+      "capture_key_benchmark_run_id",
+      "experiment_summary_dir"
+    ],
+    "distractor_refs": [
+      "old_entrypoint_main_tsx",
+      "fake_capture_key_latest_action"
+    ],
+    "forbidden_confusions": [
+      "old_entrypoint_main_tsx",
+      "fake_capture_key_latest_action"
+    ],
+    "manual_review_questions": [
+      "Did bullet 1 include the exact literal `src/entrypoints/cli.tsx` and avoid any archived or paraphrased entrypoint?",
+      "Did bullet 4 explicitly include the sentence `Do not modify files.` with no extra prose before the first bullet or after the fourth bullet?"
+    ]
+  },
+  "expectations": [
+    {
+      "expectation_id": "retain_four_bullets_only_real_smoke_contract_v0",
+      "expectation_type": "retained_constraint",
+      "expectation_body": {
+        "constraint_id": "four_bullets_only",
+        "description": "Return exactly four bullet points in the required order."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "retain_read_only_constraint_real_smoke_contract_v0",
+      "expectation_type": "retained_constraint",
+      "expectation_body": {
+        "constraint_id": "read_only_task",
+        "description": "Explicitly restate the read-only rule in bullet 4."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "retrieve_capture_key_real_smoke_contract_v0",
+      "expectation_type": "retrieved_fact",
+      "expectation_body": {
+        "fact_id": "capture_key_benchmark_run_id",
+        "description": "The formal capture key is benchmark_run_id."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "avoid_old_entrypoint_real_smoke_contract_v0",
+      "expectation_type": "forbidden_confusion",
+      "expectation_body": {
+        "confusion_id": "old_entrypoint_main_tsx",
+        "description": "Do not report src/main.tsx as the active CLI entrypoint."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "watch_context_budget_retrieval_real_smoke_contract_v0",
+      "expectation_type": "context_budget",
+      "expectation_body": {
+        "metric": "total_prompt_input_tokens",
+        "description": "Track whether fact retrieval cost stays interpretable under the tightened answer contract."
+      },
+      "severity": "medium"
+    },
+    {
+      "expectation_id": "manual_check_contract_precision_real_smoke_contract_v0",
+      "expectation_type": "manual_review",
+      "expectation_body": {
+        "questions": [
+          "Did bullet 1 include the exact literal `src/entrypoints/cli.tsx` and avoid any archived or paraphrased entrypoint?",
+          "Did bullet 4 explicitly include the sentence `Do not modify files.` with no extra prose before the first bullet or after the fourth bullet?"
+        ]
+      },
+      "severity": "medium"
+    }
+  ],
+  "max_turn_count": 6,
+  "max_total_billed_tokens": 180000,
+  "max_subagent_count": 2,
+  "owner": "local",
+  "status": "ready"
+}

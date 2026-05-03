@@ -1,0 +1,27 @@
+{
+  "proposal_id": "proposal_v2_5_long_context_real_smoke_expectation_contrac_stabilize_feedback_input_contract_after_contract_20260503T154626054Z_75dd25e4",
+  "based_on_hypothesis_ids": [
+    "hypothesis_v2_5_long_context_real_smoke_expectation_contrac_manual_review_boundary_persisted_after_contract__20260503T154626054Z_46855661"
+  ],
+  "based_on_finding_ids": [
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_long_context_review_verdict_needs_manual_review_20260503T154626054Z_72a1d044",
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_manual_review_required_long_context_fact_retriev_20260503T154626054Z_5550e925"
+  ],
+  "proposal_type": "feedback_contract_improvement",
+  "target_layer": "feedback_system",
+  "priority": "P1",
+  "queue_bucket": "top_recommendation",
+  "description": "Stabilize the feedback input contract so an already-realized expectation-contract follow-up is detected and not re-recommended as the next top proposal.",
+  "expected_effect": "Prevent proposal-loop duplication and keep approval cards aligned with the true next unresolved bottleneck.",
+  "why_now": "The current source experiment already uses expectation_contract_v0, so repeating the same contract proposal would be a feedback-loop error rather than a useful next action.",
+  "why_not_now": null,
+  "blocking_finding_ids": [],
+  "manual_judgement_finding_ids": [
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_long_context_review_verdict_needs_manual_review_20260503T154626054Z_72a1d044",
+    "finding_v2_5_long_context_real_smoke_expectation_contrac_manual_review_required_long_context_fact_retriev_20260503T154626054Z_5550e925"
+  ],
+  "risks": [
+    "Treating manual review signals as auto-pass would overstate evaluator certainty."
+  ],
+  "requires_human_approval": true
+}

@@ -1,0 +1,106 @@
+{
+  "scenario_id": "long_context_distractor_resistance",
+  "name": "Long Context Distractor Resistance",
+  "description": "Verify that the agent resists stale but plausible-looking V2.3 artifacts when summarizing the current V2.4 fixture setup.",
+  "input_prompt": "Read tests/evals/v2/fixtures/long-context/distractor-resistance/context_body.md. Do not modify files. Summarize the active V2.4 fixture candidate and manifest while explicitly avoiding archived V2.3 helper references.",
+  "tags": ["long-context", "distractor-resistance", "v2.4"],
+  "expected_artifacts": ["final_answer"],
+  "expected_tools": ["Read"],
+  "expected_skills": [],
+  "expected_constraints": [
+    "Prefer current V2.4 files over archived helpers",
+    "Keep the answer read-only"
+  ],
+  "expected_facts": [
+    "fixture_candidate_guarded",
+    "active_fixture_smoke_manifest"
+  ],
+  "forbidden_confusions": [
+    "old_variant_fixture_shadow",
+    "old_execute_harness_smoke_manifest"
+  ],
+  "manual_review_questions": [
+    "Did the answer clearly distinguish the V2.4 candidate from the V2.3 fixture helper?",
+    "Did the answer avoid treating the old execute_harness smoke as the long-context manifest?"
+  ],
+  "context_profile_ref": "tests/evals/v2/fixtures/long-context/distractor-resistance",
+  "long_context_profile": {
+    "context_family": "distractor_resistance",
+    "context_size_class": "medium",
+    "fixture_ref": "tests/evals/v2/fixtures/long-context/distractor-resistance",
+    "expected_retained_constraints": [
+      "prefer_current_v24_files",
+      "read_only_task"
+    ],
+    "expected_retrieved_facts": [
+      "fixture_candidate_guarded",
+      "active_fixture_smoke_manifest"
+    ],
+    "distractor_refs": [
+      "old_variant_fixture_shadow",
+      "old_execute_harness_smoke_manifest"
+    ],
+    "forbidden_confusions": [
+      "old_variant_fixture_shadow",
+      "old_execute_harness_smoke_manifest"
+    ],
+    "manual_review_questions": [
+      "Did the answer clearly distinguish the V2.4 candidate from the V2.3 fixture helper?",
+      "Did the answer avoid treating the old execute_harness smoke as the long-context manifest?"
+    ]
+  },
+  "expectations": [
+    {
+      "expectation_id": "retain_prefer_current_files",
+      "expectation_type": "retained_constraint",
+      "expectation_body": {
+        "constraint_id": "prefer_current_v24_files",
+        "description": "Prefer current V2.4 files over archived helpers."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "retrieve_fixture_candidate",
+      "expectation_type": "retrieved_fact",
+      "expectation_body": {
+        "fact_id": "fixture_candidate_guarded",
+        "description": "The active V2.4 fixture candidate is candidate_long_context_fixture_guarded."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "avoid_fixture_shadow_confusion",
+      "expectation_type": "forbidden_confusion",
+      "expectation_body": {
+        "confusion_id": "old_variant_fixture_shadow",
+        "description": "Do not treat candidate_eval_fixture_shadow as the V2.4 long-context candidate."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "watch_context_budget_distractors",
+      "expectation_type": "context_budget",
+      "expectation_body": {
+        "metric": "distractor_confusion_count",
+        "description": "Observe whether distractor pressure alters the answer path."
+      },
+      "severity": "medium"
+    },
+    {
+      "expectation_id": "manual_check_archived_references",
+      "expectation_type": "manual_review",
+      "expectation_body": {
+        "questions": [
+          "Did the answer clearly distinguish the V2.4 candidate from the V2.3 fixture helper?",
+          "Did the answer avoid treating the old execute_harness smoke as the long-context manifest?"
+        ]
+      },
+      "severity": "medium"
+    }
+  ],
+  "max_turn_count": 8,
+  "max_total_billed_tokens": 180000,
+  "max_subagent_count": 2,
+  "owner": "local",
+  "status": "ready"
+}

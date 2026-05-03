@@ -1,0 +1,12 @@
+{
+  "distractors": [
+    {
+      "id": "fake_event_context_shrink",
+      "description": "messages.context_shrink.applied is a false archived event name."
+    },
+    {
+      "id": "fake_score_cache_prune_count",
+      "description": "context.cache_prune_count is a fake score spec."
+    }
+  ]
+}

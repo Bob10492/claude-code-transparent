@@ -1,0 +1,12 @@
+{
+  "distractors": [
+    {
+      "id": "old_markdown_output_rule",
+      "description": "Archived notes once asked for Markdown output."
+    },
+    {
+      "id": "wrong_metric_cache_create_tokens",
+      "description": "Archived notes emphasize cache_create_tokens as the main prompt metric."
+    }
+  ]
+}

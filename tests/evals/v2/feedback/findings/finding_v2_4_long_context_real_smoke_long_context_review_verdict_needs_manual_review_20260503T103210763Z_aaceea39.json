@@ -1,0 +1,10 @@
+{
+  "finding_id": "finding_v2_4_long_context_real_smoke_long_context_review_verdict_needs_manual_review_20260503T103210763Z_aaceea39",
+  "source_experiment_id": "v2_4_long_context_real_smoke",
+  "source_report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_4_long_context_real_smoke_2026-05-03T060617173Z.md",
+  "finding_type": "long_context_review_verdict_needs_manual_review",
+  "severity": "medium",
+  "summary": "The experiment-level long_context_review_verdict remains needs_manual_review.",
+  "evidence_ref": "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/long_context_review_verdict",
+  "fact_or_inference": "fact"
+}

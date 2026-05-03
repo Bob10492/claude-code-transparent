@@ -1,0 +1,19 @@
+{
+  "constraints": [
+    {
+      "id": "json_output_only",
+      "description": "The final answer must be valid JSON.",
+      "severity": "hard"
+    },
+    {
+      "id": "owner_field_required",
+      "description": "The JSON must include owner=v2-platform.",
+      "severity": "hard"
+    },
+    {
+      "id": "read_only_task",
+      "description": "Do not modify files or suggest edits.",
+      "severity": "hard"
+    }
+  ]
+}

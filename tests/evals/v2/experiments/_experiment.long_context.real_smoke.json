@@ -1,0 +1,44 @@
+{
+  "experiment_id": "v2_4_long_context_real_smoke",
+  "name": "V2.4 Long Context Real Smoke",
+  "goal": "Run one small real-model long-context scenario to confirm that execute_harness can produce interpretable cost, compaction, and manual-review evidence.",
+  "baseline_variant_id": "baseline_default",
+  "candidate_variant_ids": [
+    "candidate_session_memory_sparse"
+  ],
+  "scenario_set_id": "v2_4_long_context_real",
+  "scenario_ids": [
+    "long_context_fact_retrieval_real_smoke"
+  ],
+  "repeat_count": 1,
+  "score_spec_ids": [
+    "task_success.main_chain_observed",
+    "efficiency.total_billed_tokens",
+    "decision_quality.session_memory_policy_observed",
+    "stability.recovery_absence",
+    "controllability.turn_limit_basic",
+    "context.retained_constraint_count",
+    "context.lost_constraint_count",
+    "context.constraint_retention_rate",
+    "context.retrieved_fact_hit_rate",
+    "context.distractor_confusion_count",
+    "context.total_prompt_input_tokens",
+    "context.compaction_trigger_count",
+    "context.compaction_saved_tokens",
+    "context.success_under_context_pressure",
+    "context.manual_review_required"
+  ],
+  "gate_policy_id": "default_v2_1_gate",
+  "mode": "execute_harness",
+  "report_profile": "real_experiment",
+  "evaluation_intent": "exploration",
+  "execution": {
+    "adapter": "cli_print",
+    "db_path": ".observability/v2-long-context-real-smoke.duckdb",
+    "timeout_ms": 120000,
+    "max_turns": 6,
+    "failure_policy": "fail_fast",
+    "allow_fallback_to_bind_existing": true
+  },
+  "status": "ready"
+}

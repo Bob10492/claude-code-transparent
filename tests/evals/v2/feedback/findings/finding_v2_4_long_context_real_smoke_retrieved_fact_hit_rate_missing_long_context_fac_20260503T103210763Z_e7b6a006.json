@@ -1,0 +1,10 @@
+{
+  "finding_id": "finding_v2_4_long_context_real_smoke_retrieved_fact_hit_rate_missing_long_context_fac_20260503T103210763Z_e7b6a006",
+  "source_experiment_id": "v2_4_long_context_real_smoke",
+  "source_report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_4_long_context_real_smoke_2026-05-03T060617173Z.md",
+  "finding_type": "retrieved_fact_hit_rate_missing_long_context_fact_retrieval_real_smoke",
+  "severity": "medium",
+  "summary": "retrieved_fact_hit_rate_mean is null for long_context_fact_retrieval_real_smoke.",
+  "evidence_ref": "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/long_context_summary/0/retrieved_fact_hit_rate_mean",
+  "fact_or_inference": "fact"
+}

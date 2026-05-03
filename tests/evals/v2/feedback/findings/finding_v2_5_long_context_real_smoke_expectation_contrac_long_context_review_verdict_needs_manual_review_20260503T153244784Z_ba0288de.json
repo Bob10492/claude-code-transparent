@@ -1,0 +1,16 @@
+{
+  "finding_id": "finding_v2_5_long_context_real_smoke_expectation_contrac_long_context_review_verdict_needs_manual_review_20260503T153244784Z_ba0288de",
+  "source_experiment_id": "v2_5_long_context_real_smoke_expectation_contract_v0",
+  "source_report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md",
+  "finding_type": "long_context_review_verdict_needs_manual_review",
+  "finding_kind": "manual_review_boundary",
+  "severity": "warning",
+  "scope": "experiment",
+  "scope_ref": "v2_5_long_context_real_smoke_expectation_contract_v0",
+  "summary": "The experiment-level long_context_review_verdict remains needs_manual_review.",
+  "evidence_ref": "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/long_context_review_verdict",
+  "is_blocking": false,
+  "requires_manual_judgement": true,
+  "auto_resolvable": false,
+  "fact_or_inference": "fact"
+}

@@ -1,0 +1,21 @@
+{
+  "next_experiment_plan_id": "experiment_plan_v2_4_long_context_real_smoke_candidate_long_context_output_parser_v0_20260503T103210763Z_4d4bb400",
+  "based_on_proposal_id": "proposal_v2_4_long_context_real_smoke_add_long_context_output_parser_v0_20260503T103210763Z_19602146",
+  "scenario_ids": [
+    "long_context_fact_retrieval_real_smoke"
+  ],
+  "baseline_variant_id": "baseline_default",
+  "candidate_variant_id": "candidate_long_context_output_parser_v0",
+  "repeat_count": 2,
+  "success_criteria": [
+    "retrieved_fact_hit_rate is no longer null for real smoke.",
+    "constraint_retention_rate is no longer null for real smoke.",
+    "manual_review_required does not increase.",
+    "distractor_confusion_count remains 0."
+  ],
+  "failure_criteria": [
+    "Parser introduces false positives against distractor-resistant scenarios.",
+    "Manual review requirement increases or semantic scores become contradictory."
+  ],
+  "manual_review_required": true
+}

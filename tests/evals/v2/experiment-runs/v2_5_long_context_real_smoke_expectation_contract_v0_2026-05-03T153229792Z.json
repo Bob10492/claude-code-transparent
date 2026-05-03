@@ -1,0 +1,842 @@
+{
+  "experiment_id": "v2_5_long_context_real_smoke_expectation_contract_v0",
+  "manifest_ref": "tests\\evals\\v2\\experiments\\_experiment.long_context.real_smoke.expectation_contract_v0.json",
+  "generated_at": "2026-05-03T15:32:29.794Z",
+  "mode": "execute_harness",
+  "requested_mode": "execute_harness",
+  "automation_disabled": false,
+  "report_profile": "real_experiment",
+  "evaluation_intent": "exploration",
+  "run_refs": [
+    "tests\\evals\\v2\\runs\\run_2026-05-03T153208617Z_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_0b6a625e.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T153229620Z_long_context_fact_retrieval_real_smoke_contract_v0_candidate_session_memory_sparse_a3fb1e0d.json"
+  ],
+  "run_group_refs": [
+    "tests\\evals\\v2\\run-groups\\group_v2_5_long_context_real_smoke_expectation_contract_v0_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_2026-05-03T153143608Z.json",
+    "tests\\evals\\v2\\run-groups\\group_v2_5_long_context_real_smoke_expectation_contract_v0_long_context_fact_retrieval_real_smoke_contract_v0_candidate_session_memory_sparse_2026-05-03T1531436.json"
+  ],
+  "score_refs": [
+    "tests\\evals\\v2\\scores\\run_2026-05-03T153208617Z_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_0b6a625e.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T153229620Z_long_context_fact_retrieval_real_smoke_contract_v0_candidate_session_memory_sparse_a3fb1e0d.scores.json"
+  ],
+  "report_refs": [
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T153208617Z_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_0b6a625e_vs_run_2026-05-03T153229620Z_long_context_fact_retrieval_real_smoke_contract_v0_candidate_session_memory_sparse_a3fb1e0d.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md"
+  ],
+  "risk_verdict": {
+    "status": "inconclusive",
+    "scope": "regression_risk_only",
+    "is_final_experiment_judgment": false,
+    "hard_fail_count": 0,
+    "soft_warning_count": 0,
+    "missing_score_count": 1,
+    "inconclusive_count": 0,
+    "candidate_count": 1,
+    "notes": "This verdict is only a regression-risk gate result. It is not a final judgment about model intelligence, harness value, or exploratory potential."
+  },
+  "gate_verdict": {
+    "status": "inconclusive",
+    "scope": "regression_risk_only",
+    "is_final_experiment_judgment": false,
+    "hard_fail_count": 0,
+    "soft_warning_count": 0,
+    "missing_score_count": 1,
+    "inconclusive_count": 0,
+    "candidate_count": 1,
+    "notes": "This verdict is only a regression-risk gate result. It is not a final judgment about model intelligence, harness value, or exploratory potential."
+  },
+  "experiment_validity": {
+    "status": "valid",
+    "profile": "real_experiment",
+    "reason": "Real experiment remains interpretable.",
+    "blockers": [],
+    "warnings": [],
+    "checks": {
+      "baseline_captured": true,
+      "candidate_captured": true,
+      "no_ambiguous_capture": true,
+      "score_evidence_present": true,
+      "variant_effect_observed": true,
+      "runtime_difference_observed": true,
+      "scenario_intent_matched": true
+    }
+  },
+  "long_context_review_verdict": "needs_manual_review",
+  "long_context_summary": [
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "repeat_count": 1,
+      "context_family": "retrieval",
+      "context_size_class": "medium",
+      "retained_constraint_mean": 2,
+      "lost_constraint_mean": 0,
+      "constraint_retention_rate_mean": 1,
+      "retrieved_fact_mean": 3,
+      "missed_fact_mean": 0,
+      "retrieved_fact_hit_rate_mean": 1,
+      "distractor_confusion_mean": 0,
+      "compaction_trigger_mean": 4,
+      "compaction_saved_tokens_mean": 0,
+      "tool_result_budget_trigger_mean": 2,
+      "total_prompt_input_tokens_mean": 27007,
+      "prompt_token_delta_mean": 0,
+      "success_under_context_pressure_rate": null,
+      "manual_review_required": true,
+      "manual_review_questions": [
+        "Did bullet 1 include the exact literal `src/entrypoints/cli.tsx` and avoid any archived or paraphrased entrypoint?",
+        "Did bullet 4 explicitly include the sentence `Do not modify files.` with no extra prose before the first bullet or after the fourth bullet?"
+      ],
+      "interpretation": [
+        "Observed constraint retention remained at 100.0%.",
+        "Observed fact retrieval hit rate is 100.0%.",
+        "No distractor confusion was observed in the current evidence window.",
+        "Compaction/tool-result governance was active with mean compaction trigger count 4.000 and mean saved tokens 0.",
+        "Relative to baseline, candidate prompt-token delta mean is 0.000.",
+        "Manual review remains open for 2 question(s)."
+      ]
+    }
+  ],
+  "variant_effect_summary": [
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "baseline_variant_effect_observed": true,
+      "candidate_variant_effect_observed": true,
+      "runtime_difference_observed": true,
+      "baseline_policy_mode": "default",
+      "candidate_policy_mode": "sparse",
+      "summary": [
+        "Baseline session_memory policy was observed with mode=default.",
+        "Candidate session_memory policy was observed with mode=sparse.",
+        "Candidate sparse-policy markers were observed in runtime evidence.",
+        "Observed baseline and candidate session_memory policies differ.",
+        "At least one score dimension changed between baseline and candidate."
+      ]
+    }
+  ],
+  "runtime_difference_summary": [
+    "Baseline session_memory policy was observed with mode=default.",
+    "Candidate session_memory policy was observed with mode=sparse.",
+    "Candidate sparse-policy markers were observed in runtime evidence.",
+    "Observed baseline and candidate session_memory policies differ.",
+    "At least one score dimension changed between baseline and candidate."
+  ],
+  "verdict_boundary": "risk_verdict/gate_verdict is regression-risk-only and is not a final experiment judgment.",
+  "scorecard_summary": [
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "context.compaction_saved_tokens",
+      "direction": "observed_only",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "context.compaction_trigger_count",
+      "direction": "observed_only",
+      "baseline_value": 4,
+      "candidate_value": 4,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "context.constraint_retention_rate",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "context.distractor_confusion_count",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "context.lost_constraint_count",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "context.manual_review_required",
+      "direction": "observed_only",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "context.retained_constraint_count",
+      "direction": "higher_is_better",
+      "baseline_value": 2,
+      "candidate_value": 2,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "context.retrieved_fact_hit_rate",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "context.success_under_context_pressure",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "context.total_prompt_input_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 27007,
+      "candidate_value": 27007,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "decision_quality.session_memory_policy_observed",
+      "direction": "observed_only",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 27436,
+      "candidate_value": 27372,
+      "delta": -64,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    }
+  ],
+  "exploration_signals": [
+    "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer.",
+    "A real runtime difference was observed between baseline and candidate; inspect policy evidence before reading score deltas."
+  ],
+  "stability_summary": [
+    {
+      "run_group_id": "group_v2_5_long_context_real_smoke_expectation_contract_v0_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_2026-05-03T153143608Z",
+      "experiment_id": "v2_5_long_context_real_smoke_expectation_contract_v0",
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "variant_id": "baseline_default",
+      "repeat_count": 1,
+      "run_ids": [
+        "run_2026-05-03T153208617Z_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_0b6a625e"
+      ],
+      "status": "completed",
+      "started_at": "2026-05-03T15:31:47.795Z",
+      "ended_at": "2026-05-03T15:32:03.341Z",
+      "aggregate_summary_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md",
+      "stability_metrics": {
+        "repeat_success_rate": 1,
+        "capture_failure_rate": 0,
+        "total_billed_tokens_mean": 27436,
+        "total_billed_tokens_min": 27436,
+        "total_billed_tokens_max": 27436,
+        "total_billed_tokens_stddev": 0,
+        "e2e_duration_mean": 15546,
+        "e2e_duration_min": 15546,
+        "e2e_duration_max": 15546,
+        "e2e_duration_stddev": 0,
+        "tool_call_count_variance": 0,
+        "subagent_count_variance": 0,
+        "turn_count_variance": 0,
+        "recovery_rate": 0
+      },
+      "flaky_status": "inconclusive",
+      "failures": []
+    },
+    {
+      "run_group_id": "group_v2_5_long_context_real_smoke_expectation_contract_v0_long_context_fact_retrieval_real_smoke_contract_v0_candidate_session_memory_sparse_2026-05-03T1531436",
+      "experiment_id": "v2_5_long_context_real_smoke_expectation_contract_v0",
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "variant_id": "candidate_session_memory_sparse",
+      "repeat_count": 1,
+      "run_ids": [
+        "run_2026-05-03T153229620Z_long_context_fact_retrieval_real_smoke_contract_v0_candidate_session_memory_sparse_a3fb1e0d"
+      ],
+      "status": "completed",
+      "started_at": "2026-05-03T15:32:12.356Z",
+      "ended_at": "2026-05-03T15:32:25.137Z",
+      "aggregate_summary_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md",
+      "stability_metrics": {
+        "repeat_success_rate": 1,
+        "capture_failure_rate": 0,
+        "total_billed_tokens_mean": 27372,
+        "total_billed_tokens_min": 27372,
+        "total_billed_tokens_max": 27372,
+        "total_billed_tokens_stddev": 0,
+        "e2e_duration_mean": 12781,
+        "e2e_duration_min": 12781,
+        "e2e_duration_max": 12781,
+        "e2e_duration_stddev": 0,
+        "tool_call_count_variance": 0,
+        "subagent_count_variance": 0,
+        "turn_count_variance": 0,
+        "recovery_rate": 0
+      },
+      "flaky_status": "inconclusive",
+      "failures": []
+    }
+  ],
+  "flaky_scenarios": [
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "variant_id": "baseline_default",
+      "flaky_status": "inconclusive"
+    },
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "variant_id": "candidate_session_memory_sparse",
+      "flaky_status": "inconclusive"
+    }
+  ],
+  "recommended_review_mode": "manual_review",
+  "final_decision": null,
+  "errors": [],
+  "warnings": [
+    "missing: scenario=long_context_fact_retrieval_real_smoke_contract_v0, candidate=candidate_session_memory_sparse, score=decision_quality.subagent_count_observed"
+  ],
+  "experiment": {
+    "experiment_id": "v2_5_long_context_real_smoke_expectation_contract_v0",
+    "name": "V2.5 Long Context Real Smoke Expectation Contract v0",
+    "goal": "Run the tightened real-smoke fact-retrieval contract to verify that clearer answer constraints and review prompts preserve runtime-difference evidence without adding brittle failures.",
+    "baseline_variant_id": "baseline_default",
+    "candidate_variant_ids": [
+      "candidate_session_memory_sparse"
+    ],
+    "scenario_set_id": "v2_5_long_context_expectation_contract",
+    "scenario_ids": [
+      "long_context_fact_retrieval_real_smoke_contract_v0"
+    ],
+    "repeat_count": 1,
+    "score_spec_ids": [
+      "task_success.main_chain_observed",
+      "efficiency.total_billed_tokens",
+      "decision_quality.session_memory_policy_observed",
+      "stability.recovery_absence",
+      "controllability.turn_limit_basic",
+      "context.retained_constraint_count",
+      "context.lost_constraint_count",
+      "context.constraint_retention_rate",
+      "context.retrieved_fact_hit_rate",
+      "context.distractor_confusion_count",
+      "context.total_prompt_input_tokens",
+      "context.compaction_trigger_count",
+      "context.compaction_saved_tokens",
+      "context.success_under_context_pressure",
+      "context.manual_review_required"
+    ],
+    "gate_policy_id": "default_v2_1_gate",
+    "mode": "execute_harness",
+    "report_profile": "real_experiment",
+    "evaluation_intent": "exploration",
+    "execution": {
+      "adapter": "cli_print",
+      "db_path": ".observability/v2-long-context-real-smoke.duckdb",
+      "timeout_ms": 120000,
+      "max_turns": 6,
+      "failure_policy": "fail_fast",
+      "allow_fallback_to_bind_existing": true
+    },
+    "status": "ready"
+  },
+  "runner": {
+    "requested_mode": "execute_harness",
+    "mode": "execute_harness",
+    "automation_disabled": false,
+    "fallback_reason": null,
+    "v2_3_batch_capabilities": {
+      "multi_scenario": false,
+      "multi_candidate": false,
+      "repeat_count": 1,
+      "failure_policy": "fail_fast"
+    },
+    "score_spec_ids": [
+      "task_success.main_chain_observed",
+      "efficiency.total_billed_tokens",
+      "decision_quality.session_memory_policy_observed",
+      "stability.recovery_absence",
+      "controllability.turn_limit_basic",
+      "context.retained_constraint_count",
+      "context.lost_constraint_count",
+      "context.constraint_retention_rate",
+      "context.retrieved_fact_hit_rate",
+      "context.distractor_confusion_count",
+      "context.total_prompt_input_tokens",
+      "context.compaction_trigger_count",
+      "context.compaction_saved_tokens",
+      "context.success_under_context_pressure",
+      "context.manual_review_required"
+    ],
+    "gate_policy_id": "default_v2_1_gate"
+  },
+  "results": [
+    {
+      "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+      "repeat_index": 1,
+      "baseline_run_group_id": "group_v2_5_long_context_real_smoke_expectation_contract_v0_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_2026-05-03T153143608Z",
+      "baseline_run_id": "run_2026-05-03T153208617Z_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_0b6a625e",
+      "baseline_user_action_id": "0b6a625e-d7ce-4afc-b42d-fdaf6df5654e",
+      "baseline_eval_run_id": "eval_v2_5_long_context_re_long_context_fact_re_baseline_default_repeat_1_3c57dd68b379",
+      "baseline_benchmark_run_id": "bench_v2_5_long_context_re_long_context_fact_re_baseline_default_repeat_1_3c57dd68b379",
+      "baseline_execution": {
+        "execution": {
+          "status": "completed",
+          "stdoutRef": ".observability\\v2h\\7cb26e13840948de\\stdout.txt",
+          "stderrRef": ".observability\\v2h\\7cb26e13840948de\\stderr.txt"
+        },
+        "capture": {
+          "status": "captured",
+          "user_action_id": "0b6a625e-d7ce-4afc-b42d-fdaf6df5654e",
+          "match_count": 1
+        },
+        "variant_apply": {
+          "env": {
+            "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_5_long_co_f2af0643",
+            "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_long_context_616fb55e",
+            "CLAUDE_CODE_EVAL_VARIANT_ID": "var_baseline_def_eb4a038e",
+            "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_5_long_context_real_smoke_expectation_contract_v0",
+            "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "long_context_fact_retrieval_real_smoke_contract_v0",
+            "CLAUDE_CODE_EVAL_VARIANT_LABEL": "baseline_default",
+            "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_5_long_context_re_long_context_fact_re_baseline_default_repeat_1_3c57dd68b379",
+            "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_5_long_context_re_long_context_fact_re_baseline_default_repeat_1_3c57dd68b379",
+            "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "tests/evals/v2/configs/session_memory_default.runtime.json"
+          },
+          "cliArgs": [
+            "--max-turns",
+            "6"
+          ],
+          "metadata": {
+            "supported_variant_fields": [
+              "env_overrides",
+              "config_snapshot_ref",
+              "model_config",
+              "feature_gates"
+            ],
+            "config_snapshot_ref": "tests/evals/v2/configs/session_memory_default.runtime.json",
+            "feature_gate_count": 0,
+            "env_override_count": 0,
+            "model_config": null
+          }
+        },
+        "benchmark_run_id": "bench_v2_5_long_context_re_long_context_fact_re_baseline_default_repeat_1_3c57dd68b379",
+        "eval_run_id": "eval_v2_5_long_context_re_long_context_fact_re_baseline_default_repeat_1_3c57dd68b379"
+      },
+      "candidates": [
+        {
+          "candidate_variant_id": "candidate_session_memory_sparse",
+          "candidate_run_group_id": "group_v2_5_long_context_real_smoke_expectation_contract_v0_long_context_fact_retrieval_real_smoke_contract_v0_candidate_session_memory_sparse_2026-05-03T1531436",
+          "candidate_run_id": "run_2026-05-03T153229620Z_long_context_fact_retrieval_real_smoke_contract_v0_candidate_session_memory_sparse_a3fb1e0d",
+          "candidate_user_action_id": "a3fb1e0d-6260-4f43-a830-70b723a236ae",
+          "candidate_eval_run_id": "eval_v2_5_long_context_re_long_context_fact_re_candidate_session_me_repeat_1_28a85e623a50",
+          "candidate_benchmark_run_id": "bench_v2_5_long_context_re_long_context_fact_re_candidate_session_me_repeat_1_28a85e623a50",
+          "candidate_execution": {
+            "execution": {
+              "status": "completed",
+              "stdoutRef": ".observability\\v2h\\e6d6e3586fa85bf4\\stdout.txt",
+              "stderrRef": ".observability\\v2h\\e6d6e3586fa85bf4\\stderr.txt"
+            },
+            "capture": {
+              "status": "captured",
+              "user_action_id": "a3fb1e0d-6260-4f43-a830-70b723a236ae",
+              "match_count": 1
+            },
+            "variant_apply": {
+              "env": {
+                "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_5_long_co_f2af0643",
+                "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_long_context_616fb55e",
+                "CLAUDE_CODE_EVAL_VARIANT_ID": "var_candidate_se_efbc2e82",
+                "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_5_long_context_real_smoke_expectation_contract_v0",
+                "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "long_context_fact_retrieval_real_smoke_contract_v0",
+                "CLAUDE_CODE_EVAL_VARIANT_LABEL": "candidate_session_memory_sparse",
+                "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_5_long_context_re_long_context_fact_re_candidate_session_me_repeat_1_28a85e623a50",
+                "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_5_long_context_re_long_context_fact_re_candidate_session_me_repeat_1_28a85e623a50",
+                "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "tests/evals/v2/configs/session_memory_sparse.runtime.json"
+              },
+              "cliArgs": [
+                "--max-turns",
+                "6"
+              ],
+              "metadata": {
+                "supported_variant_fields": [
+                  "env_overrides",
+                  "config_snapshot_ref",
+                  "model_config",
+                  "feature_gates"
+                ],
+                "config_snapshot_ref": "tests/evals/v2/configs/session_memory_sparse.runtime.json",
+                "feature_gate_count": 0,
+                "env_override_count": 0,
+                "model_config": null
+              }
+            },
+            "benchmark_run_id": "bench_v2_5_long_context_re_long_context_fact_re_candidate_session_me_repeat_1_28a85e623a50",
+            "eval_run_id": "eval_v2_5_long_context_re_long_context_fact_re_candidate_session_me_repeat_1_28a85e623a50"
+          },
+          "baseline_variant_effect": {
+            "effect_type": "session_memory_policy",
+            "policy_event_observed": true,
+            "variant_effect_observed": true,
+            "observed_policy": {
+              "mode": "default",
+              "source": "config_snapshot_session_memory_policy",
+              "gate_enabled": true,
+              "force_enabled": true,
+              "query_source_supported": true,
+              "natural_break_only": false,
+              "token_threshold_multiplier": 1,
+              "tool_threshold_multiplier": 1,
+              "minimum_message_tokens_to_init": 10000,
+              "minimum_tokens_between_update": 5000,
+              "tool_calls_between_updates": 6
+            },
+            "observed_at": "2026-05-03T15:32:03.273Z",
+            "observed_query_source": "sdk",
+            "session_memory_subagent_count": 1,
+            "session_memory_trigger_details": [
+              "token_threshold_and_natural_break"
+            ],
+            "reason": "Session-memory runtime policy was observed from V1 events."
+          },
+          "candidate_variant_effect": {
+            "effect_type": "session_memory_policy",
+            "policy_event_observed": true,
+            "variant_effect_observed": true,
+            "observed_policy": {
+              "mode": "sparse",
+              "source": "config_snapshot_session_memory_policy",
+              "gate_enabled": true,
+              "force_enabled": true,
+              "query_source_supported": true,
+              "natural_break_only": true,
+              "token_threshold_multiplier": 2,
+              "tool_threshold_multiplier": 2,
+              "minimum_message_tokens_to_init": 20000,
+              "minimum_tokens_between_update": 10000,
+              "tool_calls_between_updates": 12
+            },
+            "observed_at": "2026-05-03T15:32:25.067Z",
+            "observed_query_source": "sdk",
+            "session_memory_subagent_count": 1,
+            "session_memory_trigger_details": [
+              "token_threshold_and_natural_break"
+            ],
+            "reason": "Session-memory runtime policy was observed from V1 events."
+          },
+          "variant_effect_summary": {
+            "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+            "candidate_variant_id": "candidate_session_memory_sparse",
+            "baseline_variant_effect_observed": true,
+            "candidate_variant_effect_observed": true,
+            "runtime_difference_observed": true,
+            "baseline_policy_mode": "default",
+            "candidate_policy_mode": "sparse",
+            "summary": [
+              "Baseline session_memory policy was observed with mode=default.",
+              "Candidate session_memory policy was observed with mode=sparse.",
+              "Candidate sparse-policy markers were observed in runtime evidence.",
+              "Observed baseline and candidate session_memory policies differ.",
+              "At least one score dimension changed between baseline and candidate."
+            ]
+          },
+          "experiment_validity": {
+            "status": "valid",
+            "profile": "real_experiment",
+            "reason": "Long-context real smoke captured interpretable trace-backed context-governance evidence.",
+            "blockers": [],
+            "warnings": [],
+            "checks": {
+              "baseline_captured": true,
+              "candidate_captured": true,
+              "no_ambiguous_capture": true,
+              "score_evidence_present": true,
+              "variant_effect_observed": true,
+              "runtime_difference_observed": true,
+              "scenario_intent_matched": true
+            }
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T153208617Z_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_0b6a625e_vs_run_2026-05-03T153229620Z_long_context_fact_retrieval_real_smoke_contract_v0_candidate_session_memory_sparse_a3fb1e0d.md",
+          "gate_results": [
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 27436,
+              "candidate_value": 27372,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 27436,
+              "candidate_value": 27372,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "missing",
+              "passed": false,
+              "baseline_value": null,
+              "candidate_value": null,
+              "regression_pct": null,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "context.compaction_saved_tokens",
+              "direction": "observed_only",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "context.compaction_trigger_count",
+              "direction": "observed_only",
+              "baseline_value": 4,
+              "candidate_value": 4,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "context.constraint_retention_rate",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "context.distractor_confusion_count",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "context.lost_constraint_count",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "context.manual_review_required",
+              "direction": "observed_only",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "context.retained_constraint_count",
+              "direction": "higher_is_better",
+              "baseline_value": 2,
+              "candidate_value": 2,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "context.retrieved_fact_hit_rate",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "context.success_under_context_pressure",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "context.total_prompt_input_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 27007,
+              "candidate_value": 27007,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "decision_quality.session_memory_policy_observed",
+              "direction": "observed_only",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 27436,
+              "candidate_value": 27372,
+              "delta": -64,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer.",
+            "A real runtime difference was observed between baseline and candidate; inspect policy evidence before reading score deltas."
+          ],
+          "recommended_review_mode": "manual_review"
+        }
+      ]
+    }
+  ],
+  "run_failures": [],
+  "created_at": "2026-05-03T15:32:29.794Z"
+}

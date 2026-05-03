@@ -1,0 +1,16 @@
+{
+  "finding_id": "finding_v2_5_long_context_real_smoke_expectation_contrac_flaky_status_long_context_fact_retrieval_real_sm_20260503T154626054Z_537428d4",
+  "source_experiment_id": "v2_5_long_context_real_smoke_expectation_contract_v0",
+  "source_report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md",
+  "finding_type": "flaky_status_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default",
+  "finding_kind": "stability_gap",
+  "severity": "warning",
+  "scope": "variant",
+  "scope_ref": "long_context_fact_retrieval_real_smoke_contract_v0:baseline_default",
+  "summary": "flaky_status is inconclusive for long_context_fact_retrieval_real_smoke_contract_v0 / baseline_default.",
+  "evidence_ref": "tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json#/stability_summary/0/flaky_status",
+  "is_blocking": false,
+  "requires_manual_judgement": false,
+  "auto_resolvable": false,
+  "fact_or_inference": "fact"
+}

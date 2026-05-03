@@ -1,9 +1,11 @@
+import { existsSync } from 'node:fs'
 import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 
 import type {
   EvalChangeLayer,
   EvalScenario,
+  EvalScenarioExpectation,
   EvalVariant,
 } from '../../src/observability/v2/evalTypes'
 import type {
@@ -32,6 +34,7 @@ const scoreDimensions = new Set([
   'efficiency',
   'stability',
   'controllability',
+  'context',
 ])
 const scoreDirections = new Set([
   'higher_is_better',
@@ -57,11 +60,18 @@ async function readJson<T>(filePath: string): Promise<T> {
   return JSON.parse(await readFile(filePath, 'utf8')) as T
 }
 
-async function listJsonFiles(dir: string): Promise<string[]> {
+async function listJsonFiles(dir: string, recursive = false): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true })
-  return entries
+  const files = entries
     .filter(entry => entry.isFile() && entry.name.endsWith('.json'))
     .map(entry => path.join(dir, entry.name))
+  if (!recursive) return files
+  const nested = await Promise.all(
+    entries
+      .filter(entry => entry.isDirectory())
+      .map(entry => listJsonFiles(path.join(dir, entry.name), true)),
+  )
+  return [...files, ...nested.flat()]
 }
 
 function requireString(
@@ -108,6 +118,17 @@ function requireOptionalString(
   }
 }
 
+function requireObject(
+  errors: string[],
+  objectName: string,
+  fieldName: string,
+  value: unknown,
+) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    errors.push(`${objectName}.${fieldName} must be an object`)
+  }
+}
+
 function isFlatActionBinding(
   binding: EvalExperimentActionBinding,
 ): binding is EvalExperimentFlatActionBinding {
@@ -138,6 +159,72 @@ function normalizeGateRules(gate: EvalGatePolicy): EvalGatePolicyRule[] {
   ]
 }
 
+function validateScenarioExpectations(
+  errors: string[],
+  objectName: string,
+  scenarioId: string,
+  expectations: EvalScenarioExpectation[],
+) {
+  const expectationTypes = new Set(
+    expectations.map(expectation => expectation.expectation_type),
+  )
+  for (const [index, expectation] of expectations.entries()) {
+    const itemName = `${objectName}.expectations[${index}]`
+    requireString(errors, itemName, 'expectation_id', expectation.expectation_id)
+    requireString(errors, itemName, 'expectation_type', expectation.expectation_type)
+    requireObject(errors, itemName, 'expectation_body', expectation.expectation_body)
+    if (!['low', 'medium', 'high'].includes(expectation.severity)) {
+      errors.push(`${itemName}.severity has invalid value: ${expectation.severity}`)
+    }
+    if (
+      expectation.expectation_type === 'manual_review' &&
+      !Array.isArray(expectation.expectation_body?.questions)
+    ) {
+        errors.push(`${itemName}.expectation_body.questions must be an array for manual_review`)
+    }
+  }
+
+  const isLongContextExpectationSet =
+    expectationTypes.has('retained_constraint') ||
+    expectationTypes.has('retrieved_fact') ||
+    expectationTypes.has('forbidden_confusion') ||
+    expectationTypes.has('context_budget')
+
+  if (isLongContextExpectationSet) {
+    for (const requiredType of [
+      'retained_constraint',
+      'retrieved_fact',
+      'forbidden_confusion',
+      'manual_review',
+    ]) {
+      if (!expectationTypes.has(requiredType)) {
+        errors.push(
+          `${objectName}.expectations must include ${requiredType} for long-context scenario ${scenarioId}`,
+        )
+      }
+    }
+  } else {
+    const hasRule = expectationTypes.has('rule')
+    const hasStructure = expectationTypes.has('structure')
+    const hasManual = expectationTypes.has('manual_review')
+    if (!hasRule) {
+      errors.push(
+        `${objectName}.expectations must include at least one rule expectation for ${scenarioId}`,
+      )
+    }
+    if (!hasStructure) {
+      errors.push(
+        `${objectName}.expectations must include at least one structure expectation for ${scenarioId}`,
+      )
+    }
+    if (!hasManual) {
+      errors.push(
+        `${objectName}.expectations must include at least one manual_review expectation for ${scenarioId}`,
+      )
+    }
+  }
+}
+
 function validateScenario(filePath: string, scenario: EvalScenario): string[] {
   const errors: string[] = []
   requireString(errors, filePath, 'scenario_id', scenario.scenario_id)
@@ -161,6 +248,133 @@ function validateScenario(filePath: string, scenario: EvalScenario): string[] {
     scenario.max_total_billed_tokens,
   )
   requireOptionalNumber(errors, filePath, 'max_subagent_count', scenario.max_subagent_count)
+  if (scenario.expected_facts !== undefined) {
+    requireArray(errors, filePath, 'expected_facts', scenario.expected_facts)
+  }
+  if (scenario.forbidden_confusions !== undefined) {
+    requireArray(
+      errors,
+      filePath,
+      'forbidden_confusions',
+      scenario.forbidden_confusions,
+    )
+  }
+  if (scenario.manual_review_questions !== undefined) {
+    requireArray(
+      errors,
+      filePath,
+      'manual_review_questions',
+      scenario.manual_review_questions,
+    )
+  }
+  requireOptionalString(errors, filePath, 'context_profile_ref', scenario.context_profile_ref)
+  if (scenario.expectations !== undefined) {
+    requireArray(errors, filePath, 'expectations', scenario.expectations)
+    if (Array.isArray(scenario.expectations)) {
+      validateScenarioExpectations(
+        errors,
+        filePath,
+        scenario.scenario_id,
+        scenario.expectations,
+      )
+    }
+  }
+  if (scenario.long_context_profile !== undefined) {
+    const profile = scenario.long_context_profile
+    requireObject(errors, filePath, 'long_context_profile', profile)
+    requireString(errors, `${filePath}.long_context_profile`, 'context_family', profile.context_family)
+    if (
+      ![
+        'constraint_retention',
+        'retrieval',
+        'distractor_resistance',
+        'compaction_pressure',
+      ].includes(profile.context_family)
+    ) {
+      errors.push(
+        `${filePath}.long_context_profile.context_family has invalid value: ${profile.context_family}`,
+      )
+    }
+    requireString(
+      errors,
+      `${filePath}.long_context_profile`,
+      'context_size_class',
+      profile.context_size_class,
+    )
+    if (!['small', 'medium', 'large'].includes(profile.context_size_class)) {
+      errors.push(
+        `${filePath}.long_context_profile.context_size_class has invalid value: ${profile.context_size_class}`,
+      )
+    }
+    requireString(errors, `${filePath}.long_context_profile`, 'fixture_ref', profile.fixture_ref)
+    requireArray(
+      errors,
+      `${filePath}.long_context_profile`,
+      'expected_retained_constraints',
+      profile.expected_retained_constraints,
+    )
+    requireArray(
+      errors,
+      `${filePath}.long_context_profile`,
+      'expected_retrieved_facts',
+      profile.expected_retrieved_facts,
+    )
+    requireArray(
+      errors,
+      `${filePath}.long_context_profile`,
+      'distractor_refs',
+      profile.distractor_refs,
+    )
+    requireArray(
+      errors,
+      `${filePath}.long_context_profile`,
+      'forbidden_confusions',
+      profile.forbidden_confusions,
+    )
+    requireArray(
+      errors,
+      `${filePath}.long_context_profile`,
+      'manual_review_questions',
+      profile.manual_review_questions,
+    )
+
+    const fixtureDir = path.resolve(repoRoot, profile.fixture_ref)
+    for (const requiredFile of [
+      'context_body.md',
+      'critical_facts.json',
+      'constraints.json',
+      'distractors.json',
+      'expected_output.md',
+    ]) {
+      if (!existsSync(path.join(fixtureDir, requiredFile))) {
+        errors.push(
+          `${filePath}.long_context_profile.fixture_ref is missing required fixture file: ${requiredFile}`,
+        )
+      }
+    }
+
+    if (!Array.isArray(scenario.expected_facts) || scenario.expected_facts.length === 0) {
+      errors.push(`${filePath}.expected_facts must exist for long-context scenarios`)
+    }
+    if (
+      !Array.isArray(scenario.expected_constraints) ||
+      scenario.expected_constraints.length === 0
+    ) {
+      errors.push(`${filePath}.expected_constraints must exist for long-context scenarios`)
+    }
+    if (
+      !Array.isArray(scenario.forbidden_confusions) ||
+      scenario.forbidden_confusions.length === 0
+    ) {
+      errors.push(`${filePath}.forbidden_confusions must exist for long-context scenarios`)
+    }
+    if (
+      !Array.isArray(scenario.manual_review_questions) ||
+      scenario.manual_review_questions.length === 0
+    ) {
+      errors.push(`${filePath}.manual_review_questions must exist for long-context scenarios`)
+    }
+  }
   return errors
 }
 
@@ -464,7 +678,7 @@ async function validateAll(): Promise<string[]> {
   }
   const implementedScoreSpecIds = new Set(listImplementedScoreSpecIds())
 
-  const scenarioFiles = await listJsonFiles(path.join(evalRoot, 'scenarios'))
+  const scenarioFiles = await listJsonFiles(path.join(evalRoot, 'scenarios'), true)
   const variantFiles = await listJsonFiles(path.join(evalRoot, 'variants'))
   const experimentFiles = await listJsonFiles(path.join(evalRoot, 'experiments'))
   const scoreSpecFiles = await listJsonFiles(path.join(evalRoot, 'score-specs'))

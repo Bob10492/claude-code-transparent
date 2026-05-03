@@ -1,0 +1,14 @@
+{
+  "proposal_id": "proposal_v2_4_long_context_real_smoke_stabilize_feedback_input_contract_v0_20260503T103210763Z_b0a56fb4",
+  "based_on_hypothesis_ids": [
+    "hypothesis_v2_4_long_context_real_smoke_runner_or_scenario_instability_20260503T103210763Z_21239a93"
+  ],
+  "proposal_type": "scenario_improvement",
+  "target_layer": "scenario",
+  "description": "Stabilize the upstream scenario or runner contract before trusting automated feedback suggestions for this branch of evaluation.",
+  "expected_effect": "Reduce flaky or failed inputs before turning feedback artifacts into candidate work items.",
+  "risks": [
+    "Pursuing harness changes before stabilizing the evaluator could hide platform issues behind candidate noise."
+  ],
+  "requires_human_approval": true
+}

@@ -1,0 +1,15 @@
+{
+  "proposal_id": "proposal_v2_4_long_context_real_smoke_add_long_context_output_parser_v0_20260503T103210763Z_19602146",
+  "based_on_hypothesis_ids": [
+    "hypothesis_v2_4_long_context_real_smoke_real_output_semantic_parser_missing_20260503T103210763Z_e3ed5d57"
+  ],
+  "proposal_type": "evaluator_improvement",
+  "target_layer": "scorer",
+  "description": "Add a lightweight output parser for long-context real smoke so expected facts and retained constraints can be mapped to explicit score evidence.",
+  "expected_effect": "Convert currently-null long-context semantic scores into rule-backed observed values where the output format is narrow enough.",
+  "risks": [
+    "A parser that is too narrow can miss valid answers.",
+    "A parser that is too loose can create false positives."
+  ],
+  "requires_human_approval": true
+}

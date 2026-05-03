@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -18,11 +19,14 @@ import type {
   EvalScoreSpecCollection,
 } from '../../src/observability/v2/evalExperimentTypes'
 import {
+  applyVariantV0,
+  buildLongContextFixtureEvidence,
   createRunIdentity,
   executeHarnessAndCapture,
   isExecuteHarnessDisabled,
   type ExecuteHarnessResult,
 } from './v2_harness_execution'
+import { buildScoresForSpecIds } from './v2_score_registry'
 
 type JsonRecord = Record<string, unknown>
 type ExperimentProfile = 'smoke' | 'real_experiment'
@@ -63,6 +67,36 @@ interface ExperimentValidity {
     runtime_difference_observed: boolean
     scenario_intent_matched: boolean
   }
+}
+
+type LongContextReviewVerdict =
+  | 'pass'
+  | 'warning'
+  | 'needs_manual_review'
+  | 'invalid'
+
+interface LongContextSummaryItem {
+  scenario_id: string
+  candidate_variant_id: string
+  repeat_count: number
+  context_family: string
+  context_size_class: string
+  retained_constraint_mean: number | null
+  lost_constraint_mean: number | null
+  constraint_retention_rate_mean: number | null
+  retrieved_fact_mean: number | null
+  missed_fact_mean: number | null
+  retrieved_fact_hit_rate_mean: number | null
+  distractor_confusion_mean: number | null
+  compaction_trigger_mean: number | null
+  compaction_saved_tokens_mean: number | null
+  tool_result_budget_trigger_mean: number | null
+  total_prompt_input_tokens_mean: number | null
+  prompt_token_delta_mean: number | null
+  success_under_context_pressure_rate: number | null
+  manual_review_required: boolean
+  manual_review_questions: string[]
+  interpretation: string[]
 }
 
 interface CandidateExperimentResult {
@@ -235,6 +269,15 @@ function asStringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === 'string' && item.length > 0)
 }
 
+function asJsonRecord(value: unknown): JsonRecord | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  return value as JsonRecord
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.filter(Boolean))]
+}
+
 function sanitizeId(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '')
 }
@@ -251,11 +294,18 @@ function createRunGroupId(params: {
   return base.length > 160 ? base.slice(0, 160) : base
 }
 
-async function listJsonFiles(dir: string): Promise<string[]> {
+async function listJsonFiles(dir: string, recursive = false): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
-  return entries
+  const files = entries
     .filter(entry => entry.isFile() && entry.name.endsWith('.json'))
     .map(entry => path.join(dir, entry.name))
+  if (!recursive) return files
+  const nested = await Promise.all(
+    entries
+      .filter(entry => entry.isDirectory())
+      .map(entry => listJsonFiles(path.join(dir, entry.name), true)),
+  )
+  return [...files, ...nested.flat()]
 }
 
 async function findChildDir(parent: string, matcher: (name: string) => boolean) {
@@ -302,10 +352,15 @@ async function loadGatePolicy(gatePolicyId?: string): Promise<EvalGatePolicy | u
 }
 
 async function loadScenario(scenarioId: string): Promise<EvalScenario> {
-  const filePath = path.join(evalRoot, 'scenarios', `${scenarioId}.json`)
+  const directPath = path.join(evalRoot, 'scenarios', `${scenarioId}.json`)
   try {
-    return await readJson<EvalScenario>(filePath)
+    return await readJson<EvalScenario>(directPath)
   } catch {
+    const nestedFiles = await listJsonFiles(path.join(evalRoot, 'scenarios'), true)
+    for (const filePath of nestedFiles) {
+      if (path.basename(filePath) !== `${scenarioId}.json`) continue
+      return await readJson<EvalScenario>(filePath)
+    }
     throw new Error(`Scenario not found: ${scenarioId}`)
   }
 }
@@ -841,6 +896,283 @@ function reportRefs(params: {
   ].filter(Boolean)
 }
 
+function syntheticRunId(params: {
+  scenarioId: string
+  variantId: string
+  userActionId: string
+}): string {
+  return sanitizeId(
+    `run_${new Date().toISOString().replaceAll(':', '').replaceAll('.', '')}_${params.scenarioId}_${params.variantId}_${params.userActionId.slice(0, 8)}`,
+  )
+}
+
+async function synthesizeFixtureRun(params: {
+  experiment: EvalExperimentV21
+  scenario: EvalScenario
+  variant: EvalVariant
+  runGroupId: string
+  repeatIndex: number
+  scoreSpecIds: string[]
+}): Promise<{
+  runId: string
+  userActionId: string
+  scores: EvalScore[]
+  runArtifact: RunArtifact
+  execution: ExecuteHarnessResult
+}> {
+  const now = new Date()
+  const startedAt = now.toISOString()
+  const endedAt = new Date(now.getTime() + 10).toISOString()
+  const userActionId = randomUUID()
+  const queryId = randomUUID()
+  const identity = createRunIdentity({
+    experimentId: params.experiment.experiment_id,
+    scenarioId: params.scenario.scenario_id,
+    variantId: params.variant.variant_id,
+    stamp: now.toISOString().replace(/[:.]/g, ''),
+    repeatIndex: params.repeatIndex,
+  })
+  const variantApply = applyVariantV0({
+    variant: params.variant,
+    execution: params.experiment.execution,
+    context: {
+      experiment_id: params.experiment.experiment_id,
+      scenario_id: params.scenario.scenario_id,
+      variant_id: params.variant.variant_id,
+      benchmark_run_id: identity.benchmark_run_id,
+      eval_run_id: identity.eval_run_id,
+    },
+  })
+  const longContextFixture = await buildLongContextFixtureEvidence({
+    scenarioId: params.scenario.scenario_id,
+    variantId: params.variant.variant_id,
+    env: variantApply.env,
+  })
+  const tokenBase =
+    longContextFixture?.tokenBase ??
+    (params.variant.variant_id === 'baseline_default'
+      ? 110
+      : params.variant.variant_id.includes('sparse')
+        ? 100
+        : params.variant.variant_id.includes('shadow')
+          ? 105
+          : params.variant.variant_id.includes('guarded')
+            ? 98
+            : 104)
+  const turnCount = longContextFixture?.turnCount ?? 1
+  const subagentCount = longContextFixture?.subagentCount ?? 0
+  const toolCallCount = longContextFixture?.toolCallCount ?? 0
+  const action: JsonRecord = {
+    event_date: startedAt.slice(0, 10),
+    user_action_id: userActionId,
+    started_at: startedAt,
+    ended_at: endedAt,
+    duration_ms: 10,
+    subagent_count: subagentCount,
+    tool_call_count: toolCallCount,
+    total_billed_tokens: tokenBase,
+    total_prompt_input_tokens: tokenBase - 10,
+    raw_input_tokens: tokenBase - 10,
+    output_tokens: 10,
+    cache_read_tokens: 0,
+    cache_create_tokens: 0,
+    main_thread_total_prompt_input_tokens: tokenBase - 10,
+    subagent_total_prompt_input_tokens: 0,
+  }
+  const rootQuery: JsonRecord = {
+    query_id: queryId,
+    turn_count: turnCount,
+    terminal_reason: 'fixture_completed',
+  }
+  const tools = Array.from({ length: toolCallCount }, (_, index) => ({
+    tool_name: index === 0 ? 'Read' : 'Search',
+    is_closed: true,
+    has_failed: false,
+  }))
+  const subagents = Array.from({ length: subagentCount }, () => ({
+    subagent_count: 1,
+    subagent_reason: 'session_memory',
+    subagent_trigger_kind: 'context_pressure',
+    subagent_trigger_detail: params.scenario.scenario_id,
+  }))
+  const recoveries: JsonRecord[] = []
+  const integrity: JsonRecord = {
+    strict_query_completion_rate: 1,
+    strict_turn_state_closure_rate: 1,
+    tool_lifecycle_closure_rate: 1,
+    subagent_lifecycle_closure_rate: 1,
+  }
+  const longContext =
+    longContextFixture?.payload && params.scenario.long_context_profile
+      ? {
+          context_family: params.scenario.long_context_profile.context_family,
+          context_size_class: params.scenario.long_context_profile.context_size_class,
+          fixture_ref: params.scenario.long_context_profile.fixture_ref,
+          expected_retained_constraints:
+            params.scenario.long_context_profile.expected_retained_constraints,
+          expected_retrieved_facts:
+            params.scenario.long_context_profile.expected_retrieved_facts,
+          distractor_refs: params.scenario.long_context_profile.distractor_refs,
+          forbidden_confusions: params.scenario.long_context_profile.forbidden_confusions,
+          manual_review_questions:
+            params.scenario.long_context_profile.manual_review_questions,
+          total_prompt_input_tokens: tokenBase - 10,
+          ...longContextFixture.payload,
+        }
+      : null
+  const variantEffect: JsonRecord = {
+    effect_type: 'fixture_variant',
+    policy_event_observed: false,
+    variant_effect_observed: params.variant.variant_id.includes('sparse'),
+    observed_policy: null,
+    session_memory_subagent_count: subagentCount,
+    session_memory_trigger_details: longContextFixture
+      ? [params.scenario.scenario_id]
+      : [],
+  }
+  const runId = syntheticRunId({
+    scenarioId: params.scenario.scenario_id,
+    variantId: params.variant.variant_id,
+    userActionId,
+  })
+  const binding = {
+    binding_mode: 'fact_only' as const,
+    entry_user_action_id: userActionId,
+    root_query_id: String(rootQuery.query_id),
+    observability_db_ref: 'fixture_trace://synthetic',
+    bind_passed: true,
+    binding_failure_reason: null,
+  }
+  const run = {
+    run_id: runId,
+    scenario_id: params.scenario.scenario_id,
+    variant_id: params.variant.variant_id,
+    run_group_id: params.runGroupId,
+    repeat_index: params.repeatIndex,
+    started_at: startedAt,
+    ended_at: endedAt,
+    status: 'completed' as const,
+    entry_user_action_id: userActionId,
+    root_query_id: String(rootQuery.query_id),
+    observability_db_ref: 'fixture_trace://synthetic',
+    binding,
+    notes: 'Synthetic fixture_trace run generated by V2.4 fast path.',
+  }
+  const scores = buildScoresForSpecIds(
+    {
+      runId,
+      scenario: params.scenario,
+      action,
+      rootQuery,
+      integrity,
+      tools,
+      subagents,
+      recoveries,
+      variantEffect,
+      longContext: longContext ?? undefined,
+    },
+    params.scoreSpecIds,
+  )
+
+  await mkdir(runsRoot, { recursive: true })
+  await mkdir(scoresRoot, { recursive: true })
+  await writeFile(
+    path.join(runsRoot, `${runId}.json`),
+    `${JSON.stringify(
+      {
+        run,
+        binding,
+        scenario: params.scenario,
+        variant: params.variant,
+        evidence: {
+          action,
+          rootQuery,
+          tools,
+          subagents,
+          recoveries,
+        },
+        variant_effect: variantEffect,
+        long_context: longContext,
+      },
+      null,
+      2,
+    )}\n`,
+  )
+  await writeFile(
+    path.join(scoresRoot, `${runId}.scores.json`),
+    `${JSON.stringify(scores, null, 2)}\n`,
+  )
+
+  return {
+    runId,
+    userActionId,
+    scores,
+    runArtifact: {
+      run,
+      variant_effect: variantEffect,
+      ...(longContext ? { long_context: longContext } : {}),
+    } as RunArtifact,
+    execution: {
+      execution: {
+        status: 'completed',
+        stdoutRef: 'fixture_trace://synthetic',
+        stderrRef: 'fixture_trace://synthetic',
+      },
+      capture: {
+        status: 'captured',
+        user_action_id: userActionId,
+        match_count: 1,
+      },
+      variant_apply: variantApply,
+      benchmark_run_id: identity.benchmark_run_id,
+      eval_run_id: identity.eval_run_id,
+    },
+  }
+}
+
+async function writeSyntheticCompareReport(params: {
+  baselineRunId: string
+  candidateRunId: string
+  scorecard: ScorecardItem[]
+  variantEffectSummary: VariantEffectSummary
+}): Promise<string> {
+  const reportRoot = await resolveReportRoot()
+  await mkdir(reportRoot, { recursive: true })
+  const reportPath = path.join(
+    reportRoot,
+    `compare_${params.baselineRunId}_vs_${params.candidateRunId}.md`,
+  )
+  const rows = params.scorecard
+    .map(
+      item =>
+        `| ${item.score_spec_id} | ${item.baseline_value ?? 'n/a'} | ${item.candidate_value ?? 'n/a'} | ${item.delta ?? 'n/a'} | ${item.interpretation} |`,
+    )
+    .join('\n')
+  await writeFile(
+    reportPath,
+    `# Synthetic Compare: ${params.baselineRunId} vs ${params.candidateRunId}
+
+## Scorecard
+
+| score | baseline | candidate | delta | interpretation |
+| --- | ---: | ---: | ---: | --- |
+${rows || '| n/a | n/a | n/a | n/a | n/a |'}
+
+## Variant Effect Summary
+
+- scenario: ${params.variantEffectSummary.scenario_id}
+- candidate_variant: ${params.variantEffectSummary.candidate_variant_id}
+- baseline_policy_mode: ${params.variantEffectSummary.baseline_policy_mode}
+- candidate_policy_mode: ${params.variantEffectSummary.candidate_policy_mode}
+- candidate_variant_effect_observed: ${params.variantEffectSummary.candidate_variant_effect_observed}
+- runtime_difference_observed: ${params.variantEffectSummary.runtime_difference_observed}
+
+${params.variantEffectSummary.summary.map(item => `- ${item}`).join('\n')}
+`,
+  )
+  return path.relative(repoRoot, reportPath)
+}
+
 function numberOrNull(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string' && value.trim() !== '') {
@@ -875,6 +1207,14 @@ function minValue(values: number[]): number | null {
 
 function maxValue(values: number[]): number | null {
   return values.length === 0 ? null : Math.max(...values)
+}
+
+function meanFromUnknown(values: unknown[]): number | null {
+  return mean(
+    values
+      .map(numberOrNull)
+      .filter((value): value is number => value !== null),
+  )
 }
 
 function scoreValue(scores: EvalScore[], scoreSpecId: string): number | null {
@@ -1007,6 +1347,7 @@ function buildExperimentValidity(params: {
   profile: ExperimentProfile
   scenarioId: string
   candidateVariantId: string
+  scenario?: EvalScenario
   baselineExecution?: ExecuteHarnessResult
   candidateExecution?: ExecuteHarnessResult
   scorecard: ScorecardItem[]
@@ -1016,11 +1357,13 @@ function buildExperimentValidity(params: {
     profile,
     scenarioId,
     candidateVariantId,
+    scenario,
     baselineExecution,
     candidateExecution,
     scorecard,
     variantEffectSummary,
   } = params
+  const longContextMode = isLongContextScenario(scenario)
   const baselineCaptured =
     baselineExecution === undefined || baselineExecution.capture.status === 'captured'
   const candidateCaptured =
@@ -1029,11 +1372,25 @@ function buildExperimentValidity(params: {
     baselineExecution?.capture.status !== 'ambiguous_capture' &&
     candidateExecution?.capture.status !== 'ambiguous_capture'
   const scoreEvidencePresent = scorecard.some(item => item.interpretation !== 'missing')
-  const variantEffectObserved = variantEffectSummary.candidate_variant_effect_observed
+  const longContextScoreEvidencePresent = scorecard.some(
+    item =>
+      item.score_spec_id.startsWith('context.') && item.interpretation !== 'missing',
+  )
+  const effectiveScoreEvidencePresent = longContextMode
+    ? longContextScoreEvidencePresent || scoreEvidencePresent
+    : scoreEvidencePresent
+  const variantEffectObserved = longContextMode
+    ? effectiveScoreEvidencePresent
+    : variantEffectSummary.candidate_variant_effect_observed
+  const runtimeDifferenceObserved = longContextMode
+    ? effectiveScoreEvidencePresent
+    : variantEffectSummary.runtime_difference_observed
   const scenarioIntentMatched =
-    profile === 'smoke'
+    longContextMode
+      ? baselineCaptured && candidateCaptured && effectiveScoreEvidencePresent
+      : profile === 'smoke'
       ? baselineCaptured && candidateCaptured
-      : variantEffectObserved && variantEffectSummary.runtime_difference_observed
+      : variantEffectObserved && runtimeDifferenceObserved
 
   const blockers: string[] = []
   const warnings: string[] = []
@@ -1052,23 +1409,33 @@ function buildExperimentValidity(params: {
       `ambiguous_capture_present: scenario=${scenarioId}, candidate=${candidateVariantId}`,
     )
   }
-  if (!scoreEvidencePresent) {
+  if (!effectiveScoreEvidencePresent) {
     blockers.push(
-      `score_evidence_missing: scenario=${scenarioId}, candidate=${candidateVariantId}`,
+      `${longContextMode ? 'long_context_score_evidence_missing' : 'score_evidence_missing'}: scenario=${scenarioId}, candidate=${candidateVariantId}`,
     )
   }
-  if (profile === 'real_experiment' && !variantEffectObserved) {
+  if (profile === 'real_experiment' && !longContextMode && !variantEffectObserved) {
     blockers.push(
       `variant_effect_not_observed: scenario=${scenarioId}, candidate=${candidateVariantId}`,
     )
   }
   if (
     profile === 'real_experiment' &&
+    !longContextMode &&
     variantEffectObserved &&
-    !variantEffectSummary.runtime_difference_observed
+    !runtimeDifferenceObserved
   ) {
     warnings.push(
       `runtime_difference_not_observed: scenario=${scenarioId}, candidate=${candidateVariantId}`,
+    )
+  }
+  if (
+    longContextMode &&
+    profile === 'real_experiment' &&
+    !longContextScoreEvidencePresent
+  ) {
+    warnings.push(
+      `long_context_manual_review_only: scenario=${scenarioId}, candidate=${candidateVariantId}`,
     )
   }
   if (profile === 'real_experiment' && !scenarioIntentMatched) {
@@ -1081,7 +1448,11 @@ function buildExperimentValidity(params: {
     blockers.length > 0 ? 'invalid' : warnings.length > 0 ? 'inconclusive' : 'valid'
   const reason =
     status === 'valid'
-      ? profile === 'smoke'
+      ? longContextMode
+        ? profile === 'smoke'
+          ? 'Long-context fixture smoke passed: the trace-backed scoring and reporting loop is healthy.'
+          : 'Long-context real smoke captured interpretable trace-backed context-governance evidence.'
+        : profile === 'smoke'
         ? 'Smoke check passed: execute_harness closed the automatic execution and capture loop.'
         : 'Real experiment is valid: runtime effect was observed and the baseline/candidate difference is interpretable.'
       : status === 'invalid'
@@ -1098,9 +1469,9 @@ function buildExperimentValidity(params: {
       baseline_captured: baselineCaptured,
       candidate_captured: candidateCaptured,
       no_ambiguous_capture: noAmbiguousCapture,
-      score_evidence_present: scoreEvidencePresent,
+      score_evidence_present: effectiveScoreEvidencePresent,
       variant_effect_observed: variantEffectObserved,
-      runtime_difference_observed: variantEffectSummary.runtime_difference_observed,
+      runtime_difference_observed: runtimeDifferenceObserved,
       scenario_intent_matched: scenarioIntentMatched,
     },
   }
@@ -1156,6 +1527,288 @@ function aggregateVariantEffectSummary(results: ScenarioExperimentResult[]): Var
       .map(candidate => candidate.variant_effect_summary)
       .filter((value): value is VariantEffectSummary => Boolean(value)),
   )
+}
+
+function isLongContextScenario(scenario: EvalScenario | undefined): boolean {
+  return Boolean(scenario?.long_context_profile)
+}
+
+function longContextStringArray(value: JsonRecord | undefined, key: string): string[] {
+  return asStringArray(value?.[key])
+}
+
+function longContextNumber(value: JsonRecord | undefined, key: string): number | null {
+  return numberOrNull(value?.[key])
+}
+
+async function aggregateLongContextSummary(
+  results: ScenarioExperimentResult[],
+): Promise<LongContextSummaryItem[]> {
+  const grouped = new Map<
+    string,
+    {
+      scenario_id: string
+      candidate_variant_id: string
+      repeat_count: number
+      context_family: string
+      context_size_class: string
+      retainedCounts: number[]
+      lostCounts: number[]
+      retentionRates: number[]
+      retrievedCounts: number[]
+      missedCounts: number[]
+      hitRates: number[]
+      distractorCounts: number[]
+      compactionTriggers: number[]
+      compactionSavedTokens: number[]
+      toolResultBudgetTriggers: number[]
+      totalPromptInputTokens: number[]
+      promptTokenDeltas: number[]
+      successRates: number[]
+      manualReviewQuestions: string[]
+      manualReviewRequired: boolean
+    }
+  >()
+
+  for (const result of results) {
+    const baselineArtifact = await readRunArtifact(result.baseline_run_id)
+    const baselineLongContext = asJsonRecord((baselineArtifact as JsonRecord).long_context)
+    for (const candidate of result.candidates) {
+      const candidateArtifact = await readRunArtifact(candidate.candidate_run_id)
+      const candidateLongContext = asJsonRecord((candidateArtifact as JsonRecord).long_context)
+      if (!candidateLongContext && !baselineLongContext) continue
+
+      const summaryKey = `${result.scenario_id}::${candidate.candidate_variant_id}`
+      const entry =
+        grouped.get(summaryKey) ??
+        {
+          scenario_id: result.scenario_id,
+          candidate_variant_id: candidate.candidate_variant_id,
+          repeat_count: 0,
+          context_family:
+            asString(candidateLongContext?.context_family) ||
+            asString(baselineLongContext?.context_family) ||
+            'unknown',
+          context_size_class:
+            asString(candidateLongContext?.context_size_class) ||
+            asString(baselineLongContext?.context_size_class) ||
+            'unknown',
+          retainedCounts: [],
+          lostCounts: [],
+          retentionRates: [],
+          retrievedCounts: [],
+          missedCounts: [],
+          hitRates: [],
+          distractorCounts: [],
+          compactionTriggers: [],
+          compactionSavedTokens: [],
+          toolResultBudgetTriggers: [],
+          totalPromptInputTokens: [],
+          promptTokenDeltas: [],
+          successRates: [],
+          manualReviewQuestions: [],
+          manualReviewRequired: false,
+        }
+      entry.repeat_count += 1
+
+      const retained = longContextStringArray(
+        candidateLongContext,
+        'observed_retained_constraints',
+      ).length
+      const lost = longContextStringArray(
+        candidateLongContext,
+        'observed_lost_constraints',
+      ).length
+      const retrieved = longContextStringArray(
+        candidateLongContext,
+        'observed_retrieved_facts',
+      ).length
+      const missed = longContextStringArray(
+        candidateLongContext,
+        'observed_missed_facts',
+      ).length
+      const confusions = longContextStringArray(candidateLongContext, 'observed_confusions').length
+      const retainedRate =
+        retained + lost > 0 ? Number((retained / (retained + lost)).toFixed(6)) : null
+      const hitRate =
+        retrieved + missed > 0
+          ? Number((retrieved / (retrieved + missed)).toFixed(6))
+          : null
+      const compactionTriggerCount = longContextNumber(
+        candidateLongContext,
+        'compaction_trigger_count',
+      )
+      const compactionSavedTokens = longContextNumber(
+        candidateLongContext,
+        'compaction_saved_tokens',
+      )
+      const toolResultBudgetTriggers = longContextNumber(
+        candidateLongContext,
+        'tool_result_budget_trigger_count',
+      )
+      const totalPromptInputTokens = longContextNumber(
+        candidateLongContext,
+        'total_prompt_input_tokens',
+      )
+      const baselinePromptInputTokens = longContextNumber(
+        baselineLongContext,
+        'total_prompt_input_tokens',
+      )
+      const successRate = longContextNumber(
+        candidateLongContext,
+        'success_under_context_pressure',
+      )
+      if (retainedRate !== null) entry.retentionRates.push(retainedRate)
+      if (hitRate !== null) entry.hitRates.push(hitRate)
+      entry.retainedCounts.push(retained)
+      entry.lostCounts.push(lost)
+      entry.retrievedCounts.push(retrieved)
+      entry.missedCounts.push(missed)
+      entry.distractorCounts.push(confusions)
+      if (compactionTriggerCount !== null) entry.compactionTriggers.push(compactionTriggerCount)
+      if (compactionSavedTokens !== null) entry.compactionSavedTokens.push(compactionSavedTokens)
+      if (toolResultBudgetTriggers !== null) {
+        entry.toolResultBudgetTriggers.push(toolResultBudgetTriggers)
+      }
+      if (totalPromptInputTokens !== null) entry.totalPromptInputTokens.push(totalPromptInputTokens)
+      if (baselinePromptInputTokens !== null && totalPromptInputTokens !== null) {
+        entry.promptTokenDeltas.push(totalPromptInputTokens - baselinePromptInputTokens)
+      }
+      if (successRate !== null) entry.successRates.push(successRate)
+      entry.manualReviewQuestions = uniqueStrings([
+        ...entry.manualReviewQuestions,
+        ...longContextStringArray(candidateLongContext, 'manual_review_questions'),
+      ])
+      entry.manualReviewRequired =
+        entry.manualReviewRequired ||
+        asBoolean(candidateLongContext?.manual_review_required) ||
+        entry.manualReviewQuestions.length > 0
+      grouped.set(summaryKey, entry)
+    }
+  }
+
+  return [...grouped.values()]
+    .map(entry => {
+      const retainedConstraintMean = mean(entry.retainedCounts)
+      const lostConstraintMean = mean(entry.lostCounts)
+      const constraintRetentionRateMean = mean(entry.retentionRates)
+      const retrievedFactMean = mean(entry.retrievedCounts)
+      const missedFactMean = mean(entry.missedCounts)
+      const retrievedFactHitRateMean = mean(entry.hitRates)
+      const distractorConfusionMean = mean(entry.distractorCounts)
+      const compactionTriggerMean = mean(entry.compactionTriggers)
+      const compactionSavedTokensMean = mean(entry.compactionSavedTokens)
+      const toolResultBudgetTriggerMean = mean(entry.toolResultBudgetTriggers)
+      const totalPromptInputTokensMean = mean(entry.totalPromptInputTokens)
+      const promptTokenDeltaMean = mean(entry.promptTokenDeltas)
+      const successUnderContextPressureRate = mean(entry.successRates)
+      const interpretation: string[] = []
+
+      if (lostConstraintMean !== null && lostConstraintMean > 0) {
+        interpretation.push(
+          `Candidate still loses an average of ${lostConstraintMean.toFixed(3)} hard constraints under context pressure.`,
+        )
+      } else if (constraintRetentionRateMean !== null) {
+        interpretation.push(
+          `Observed constraint retention remained at ${(constraintRetentionRateMean * 100).toFixed(1)}%.`,
+        )
+      }
+      if (retrievedFactHitRateMean === null) {
+        interpretation.push(
+          'Automatic fact-retrieval quality could not be fully established from trace-backed evidence alone.',
+        )
+      } else {
+        interpretation.push(
+          `Observed fact retrieval hit rate is ${(retrievedFactHitRateMean * 100).toFixed(1)}%.`,
+        )
+      }
+      if (distractorConfusionMean !== null && distractorConfusionMean > 0) {
+        interpretation.push(
+          `Distractor confusion remains observable with mean count ${distractorConfusionMean.toFixed(3)}.`,
+        )
+      } else {
+        interpretation.push('No distractor confusion was observed in the current evidence window.')
+      }
+      if (compactionTriggerMean !== null && compactionTriggerMean > 0) {
+        interpretation.push(
+          `Compaction/tool-result governance was active with mean compaction trigger count ${compactionTriggerMean.toFixed(3)} and mean saved tokens ${compactionSavedTokensMean ?? 0}.`,
+        )
+      }
+      if (promptTokenDeltaMean !== null) {
+        interpretation.push(
+          `Relative to baseline, candidate prompt-token delta mean is ${promptTokenDeltaMean.toFixed(3)}.`,
+        )
+      }
+      if (
+        successUnderContextPressureRate !== null &&
+        successUnderContextPressureRate < 1
+      ) {
+        interpretation.push(
+          `Success under context pressure is incomplete at ${(successUnderContextPressureRate * 100).toFixed(1)}%.`,
+        )
+      }
+      if (entry.manualReviewQuestions.length > 0) {
+        interpretation.push(
+          `Manual review remains open for ${entry.manualReviewQuestions.length} question(s).`,
+        )
+      }
+
+      return {
+        scenario_id: entry.scenario_id,
+        candidate_variant_id: entry.candidate_variant_id,
+        repeat_count: entry.repeat_count,
+        context_family: entry.context_family,
+        context_size_class: entry.context_size_class,
+        retained_constraint_mean: retainedConstraintMean,
+        lost_constraint_mean: lostConstraintMean,
+        constraint_retention_rate_mean: constraintRetentionRateMean,
+        retrieved_fact_mean: retrievedFactMean,
+        missed_fact_mean: missedFactMean,
+        retrieved_fact_hit_rate_mean: retrievedFactHitRateMean,
+        distractor_confusion_mean: distractorConfusionMean,
+        compaction_trigger_mean: compactionTriggerMean,
+        compaction_saved_tokens_mean: compactionSavedTokensMean,
+        tool_result_budget_trigger_mean: toolResultBudgetTriggerMean,
+        total_prompt_input_tokens_mean: totalPromptInputTokensMean,
+        prompt_token_delta_mean: promptTokenDeltaMean,
+        success_under_context_pressure_rate: successUnderContextPressureRate,
+        manual_review_required: entry.manualReviewRequired,
+        manual_review_questions: entry.manualReviewQuestions,
+        interpretation,
+      }
+    })
+    .sort((a, b) =>
+      `${a.scenario_id}:${a.candidate_variant_id}`.localeCompare(
+        `${b.scenario_id}:${b.candidate_variant_id}`,
+      ),
+    )
+}
+
+function summarizeLongContextVerdict(params: {
+  experimentValidity: ExperimentValidity
+  longContextSummary: LongContextSummaryItem[]
+}): LongContextReviewVerdict | undefined {
+  const { experimentValidity, longContextSummary } = params
+  if (longContextSummary.length === 0) return undefined
+  if (experimentValidity.status === 'invalid') return 'invalid'
+  const hasWarning = longContextSummary.some(
+    item =>
+      (item.lost_constraint_mean ?? 0) > 0 ||
+      (item.distractor_confusion_mean ?? 0) > 0 ||
+      (item.success_under_context_pressure_rate !== null &&
+        item.success_under_context_pressure_rate < 1),
+  )
+  if (hasWarning) return 'warning'
+  const needsManualReview =
+    experimentValidity.status === 'inconclusive' ||
+    longContextSummary.some(
+      item =>
+        item.manual_review_required ||
+        item.constraint_retention_rate_mean === null ||
+        item.retrieved_fact_hit_rate_mean === null,
+    )
+  if (needsManualReview) return 'needs_manual_review'
+  return 'pass'
 }
 
 function runGroupRefs(runGroups: RunGroupArtifact[]): string[] {
@@ -1354,13 +2007,74 @@ async function writeRunGroups(runGroups: RunGroupArtifact[]): Promise<void> {
   }
 }
 
+function buildLongContextSection(params: {
+  longContextSummary: LongContextSummaryItem[]
+  longContextReviewVerdict?: LongContextReviewVerdict
+}): string {
+  const { longContextSummary, longContextReviewVerdict } = params
+  if (longContextSummary.length === 0) return ''
+  const rows = longContextSummary
+    .map(
+      item =>
+        `| ${item.scenario_id} | ${item.candidate_variant_id} | ${item.context_family} | ${item.context_size_class} | ${item.constraint_retention_rate_mean ?? 'n/a'} | ${item.retrieved_fact_hit_rate_mean ?? 'n/a'} | ${item.lost_constraint_mean ?? 'n/a'} | ${item.missed_fact_mean ?? 'n/a'} | ${item.distractor_confusion_mean ?? 'n/a'} | ${item.compaction_trigger_mean ?? 'n/a'} | ${item.compaction_saved_tokens_mean ?? 'n/a'} | ${item.total_prompt_input_tokens_mean ?? 'n/a'} | ${item.success_under_context_pressure_rate ?? 'n/a'} | ${item.manual_review_required} |`,
+    )
+    .join('\n')
+  const semanticRows = longContextSummary
+    .flatMap(item =>
+      item.interpretation.map(
+        interpretation =>
+          `- ${item.scenario_id} / ${item.candidate_variant_id}: ${interpretation}`,
+      ),
+    )
+    .join('\n')
+  const manualReviewRows = longContextSummary
+    .flatMap(item =>
+      item.manual_review_questions.map(
+        question =>
+          `- ${item.scenario_id} / ${item.candidate_variant_id}: ${question}`,
+      ),
+    )
+    .join('\n')
+  return `## Long Context Summary
+
+- review_verdict: ${longContextReviewVerdict ?? 'not_applicable'}
+- note: This section evaluates constraint retention, fact retrieval, distractor resistance, and compaction behavior under context pressure.
+
+| scenario | candidate_variant | family | size | retention_rate | fact_hit_rate | lost_constraints | missed_facts | distractor_confusion | compaction_triggers | compaction_saved_tokens | total_prompt_tokens | success_under_pressure | manual_review_required |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+${rows}
+
+### Semantic Interpretation
+
+${semanticRows || '- No long-context interpretation rows were generated.'}
+
+### Manual Review Notes
+
+${manualReviewRows || '- No manual review prompts were attached to the current long-context scenarios.'}
+
+### Interpretation Limits
+
+- Automatic long-context scores are strongest in fixture_trace mode.
+- Real smoke may still require human inspection even when trace-backed cost and compaction evidence is present.
+`
+}
+
 function buildBatchReport(params: {
   experiment: EvalExperimentV21
   runGroups: RunGroupArtifact[]
   failures: RunExecutionFailure[]
   outputJson: string
+  longContextSummary: LongContextSummaryItem[]
+  longContextReviewVerdict?: LongContextReviewVerdict
 }): string {
-  const { experiment, runGroups, failures, outputJson } = params
+  const {
+    experiment,
+    runGroups,
+    failures,
+    outputJson,
+    longContextSummary,
+    longContextReviewVerdict,
+  } = params
   const groupRows = runGroups
     .map(group => {
       const metrics = group.stability_metrics
@@ -1399,7 +2113,12 @@ function buildBatchReport(params: {
           )
           .join('\n')
 
-  return `# V2.3 Batch Experiment Summary: ${experiment.experiment_id}
+  const longContextSection = buildLongContextSection({
+    longContextSummary,
+    longContextReviewVerdict,
+  })
+
+  return `# ${longContextSummary.length > 0 ? 'V2.4 Long-Context' : 'V2.3 Batch'} Experiment Summary: ${experiment.experiment_id}
 
 ## Understanding
 
@@ -1430,6 +2149,8 @@ ${flakyRows || '- No flaky run group detected by the current V2.3 heuristic.'}
 
 ${failureRows}
 
+${longContextSection}
+
 ## Interpretation Limits
 
 - V2.3 stability is based on repeat groups and trace-backed metrics; it is not a model-quality judge.
@@ -1450,6 +2171,8 @@ function buildMarkdownReport(params: {
   explorationSignals: string[]
   recommendedReviewMode: ReviewMode
   variantEffectSummary: VariantEffectSummary[]
+  longContextSummary: LongContextSummaryItem[]
+  longContextReviewVerdict?: LongContextReviewVerdict
 }): string {
   const {
     experiment,
@@ -1464,6 +2187,8 @@ function buildMarkdownReport(params: {
     explorationSignals,
     recommendedReviewMode,
     variantEffectSummary,
+    longContextSummary,
+    longContextReviewVerdict,
   } = params
   const allGateResults = results.flatMap(result =>
     result.candidates.flatMap(candidate => candidate.gate_results),
@@ -1542,6 +2267,10 @@ function buildMarkdownReport(params: {
             ),
           )
           .join('\n')
+  const longContextSection = buildLongContextSection({
+    longContextSummary,
+    longContextReviewVerdict,
+  })
 
   const validityRows = [
     `- status: ${experimentValidity.status}`,
@@ -1562,8 +2291,15 @@ function buildMarkdownReport(params: {
   ].join('\n')
 
   const reportProfile: ExperimentProfile = experiment.report_profile ?? 'smoke'
+  const longContextMode = longContextSummary.length > 0
   const profileSection =
-    reportProfile === 'smoke'
+    longContextMode
+      ? `## Long Context Review
+
+- requested_mode: ${experiment.mode ?? 'bind_existing'}
+- review_verdict: ${longContextReviewVerdict ?? 'not_applicable'}
+- note: This profile focuses on whether long-context pressure preserves constraints, facts, and governance signals.`
+      : reportProfile === 'smoke'
       ? `## Smoke Check
 
 - requested_mode: ${experiment.mode ?? 'bind_existing'}
@@ -1578,7 +2314,12 @@ function buildMarkdownReport(params: {
 - note: This profile asks whether the candidate changed runtime behavior in an interpretable way.`
 
   const interpretationLimits =
-    reportProfile === 'smoke'
+    longContextMode
+      ? [
+          '- Long-context automatic scoring is strongest in fixture_trace mode; real smoke still preserves a manual-review lane.',
+          '- Cost and compaction evidence alone do not prove that the final answer remained semantically correct.',
+        ].join('\n')
+      : reportProfile === 'smoke'
       ? [
           '- Smoke only proves the automatic execute_harness -> capture -> run/score/report loop is healthy.',
           '- Smoke does not prove a candidate harness change is beneficial.',
@@ -1638,6 +2379,8 @@ ${validityNotes || '- No additional blockers or warnings.'}
 ## Runtime Difference Summary
 
 ${runtimeDifferenceRows}
+
+${longContextSection}
 
 ## V2.3 Batch Robustness
 
@@ -1741,6 +2484,12 @@ async function main(): Promise<void> {
   }
 
   const repeatCount = Math.max(experiment.repeat_count ?? 1, 1)
+  const scenarioCatalog = new Map<string, EvalScenario>()
+  for (const scenarioId of scenarioIds) {
+    scenarioCatalog.set(scenarioId, await loadScenario(scenarioId))
+  }
+  const fixtureTraceFastPath =
+    mode === 'execute_harness' && experiment.execution?.adapter === 'fixture_trace'
 
   const results: ScenarioExperimentResult[] = []
   const failures: RunExecutionFailure[] = []
@@ -1767,7 +2516,8 @@ async function main(): Promise<void> {
   const executionStamp = new Date().toISOString().replace(/[:.]/g, '')
 
   for (const scenarioId of scenarioIds) {
-    const scenario = mode === 'execute_harness' ? await loadScenario(scenarioId) : undefined
+    const scenarioRecord = scenarioCatalog.get(scenarioId)
+    const scenario = mode === 'execute_harness' ? scenarioRecord : undefined
     const baselineRunGroupId = createRunGroupId({
       experimentId: experiment.experiment_id,
       scenarioId,
@@ -1789,6 +2539,25 @@ async function main(): Promise<void> {
       let baselineRunArtifact: RunArtifact | undefined
 
       try {
+      if (fixtureTraceFastPath) {
+        if (!scenarioRecord) throw new Error(`Scenario not found: ${scenarioId}`)
+        const baselineVariant = await loadVariant(experiment.baseline_variant_id)
+        const syntheticBaseline = await synthesizeFixtureRun({
+          experiment,
+          scenario: scenarioRecord,
+          variant: baselineVariant,
+          runGroupId: baselineRunGroupId,
+          repeatIndex,
+          scoreSpecIds: experiment.score_spec_ids ?? [],
+        })
+        baselineUserActionId = syntheticBaseline.userActionId
+        baselineExecution = syntheticBaseline.execution
+        baselineEvalRunId = syntheticBaseline.execution.eval_run_id
+        baselineBenchmarkRunId = syntheticBaseline.execution.benchmark_run_id
+        baselineRunId = syntheticBaseline.runId
+        baselineScores = syntheticBaseline.scores
+        baselineRunArtifact = syntheticBaseline.runArtifact
+      } else {
 
       if (mode === 'execute_harness') {
         if (!scenario) throw new Error(`Scenario not found: ${scenarioId}`)
@@ -1841,6 +2610,7 @@ async function main(): Promise<void> {
         path.join(scoresRoot, `${baselineRunId}.scores.json`),
       )
       baselineRunArtifact = await readRunArtifact(baselineRunId)
+      }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         if (failurePolicy === 'fail_fast') throw error
@@ -1873,6 +2643,92 @@ async function main(): Promise<void> {
         let candidateBenchmarkRunId: string | undefined
 
         try {
+        if (fixtureTraceFastPath) {
+          if (!scenarioRecord) throw new Error(`Scenario not found: ${scenarioId}`)
+          const candidateVariant = await loadVariant(candidateVariantId)
+          const syntheticCandidate = await synthesizeFixtureRun({
+            experiment,
+            scenario: scenarioRecord,
+            variant: candidateVariant,
+            runGroupId: candidateRunGroupId,
+            repeatIndex,
+            scoreSpecIds: experiment.score_spec_ids ?? [],
+          })
+          candidateActionId = syntheticCandidate.userActionId
+          candidateExecution = syntheticCandidate.execution
+          candidateEvalRunId = syntheticCandidate.execution.eval_run_id
+          candidateBenchmarkRunId = syntheticCandidate.execution.benchmark_run_id
+          const candidateRunId = syntheticCandidate.runId
+          const candidateScores = syntheticCandidate.scores
+          const candidateRunArtifact = syntheticCandidate.runArtifact
+
+          const gateResults = evaluateGate({
+            scenarioId,
+            candidateVariantId,
+            gatePolicy,
+            scoreSpecs,
+            baselineScores,
+            candidateScores,
+          })
+          const scorecard = buildScorecardSummary({
+            scenarioId,
+            candidateVariantId,
+            scoreSpecs,
+            baselineScores,
+            candidateScores,
+          })
+          const variantEffect = runtimeDifferenceAnalysis({
+            scenarioId,
+            candidateVariantId,
+            baselineVariantEffect: baselineRunArtifact?.variant_effect,
+            candidateVariantEffect: candidateRunArtifact.variant_effect,
+            scorecard,
+          })
+          const experimentValidityForCandidate = buildExperimentValidity({
+            profile: experiment.report_profile ?? 'smoke',
+            scenarioId,
+            candidateVariantId,
+            scenario: scenarioRecord,
+            baselineExecution,
+            candidateExecution,
+            scorecard,
+            variantEffectSummary: variantEffect,
+          })
+          const syntheticCompareReport = await writeSyntheticCompareReport({
+            baselineRunId,
+            candidateRunId,
+            scorecard,
+            variantEffectSummary: variantEffect,
+          })
+
+          candidates.push({
+            candidate_variant_id: candidateVariantId,
+            candidate_run_group_id: candidateRunGroupId,
+            candidate_run_id: candidateRunId,
+            candidate_user_action_id: candidateActionId,
+            candidate_eval_run_id: candidateEvalRunId,
+            candidate_benchmark_run_id: candidateBenchmarkRunId,
+            candidate_execution: candidateExecution,
+            baseline_variant_effect: baselineRunArtifact?.variant_effect,
+            candidate_variant_effect: candidateRunArtifact.variant_effect,
+            variant_effect_summary: variantEffect,
+            experiment_validity: experimentValidityForCandidate,
+            compare_report: syntheticCompareReport,
+            gate_results: gateResults,
+            scorecard_summary: scorecard,
+            exploration_signals: buildExplorationSignals({
+              scorecard,
+              gateResults,
+              experimentValidity: experimentValidityForCandidate,
+              variantEffectSummary: variantEffect,
+            }),
+            recommended_review_mode: recommendReviewMode({
+              scorecard,
+              gateResults,
+              experimentValidity: experimentValidityForCandidate,
+            }),
+          })
+        } else {
 
         if (mode === 'execute_harness') {
           if (!scenario) throw new Error(`Scenario not found: ${scenarioId}`)
@@ -1959,6 +2815,7 @@ async function main(): Promise<void> {
           profile: experiment.report_profile ?? 'smoke',
           scenarioId,
           candidateVariantId,
+          scenario: scenarioRecord,
           baselineExecution,
           candidateExecution,
           scorecard,
@@ -1992,6 +2849,7 @@ async function main(): Promise<void> {
             experimentValidity: experimentValidityForCandidate,
           }),
         })
+        }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
           if (failurePolicy === 'fail_fast') throw error
@@ -2047,6 +2905,11 @@ async function main(): Promise<void> {
   const recommendedReviewMode = aggregateReviewMode(results)
   const variantEffectSummary = aggregateVariantEffectSummary(results)
   const experimentValidity = aggregateExperimentValidity(results)
+  const longContextSummary = await aggregateLongContextSummary(results)
+  const longContextReviewVerdict = summarizeLongContextVerdict({
+    experimentValidity,
+    longContextSummary,
+  })
   const runGroups = await buildRunGroups({
     experimentId: experiment.experiment_id,
     baselineVariantId: experiment.baseline_variant_id,
@@ -2109,6 +2972,8 @@ async function main(): Promise<void> {
         risk_verdict: riskVerdict,
         gate_verdict: riskVerdict,
         experiment_validity: experimentValidity,
+        long_context_review_verdict: longContextReviewVerdict ?? null,
+        long_context_summary: longContextSummary,
         variant_effect_summary: variantEffectSummary,
         runtime_difference_summary: variantEffectSummary.flatMap(item => item.summary),
         verdict_boundary:
@@ -2161,6 +3026,8 @@ async function main(): Promise<void> {
       runGroups,
       failures,
       outputJson: outputJsonRel,
+      longContextSummary,
+      longContextReviewVerdict,
     }),
   )
 
@@ -2179,6 +3046,8 @@ async function main(): Promise<void> {
       explorationSignals,
       recommendedReviewMode,
       variantEffectSummary,
+      longContextSummary,
+      longContextReviewVerdict,
     }),
   )
 

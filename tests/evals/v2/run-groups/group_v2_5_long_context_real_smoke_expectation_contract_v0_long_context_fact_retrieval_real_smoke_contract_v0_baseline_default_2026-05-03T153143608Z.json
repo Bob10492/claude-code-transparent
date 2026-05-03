@@ -1,0 +1,32 @@
+{
+  "run_group_id": "group_v2_5_long_context_real_smoke_expectation_contract_v0_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_2026-05-03T153143608Z",
+  "experiment_id": "v2_5_long_context_real_smoke_expectation_contract_v0",
+  "scenario_id": "long_context_fact_retrieval_real_smoke_contract_v0",
+  "variant_id": "baseline_default",
+  "repeat_count": 1,
+  "run_ids": [
+    "run_2026-05-03T153208617Z_long_context_fact_retrieval_real_smoke_contract_v0_baseline_default_0b6a625e"
+  ],
+  "status": "completed",
+  "started_at": "2026-05-03T15:31:47.795Z",
+  "ended_at": "2026-05-03T15:32:03.341Z",
+  "aggregate_summary_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md",
+  "stability_metrics": {
+    "repeat_success_rate": 1,
+    "capture_failure_rate": 0,
+    "total_billed_tokens_mean": 27436,
+    "total_billed_tokens_min": 27436,
+    "total_billed_tokens_max": 27436,
+    "total_billed_tokens_stddev": 0,
+    "e2e_duration_mean": 15546,
+    "e2e_duration_min": 15546,
+    "e2e_duration_max": 15546,
+    "e2e_duration_stddev": 0,
+    "tool_call_count_variance": 0,
+    "subagent_count_variance": 0,
+    "turn_count_variance": 0,
+    "recovery_rate": 0
+  },
+  "flaky_status": "inconclusive",
+  "failures": []
+}

@@ -1,0 +1,82 @@
+{
+  "feedback_run_id": "feedback_run_v2_4_long_context_real_smoke_beta_20260503T145942988Z_7893da90",
+  "taxonomy_version": "v2_5_beta",
+  "generated_at": "2026-05-03T14:59:42.988Z",
+  "source_experiment_id": "v2_4_long_context_real_smoke",
+  "source_experiment_run_ref": "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T145644822Z.json",
+  "source_report_refs": [
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T145624015Z_long_context_fact_retrieval_real_smoke_baseline_default_4015c73b_vs_run_2026-05-03T145644621Z_long_context_fact_retrieval_real_smoke_candidate_session_memory_sparse_54964348.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_4_long_context_real_smoke_2026-05-03T145644822Z.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_4_long_context_real_smoke_2026-05-03T145644822Z.md"
+  ],
+  "finding_refs": [
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_long_context_review_verdict_needs_manual_review_20260503T145942988Z_3c7be194.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_risk_verdict_inconclusive_20260503T145942988Z_e946246a.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_missing_score_count_positive_20260503T145942988Z_f7a7a853.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_manual_review_required_long_context_fact_retriev_20260503T145942988Z_7fb1e53a.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_flaky_status_long_context_fact_retrieval_real_sm_20260503T145942988Z_69707008.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_flaky_status_long_context_fact_retrieval_real_sm_20260503T145942988Z_6ac48f97.json"
+  ],
+  "hypothesis_refs": [
+    "tests/evals/v2/feedback/hypotheses/hypothesis_v2_4_long_context_real_smoke_manual_review_boundary_still_open_20260503T145942988Z_2aa4b447.json",
+    "tests/evals/v2/feedback/hypotheses/hypothesis_v2_4_long_context_real_smoke_runner_or_scenario_instability_20260503T145942988Z_01fd35e0.json"
+  ],
+  "proposal_refs": [
+    "tests/evals/v2/feedback/proposals/proposal_v2_4_long_context_real_smoke_tighten_real_smoke_expectations_v0_20260503T145942988Z_3851af91.json",
+    "tests/evals/v2/feedback/proposals/proposal_v2_4_long_context_real_smoke_stabilize_feedback_input_contract_v0_20260503T145942988Z_a0ba210d.json"
+  ],
+  "candidate_proposal_refs": [
+    "tests/evals/v2/feedback/candidate-proposals/candidate_proposal_v2_4_long_context_real_smoke_candidate_long_context_expectation_contract_v0_20260503T145942988Z_1bdb5652.json",
+    "tests/evals/v2/feedback/candidate-proposals/candidate_proposal_v2_4_long_context_real_smoke_candidate_feedback_input_contract_v0_20260503T145942988Z_829a2c3a.json"
+  ],
+  "next_experiment_plan_refs": [
+    "tests/evals/v2/feedback/experiment-plans/experiment_plan_v2_4_long_context_real_smoke_candidate_long_context_expectation_contract_v0_20260503T145942988Z_62748519.json",
+    "tests/evals/v2/feedback/experiment-plans/experiment_plan_v2_4_long_context_real_smoke_candidate_feedback_input_contract_v0_20260503T145942988Z_1e6a3fb4.json"
+  ],
+  "proposal_queue": {
+    "top_recommendation_proposal_ref": "tests/evals/v2/feedback/proposals/proposal_v2_4_long_context_real_smoke_tighten_real_smoke_expectations_v0_20260503T145942988Z_3851af91.json",
+    "recommended_now_proposal_refs": [
+      "tests/evals/v2/feedback/proposals/proposal_v2_4_long_context_real_smoke_tighten_real_smoke_expectations_v0_20260503T145942988Z_3851af91.json"
+    ],
+    "recommended_later_proposal_refs": [],
+    "deferred_proposal_refs": [
+      "tests/evals/v2/feedback/proposals/proposal_v2_4_long_context_real_smoke_stabilize_feedback_input_contract_v0_20260503T145942988Z_a0ba210d.json"
+    ],
+    "blocked_proposal_refs": []
+  },
+  "blocking_finding_refs": [],
+  "manual_judgement_required_finding_refs": [
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_long_context_review_verdict_needs_manual_review_20260503T145942988Z_3c7be194.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_manual_review_required_long_context_fact_retriev_20260503T145942988Z_7fb1e53a.json"
+  ],
+  "auto_resolvable_finding_refs": [
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_risk_verdict_inconclusive_20260503T145942988Z_e946246a.json",
+    "tests/evals/v2/feedback/findings/finding_v2_4_long_context_real_smoke_missing_score_count_positive_20260503T145942988Z_f7a7a853.json"
+  ],
+  "approval_card": {
+    "current_top_recommendation_proposal_ref": "tests/evals/v2/feedback/proposals/proposal_v2_4_long_context_real_smoke_tighten_real_smoke_expectations_v0_20260503T145942988Z_3851af91.json",
+    "why_now": "Semantic parsing is now present, so the next bottleneck is the real-smoke expectation contract and review-prompt precision.",
+    "why_not_others_yet": [
+      "proposal_v2_4_long_context_real_smoke_stabilize_feedback_input_contract_v0_20260503T145942988Z_a0ba210d: deferred - The current sample has a stronger semantic-evidence gap than a true contract-breakage gap, so this should remain deferred."
+    ],
+    "approval_scope": "Only scenario manifests, expected facts, constraints, and manual review prompts may change.",
+    "do_not_touch": [
+      "src/query.ts",
+      "src/services/SessionMemory/sessionMemory.ts",
+      "runtime harness policy files"
+    ],
+    "next_experiment_plan_ref": "tests/evals/v2/feedback/experiment-plans/experiment_plan_v2_4_long_context_real_smoke_candidate_long_context_expectation_contract_v0_20260503T145942988Z_62748519.json",
+    "success_criteria": [
+      "Manual review prompts become more specific and lower-ambiguity.",
+      "Scenario intent remains matched.",
+      "No new flaky or failed run groups appear."
+    ],
+    "risks": [
+      "Treating manual review signals as auto-pass would overstate evaluator certainty."
+    ],
+    "manual_review_boundary": "Do not treat manual_review_required or needs_manual_review as automatic pass. Any approved proposal must preserve explicit human review for nuanced semantic checks."
+  },
+  "report_ref": "ObservrityTask/10-系统版本/v2/07-反馈报告/feedback_run_v2_4_long_context_real_smoke_beta_20260503T145942988Z_7893da90.md",
+  "human_approval_required": true,
+  "status": "completed"
+}

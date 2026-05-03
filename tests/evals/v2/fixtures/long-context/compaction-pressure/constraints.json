@@ -1,0 +1,19 @@
+{
+  "constraints": [
+    {
+      "id": "three_exact_sections",
+      "description": "Use exactly the headings Overview, Evidence, Conclusion.",
+      "severity": "hard"
+    },
+    {
+      "id": "no_archived_event_names",
+      "description": "Do not quote archived event names as current behavior.",
+      "severity": "hard"
+    },
+    {
+      "id": "read_only_task",
+      "description": "Keep the task read-only.",
+      "severity": "hard"
+    }
+  ]
+}

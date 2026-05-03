@@ -6,6 +6,10 @@ export type EvalChangeLayer =
   | 'mixed'
 
 export type EvalExpectationType = 'rule' | 'structure' | 'manual_review'
+  | 'retained_constraint'
+  | 'retrieved_fact'
+  | 'forbidden_confusion'
+  | 'context_budget'
 
 export type EvalRunStatus =
   | 'pending'
@@ -27,6 +31,76 @@ export type EvalScoreDimension =
   | 'efficiency'
   | 'stability'
   | 'controllability'
+  | 'context'
+
+export type EvalFeedbackSeverity = 'info' | 'warning' | 'blocking'
+
+export type EvalFeedbackFactOrInference = 'fact' | 'inference'
+
+export type EvalFeedbackFindingKind =
+  | 'missing_score'
+  | 'manual_review_boundary'
+  | 'runtime_observation_gap'
+  | 'stability_gap'
+  | 'execution_failure'
+
+export type EvalFeedbackScope =
+  | 'experiment'
+  | 'scenario'
+  | 'variant'
+  | 'run_group'
+  | 'run'
+
+export type EvalFeedbackPriority = 'P0' | 'P1' | 'P2'
+
+export type EvalFeedbackQueueBucket =
+  | 'top_recommendation'
+  | 'recommended_now'
+  | 'recommended_later'
+  | 'deferred'
+  | 'blocked'
+
+export type EvalFeedbackProposalType =
+  | 'evaluator_improvement'
+  | 'score_binding_improvement'
+  | 'scenario_improvement'
+  | 'feedback_contract_improvement'
+  | 'harness_candidate_improvement'
+
+export type EvalFeedbackTargetLayer =
+  | 'evaluator'
+  | 'scorer'
+  | 'scenario'
+  | 'harness'
+  | 'report'
+  | 'feedback_system'
+  | 'mixed'
+
+export type EvalContextSizeClass = 'small' | 'medium' | 'large'
+
+export interface EvalLongContextProfile {
+  context_family:
+    | 'constraint_retention'
+    | 'retrieval'
+    | 'distractor_resistance'
+    | 'compaction_pressure'
+  context_size_class: EvalContextSizeClass
+  fixture_ref: string
+  expected_retained_constraints: string[]
+  expected_retrieved_facts: string[]
+  distractor_refs: string[]
+  forbidden_confusions: string[]
+  manual_review_questions: string[]
+}
+
+export type EvalExpectationBody = Record<string, unknown>
+
+export interface EvalScenarioExpectation {
+  expectation_id: string
+  expectation_type: EvalExpectationType
+  expectation_body: EvalExpectationBody
+  severity: 'low' | 'medium' | 'high'
+}
 
 export interface EvalScenario {
   scenario_id: string
@@ -43,6 +117,12 @@ export interface EvalScenario {
   max_turn_count?: number
   max_total_billed_tokens?: number
   max_subagent_count?: number
+  expected_facts?: string[]
+  forbidden_confusions?: string[]
+  manual_review_questions?: string[]
+  context_profile_ref?: string
+  long_context_profile?: EvalLongContextProfile
+  expectations?: EvalScenarioExpectation[]
   owner: string
   status: 'draft' | 'ready' | 'archived'
 }
@@ -98,7 +178,7 @@ export interface EvalExpectation {
   expectation_id: string
   scenario_id: string
   expectation_type: EvalExpectationType
-  expectation_body: string
+  expectation_body: EvalExpectationBody
   severity: 'low' | 'medium' | 'high'
 }
 
@@ -123,4 +203,115 @@ export interface EvalExperiment {
   report_profile?: 'smoke' | 'real_experiment'
   evaluation_intent?: 'regression' | 'exploration'
   status: EvalExperimentStatus
+}
+
+export interface EvalFinding {
+  finding_id: string
+  source_experiment_id: string
+  source_report_ref: string
+  finding_type: string
+  finding_kind: EvalFeedbackFindingKind
+  severity: EvalFeedbackSeverity
+  scope: EvalFeedbackScope
+  scope_ref: string
+  summary: string
+  evidence_ref: string
+  is_blocking: boolean
+  requires_manual_judgement: boolean
+  auto_resolvable: boolean
+  fact_or_inference: 'fact'
+}
+
+export interface EvalHypothesis {
+  hypothesis_id: string
+  based_on_finding_ids: string[]
+  depends_on_finding_refs: string[]
+  hypothesis: string
+  confidence: 'low' | 'medium' | 'high'
+  falsifiable_by: string[]
+  supporting_evidence_refs: string[]
+  risks: string[]
+  fact_or_inference: 'inference'
+}
+
+export interface EvalImprovementProposal {
+  proposal_id: string
+  based_on_hypothesis_ids: string[]
+  based_on_finding_ids: string[]
+  proposal_type: EvalFeedbackProposalType
+  target_layer: EvalFeedbackTargetLayer
+  priority: EvalFeedbackPriority
+  queue_bucket: EvalFeedbackQueueBucket
+  description: string
+  expected_effect: string
+  why_now: string
+  why_not_now: string | null
+  blocking_finding_ids: string[]
+  manual_judgement_finding_ids: string[]
+  risks: string[]
+  requires_human_approval: true
+}
+
+export interface EvalCandidateVariantProposal {
+  candidate_proposal_id: string
+  based_on_proposal_id: string
+  change_layer: EvalFeedbackTargetLayer
+  variant_name: string
+  implementation_scope: string
+  do_not_touch: string[]
+  suggested_manifest_patch: Record<string, unknown>
+}
+
+export interface EvalNextExperimentPlan {
+  next_experiment_plan_id: string
+  based_on_proposal_id: string
+  scenario_ids: string[]
+  baseline_variant_id: string
+  candidate_variant_id: string
+  repeat_count: number
+  success_criteria: string[]
+  failure_criteria: string[]
+  manual_review_required: boolean
+}
+
+export interface EvalFeedbackProposalQueue {
+  top_recommendation_proposal_ref: string | null
+  recommended_now_proposal_refs: string[]
+  recommended_later_proposal_refs: string[]
+  deferred_proposal_refs: string[]
+  blocked_proposal_refs: string[]
+}
+
+export interface EvalFeedbackApprovalCard {
+  current_top_recommendation_proposal_ref: string | null
+  why_now: string
+  why_not_others_yet: string[]
+  approval_scope: string
+  do_not_touch: string[]
+  next_experiment_plan_ref: string | null
+  success_criteria: string[]
+  risks: string[]
+  manual_review_boundary: string
+}
+
+export interface EvalFeedbackRun {
+  feedback_run_id: string
+  taxonomy_version: string
+  generated_at: string
+  source_experiment_id: string
+  source_experiment_run_ref: string
+  source_report_refs: string[]
+  finding_refs: string[]
+  hypothesis_refs: string[]
+  proposal_refs: string[]
+  candidate_proposal_refs: string[]
+  next_experiment_plan_refs: string[]
+  proposal_queue: EvalFeedbackProposalQueue
+  blocking_finding_refs: string[]
+  manual_judgement_required_finding_refs: string[]
+  auto_resolvable_finding_refs: string[]
+  approval_card: EvalFeedbackApprovalCard
+  report_ref: string
+  human_approval_required: true
+  status: 'completed'
 }

@@ -1,0 +1,10 @@
+{
+  "finding_id": "finding_v2_4_long_context_real_smoke_missing_score_count_positive_20260503T103210763Z_5d5767ae",
+  "source_experiment_id": "v2_4_long_context_real_smoke",
+  "source_report_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_4_long_context_real_smoke_2026-05-03T060617173Z.md",
+  "finding_type": "missing_score_count_positive",
+  "severity": "medium",
+  "summary": "The experiment still has 1 missing score(s).",
+  "evidence_ref": "tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json#/risk_verdict/missing_score_count",
+  "fact_or_inference": "fact"
+}

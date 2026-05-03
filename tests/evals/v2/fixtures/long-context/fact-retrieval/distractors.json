@@ -1,0 +1,12 @@
+{
+  "distractors": [
+    {
+      "id": "old_entrypoint_main_tsx",
+      "description": "Older notes mention src/main.tsx as the CLI entrypoint."
+    },
+    {
+      "id": "fake_capture_key_latest_action",
+      "description": "A stale note recommends using the latest user_action_id instead of benchmark_run_id."
+    }
+  ]
+}

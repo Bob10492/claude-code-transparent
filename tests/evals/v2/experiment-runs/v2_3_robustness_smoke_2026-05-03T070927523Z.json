@@ -1,0 +1,2786 @@
+{
+  "experiment_id": "v2_3_robustness_smoke",
+  "manifest_ref": "tests\\evals\\v2\\experiments\\_experiment.robustness.smoke.json",
+  "generated_at": "2026-05-03T07:09:27.523Z",
+  "mode": "execute_harness",
+  "requested_mode": "execute_harness",
+  "automation_disabled": false,
+  "report_profile": "smoke",
+  "evaluation_intent": "regression",
+  "run_refs": [
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927462Z_execute_harness_smoke_minimal_baseline_default_49e858ae.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927467Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_1e5948a5.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927478Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_09f1deec.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927484Z_execute_harness_smoke_minimal_baseline_default_8600f149.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927487Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_862641d4.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927491Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_61d3ed8d.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927496Z_robustness_smoke_minimal_alt_baseline_default_231de0ad.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927499Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_c53e147c.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927505Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_1afeb0f4.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927513Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_242dc6f0.json",
+    "tests\\evals\\v2\\runs\\run_2026-05-03T070927518Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_59258ce7.json"
+  ],
+  "run_group_refs": [
+    "tests\\evals\\v2\\run-groups\\group_v2_3_robustness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-03T070927456Z.json",
+    "tests\\evals\\v2\\run-groups\\group_v2_3_robustness_smoke_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_2026-05-03T070927456Z.json",
+    "tests\\evals\\v2\\run-groups\\group_v2_3_robustness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-03T070927456Z.json",
+    "tests\\evals\\v2\\run-groups\\group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_baseline_default_2026-05-03T070927456Z.json",
+    "tests\\evals\\v2\\run-groups\\group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_2026-05-03T070927456Z.json",
+    "tests\\evals\\v2\\run-groups\\group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_candidate_session_memory_sparse_2026-05-03T070927456Z.json"
+  ],
+  "score_refs": [
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927462Z_execute_harness_smoke_minimal_baseline_default_49e858ae.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927467Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_1e5948a5.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927478Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_09f1deec.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927484Z_execute_harness_smoke_minimal_baseline_default_8600f149.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927487Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_862641d4.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927491Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_61d3ed8d.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927496Z_robustness_smoke_minimal_alt_baseline_default_231de0ad.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927499Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_c53e147c.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927505Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_1afeb0f4.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927513Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_242dc6f0.scores.json",
+    "tests\\evals\\v2\\scores\\run_2026-05-03T070927518Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_59258ce7.scores.json"
+  ],
+  "report_refs": [
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927462Z_execute_harness_smoke_minimal_baseline_default_49e858ae_vs_run_2026-05-03T070927467Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_1e5948a5.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927462Z_execute_harness_smoke_minimal_baseline_default_49e858ae_vs_run_2026-05-03T070927478Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_09f1deec.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927484Z_execute_harness_smoke_minimal_baseline_default_8600f149_vs_run_2026-05-03T070927487Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_862641d4.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927484Z_execute_harness_smoke_minimal_baseline_default_8600f149_vs_run_2026-05-03T070927491Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_61d3ed8d.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927496Z_robustness_smoke_minimal_alt_baseline_default_231de0ad_vs_run_2026-05-03T070927499Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_c53e147c.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927496Z_robustness_smoke_minimal_alt_baseline_default_231de0ad_vs_run_2026-05-03T070927505Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_1afeb0f4.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf_vs_run_2026-05-03T070927513Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_242dc6f0.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf_vs_run_2026-05-03T070927518Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_59258ce7.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_3_robustness_smoke_2026-05-03T070927523Z.md",
+    "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\experiment_v2_3_robustness_smoke_2026-05-03T070927523Z.md"
+  ],
+  "risk_verdict": {
+    "status": "pass",
+    "scope": "regression_risk_only",
+    "is_final_experiment_judgment": false,
+    "hard_fail_count": 0,
+    "soft_warning_count": 0,
+    "missing_score_count": 0,
+    "inconclusive_count": 0,
+    "candidate_count": 8,
+    "notes": "This verdict is only a regression-risk gate result. It is not a final judgment about model intelligence, harness value, or exploratory potential."
+  },
+  "gate_verdict": {
+    "status": "pass",
+    "scope": "regression_risk_only",
+    "is_final_experiment_judgment": false,
+    "hard_fail_count": 0,
+    "soft_warning_count": 0,
+    "missing_score_count": 0,
+    "inconclusive_count": 0,
+    "candidate_count": 8,
+    "notes": "This verdict is only a regression-risk gate result. It is not a final judgment about model intelligence, harness value, or exploratory potential."
+  },
+  "experiment_validity": {
+    "status": "valid",
+    "profile": "smoke",
+    "reason": "Smoke check remains healthy.",
+    "blockers": [],
+    "warnings": [],
+    "checks": {
+      "baseline_captured": true,
+      "candidate_captured": true,
+      "no_ambiguous_capture": true,
+      "score_evidence_present": true,
+      "variant_effect_observed": false,
+      "runtime_difference_observed": false,
+      "scenario_intent_matched": true
+    }
+  },
+  "long_context_review_verdict": null,
+  "long_context_summary": [],
+  "variant_effect_summary": [
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "baseline_variant_effect_observed": false,
+      "candidate_variant_effect_observed": true,
+      "runtime_difference_observed": false,
+      "baseline_policy_mode": "unknown",
+      "candidate_policy_mode": "unknown",
+      "summary": [
+        "Baseline session_memory policy was not observed in V1 events.",
+        "Candidate session_memory policy was not observed in V1 events.",
+        "Candidate sparse-policy markers were observed in runtime evidence.",
+        "At least one score dimension changed between baseline and candidate.",
+        "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+      ]
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "baseline_variant_effect_observed": false,
+      "candidate_variant_effect_observed": false,
+      "runtime_difference_observed": false,
+      "baseline_policy_mode": "unknown",
+      "candidate_policy_mode": "unknown",
+      "summary": [
+        "Baseline session_memory policy was not observed in V1 events.",
+        "Candidate session_memory policy was not observed in V1 events.",
+        "At least one score dimension changed between baseline and candidate.",
+        "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+      ]
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "baseline_variant_effect_observed": false,
+      "candidate_variant_effect_observed": true,
+      "runtime_difference_observed": false,
+      "baseline_policy_mode": "unknown",
+      "candidate_policy_mode": "unknown",
+      "summary": [
+        "Baseline session_memory policy was not observed in V1 events.",
+        "Candidate session_memory policy was not observed in V1 events.",
+        "Candidate sparse-policy markers were observed in runtime evidence.",
+        "At least one score dimension changed between baseline and candidate.",
+        "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+      ]
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "baseline_variant_effect_observed": false,
+      "candidate_variant_effect_observed": false,
+      "runtime_difference_observed": false,
+      "baseline_policy_mode": "unknown",
+      "candidate_policy_mode": "unknown",
+      "summary": [
+        "Baseline session_memory policy was not observed in V1 events.",
+        "Candidate session_memory policy was not observed in V1 events.",
+        "At least one score dimension changed between baseline and candidate.",
+        "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+      ]
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "baseline_variant_effect_observed": false,
+      "candidate_variant_effect_observed": true,
+      "runtime_difference_observed": false,
+      "baseline_policy_mode": "unknown",
+      "candidate_policy_mode": "unknown",
+      "summary": [
+        "Baseline session_memory policy was not observed in V1 events.",
+        "Candidate session_memory policy was not observed in V1 events.",
+        "Candidate sparse-policy markers were observed in runtime evidence.",
+        "At least one score dimension changed between baseline and candidate.",
+        "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+      ]
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "baseline_variant_effect_observed": false,
+      "candidate_variant_effect_observed": false,
+      "runtime_difference_observed": false,
+      "baseline_policy_mode": "unknown",
+      "candidate_policy_mode": "unknown",
+      "summary": [
+        "Baseline session_memory policy was not observed in V1 events.",
+        "Candidate session_memory policy was not observed in V1 events.",
+        "At least one score dimension changed between baseline and candidate.",
+        "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+      ]
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "baseline_variant_effect_observed": false,
+      "candidate_variant_effect_observed": true,
+      "runtime_difference_observed": false,
+      "baseline_policy_mode": "unknown",
+      "candidate_policy_mode": "unknown",
+      "summary": [
+        "Baseline session_memory policy was not observed in V1 events.",
+        "Candidate session_memory policy was not observed in V1 events.",
+        "Candidate sparse-policy markers were observed in runtime evidence.",
+        "At least one score dimension changed between baseline and candidate.",
+        "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+      ]
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "baseline_variant_effect_observed": false,
+      "candidate_variant_effect_observed": false,
+      "runtime_difference_observed": false,
+      "baseline_policy_mode": "unknown",
+      "candidate_policy_mode": "unknown",
+      "summary": [
+        "Baseline session_memory policy was not observed in V1 events.",
+        "Candidate session_memory policy was not observed in V1 events.",
+        "At least one score dimension changed between baseline and candidate.",
+        "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+      ]
+    }
+  ],
+  "runtime_difference_summary": [
+    "Baseline session_memory policy was not observed in V1 events.",
+    "Candidate session_memory policy was not observed in V1 events.",
+    "Candidate sparse-policy markers were observed in runtime evidence.",
+    "At least one score dimension changed between baseline and candidate.",
+    "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect.",
+    "Baseline session_memory policy was not observed in V1 events.",
+    "Candidate session_memory policy was not observed in V1 events.",
+    "At least one score dimension changed between baseline and candidate.",
+    "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect.",
+    "Baseline session_memory policy was not observed in V1 events.",
+    "Candidate session_memory policy was not observed in V1 events.",
+    "Candidate sparse-policy markers were observed in runtime evidence.",
+    "At least one score dimension changed between baseline and candidate.",
+    "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect.",
+    "Baseline session_memory policy was not observed in V1 events.",
+    "Candidate session_memory policy was not observed in V1 events.",
+    "At least one score dimension changed between baseline and candidate.",
+    "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect.",
+    "Baseline session_memory policy was not observed in V1 events.",
+    "Candidate session_memory policy was not observed in V1 events.",
+    "Candidate sparse-policy markers were observed in runtime evidence.",
+    "At least one score dimension changed between baseline and candidate.",
+    "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect.",
+    "Baseline session_memory policy was not observed in V1 events.",
+    "Candidate session_memory policy was not observed in V1 events.",
+    "At least one score dimension changed between baseline and candidate.",
+    "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect.",
+    "Baseline session_memory policy was not observed in V1 events.",
+    "Candidate session_memory policy was not observed in V1 events.",
+    "Candidate sparse-policy markers were observed in runtime evidence.",
+    "At least one score dimension changed between baseline and candidate.",
+    "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect.",
+    "Baseline session_memory policy was not observed in V1 events.",
+    "Candidate session_memory policy was not observed in V1 events.",
+    "At least one score dimension changed between baseline and candidate.",
+    "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+  ],
+  "verdict_boundary": "risk_verdict/gate_verdict is regression-risk-only and is not a final experiment judgment.",
+  "scorecard_summary": [
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 110,
+      "candidate_value": 100,
+      "delta": -10,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 110,
+      "candidate_value": 105,
+      "delta": -5,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 110,
+      "candidate_value": 100,
+      "delta": -10,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 110,
+      "candidate_value": 105,
+      "delta": -5,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 110,
+      "candidate_value": 100,
+      "delta": -10,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 110,
+      "candidate_value": 105,
+      "delta": -5,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 110,
+      "candidate_value": 100,
+      "delta": -10,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_session_memory_sparse",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "controllability.turn_limit_basic",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "decision_quality.subagent_count_observed",
+      "direction": "lower_is_better",
+      "baseline_value": 0,
+      "candidate_value": 0,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "efficiency.total_billed_tokens",
+      "direction": "lower_is_better",
+      "baseline_value": 110,
+      "candidate_value": 105,
+      "delta": -5,
+      "interpretation": "improved"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "stability.recovery_absence",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "candidate_variant_id": "candidate_eval_fixture_shadow",
+      "score_spec_id": "task_success.main_chain_observed",
+      "direction": "higher_is_better",
+      "baseline_value": 1,
+      "candidate_value": 1,
+      "delta": 0,
+      "interpretation": "unchanged"
+    }
+  ],
+  "exploration_signals": [
+    "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer."
+  ],
+  "stability_summary": [
+    {
+      "run_group_id": "group_v2_3_robustness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-03T070927456Z",
+      "experiment_id": "v2_3_robustness_smoke",
+      "scenario_id": "execute_harness_smoke_minimal",
+      "variant_id": "baseline_default",
+      "repeat_count": 2,
+      "run_ids": [
+        "run_2026-05-03T070927462Z_execute_harness_smoke_minimal_baseline_default_49e858ae",
+        "run_2026-05-03T070927484Z_execute_harness_smoke_minimal_baseline_default_8600f149"
+      ],
+      "status": "completed",
+      "started_at": "2026-05-03T07:09:27.458Z",
+      "ended_at": "2026-05-03T07:09:27.494Z",
+      "aggregate_summary_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_3_robustness_smoke_2026-05-03T070927523Z.md",
+      "stability_metrics": {
+        "repeat_success_rate": 1,
+        "capture_failure_rate": 0,
+        "total_billed_tokens_mean": 110,
+        "total_billed_tokens_min": 110,
+        "total_billed_tokens_max": 110,
+        "total_billed_tokens_stddev": 0,
+        "e2e_duration_mean": 10,
+        "e2e_duration_min": 10,
+        "e2e_duration_max": 10,
+        "e2e_duration_stddev": 0,
+        "tool_call_count_variance": 0,
+        "subagent_count_variance": 0,
+        "turn_count_variance": 0,
+        "recovery_rate": 0
+      },
+      "flaky_status": "stable",
+      "failures": []
+    },
+    {
+      "run_group_id": "group_v2_3_robustness_smoke_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_2026-05-03T070927456Z",
+      "experiment_id": "v2_3_robustness_smoke",
+      "scenario_id": "execute_harness_smoke_minimal",
+      "variant_id": "candidate_eval_fixture_shadow",
+      "repeat_count": 2,
+      "run_ids": [
+        "run_2026-05-03T070927478Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_09f1deec",
+        "run_2026-05-03T070927491Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_61d3ed8d"
+      ],
+      "status": "completed",
+      "started_at": "2026-05-03T07:09:27.478Z",
+      "ended_at": "2026-05-03T07:09:27.501Z",
+      "aggregate_summary_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_3_robustness_smoke_2026-05-03T070927523Z.md",
+      "stability_metrics": {
+        "repeat_success_rate": 1,
+        "capture_failure_rate": 0,
+        "total_billed_tokens_mean": 105,
+        "total_billed_tokens_min": 105,
+        "total_billed_tokens_max": 105,
+        "total_billed_tokens_stddev": 0,
+        "e2e_duration_mean": 10,
+        "e2e_duration_min": 10,
+        "e2e_duration_max": 10,
+        "e2e_duration_stddev": 0,
+        "tool_call_count_variance": 0,
+        "subagent_count_variance": 0,
+        "turn_count_variance": 0,
+        "recovery_rate": 0
+      },
+      "flaky_status": "stable",
+      "failures": []
+    },
+    {
+      "run_group_id": "group_v2_3_robustness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-03T070927456Z",
+      "experiment_id": "v2_3_robustness_smoke",
+      "scenario_id": "execute_harness_smoke_minimal",
+      "variant_id": "candidate_session_memory_sparse",
+      "repeat_count": 2,
+      "run_ids": [
+        "run_2026-05-03T070927467Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_1e5948a5",
+        "run_2026-05-03T070927487Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_862641d4"
+      ],
+      "status": "completed",
+      "started_at": "2026-05-03T07:09:27.467Z",
+      "ended_at": "2026-05-03T07:09:27.497Z",
+      "aggregate_summary_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_3_robustness_smoke_2026-05-03T070927523Z.md",
+      "stability_metrics": {
+        "repeat_success_rate": 1,
+        "capture_failure_rate": 0,
+        "total_billed_tokens_mean": 100,
+        "total_billed_tokens_min": 100,
+        "total_billed_tokens_max": 100,
+        "total_billed_tokens_stddev": 0,
+        "e2e_duration_mean": 10,
+        "e2e_duration_min": 10,
+        "e2e_duration_max": 10,
+        "e2e_duration_stddev": 0,
+        "tool_call_count_variance": 0,
+        "subagent_count_variance": 0,
+        "turn_count_variance": 0,
+        "recovery_rate": 0
+      },
+      "flaky_status": "stable",
+      "failures": []
+    },
+    {
+      "run_group_id": "group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_baseline_default_2026-05-03T070927456Z",
+      "experiment_id": "v2_3_robustness_smoke",
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "variant_id": "baseline_default",
+      "repeat_count": 2,
+      "run_ids": [
+        "run_2026-05-03T070927496Z_robustness_smoke_minimal_alt_baseline_default_231de0ad",
+        "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf"
+      ],
+      "status": "completed",
+      "started_at": "2026-05-03T07:09:27.495Z",
+      "ended_at": "2026-05-03T07:09:27.519Z",
+      "aggregate_summary_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_3_robustness_smoke_2026-05-03T070927523Z.md",
+      "stability_metrics": {
+        "repeat_success_rate": 1,
+        "capture_failure_rate": 0,
+        "total_billed_tokens_mean": 110,
+        "total_billed_tokens_min": 110,
+        "total_billed_tokens_max": 110,
+        "total_billed_tokens_stddev": 0,
+        "e2e_duration_mean": 10,
+        "e2e_duration_min": 10,
+        "e2e_duration_max": 10,
+        "e2e_duration_stddev": 0,
+        "tool_call_count_variance": 0,
+        "subagent_count_variance": 0,
+        "turn_count_variance": 0,
+        "recovery_rate": 0
+      },
+      "flaky_status": "stable",
+      "failures": []
+    },
+    {
+      "run_group_id": "group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_2026-05-03T070927456Z",
+      "experiment_id": "v2_3_robustness_smoke",
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "variant_id": "candidate_eval_fixture_shadow",
+      "repeat_count": 2,
+      "run_ids": [
+        "run_2026-05-03T070927505Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_1afeb0f4",
+        "run_2026-05-03T070927518Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_59258ce7"
+      ],
+      "status": "completed",
+      "started_at": "2026-05-03T07:09:27.503Z",
+      "ended_at": "2026-05-03T07:09:27.528Z",
+      "aggregate_summary_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_3_robustness_smoke_2026-05-03T070927523Z.md",
+      "stability_metrics": {
+        "repeat_success_rate": 1,
+        "capture_failure_rate": 0,
+        "total_billed_tokens_mean": 105,
+        "total_billed_tokens_min": 105,
+        "total_billed_tokens_max": 105,
+        "total_billed_tokens_stddev": 0,
+        "e2e_duration_mean": 10,
+        "e2e_duration_min": 10,
+        "e2e_duration_max": 10,
+        "e2e_duration_stddev": 0,
+        "tool_call_count_variance": 0,
+        "subagent_count_variance": 0,
+        "turn_count_variance": 0,
+        "recovery_rate": 0
+      },
+      "flaky_status": "stable",
+      "failures": []
+    },
+    {
+      "run_group_id": "group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_candidate_session_memory_sparse_2026-05-03T070927456Z",
+      "experiment_id": "v2_3_robustness_smoke",
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "variant_id": "candidate_session_memory_sparse",
+      "repeat_count": 2,
+      "run_ids": [
+        "run_2026-05-03T070927499Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_c53e147c",
+        "run_2026-05-03T070927513Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_242dc6f0"
+      ],
+      "status": "completed",
+      "started_at": "2026-05-03T07:09:27.498Z",
+      "ended_at": "2026-05-03T07:09:27.522Z",
+      "aggregate_summary_ref": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\batch_experiment_v2_3_robustness_smoke_2026-05-03T070927523Z.md",
+      "stability_metrics": {
+        "repeat_success_rate": 1,
+        "capture_failure_rate": 0,
+        "total_billed_tokens_mean": 100,
+        "total_billed_tokens_min": 100,
+        "total_billed_tokens_max": 100,
+        "total_billed_tokens_stddev": 0,
+        "e2e_duration_mean": 10,
+        "e2e_duration_min": 10,
+        "e2e_duration_max": 10,
+        "e2e_duration_stddev": 0,
+        "tool_call_count_variance": 0,
+        "subagent_count_variance": 0,
+        "turn_count_variance": 0,
+        "recovery_rate": 0
+      },
+      "flaky_status": "stable",
+      "failures": []
+    }
+  ],
+  "flaky_scenarios": [],
+  "recommended_review_mode": "regression_review",
+  "final_decision": null,
+  "errors": [],
+  "warnings": [],
+  "experiment": {
+    "experiment_id": "v2_3_robustness_smoke",
+    "name": "V2.3 Robustness Smoke",
+    "goal": "Verify V2.3 batch runner support for multi-scenario, multi-candidate, repeat_count > 1, run_group aggregation, stability summary, and flaky detection without model/API spend.",
+    "baseline_variant_id": "baseline_default",
+    "candidate_variant_ids": [
+      "candidate_session_memory_sparse",
+      "candidate_eval_fixture_shadow"
+    ],
+    "scenario_set_id": "v2_3_robustness_smoke",
+    "scenario_ids": [
+      "execute_harness_smoke_minimal",
+      "robustness_smoke_minimal_alt"
+    ],
+    "repeat_count": 2,
+    "score_spec_ids": [
+      "task_success.main_chain_observed",
+      "efficiency.total_billed_tokens",
+      "decision_quality.subagent_count_observed",
+      "stability.recovery_absence",
+      "controllability.turn_limit_basic"
+    ],
+    "gate_policy_id": "default_v2_1_gate",
+    "mode": "execute_harness",
+    "report_profile": "smoke",
+    "evaluation_intent": "regression",
+    "execution": {
+      "adapter": "fixture_trace",
+      "db_path": ".observability/v2-robustness-smoke.duckdb",
+      "timeout_ms": 30000,
+      "failure_policy": "continue_on_failure",
+      "env": {
+        "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb"
+      }
+    },
+    "status": "ready"
+  },
+  "runner": {
+    "requested_mode": "execute_harness",
+    "mode": "execute_harness",
+    "automation_disabled": false,
+    "fallback_reason": null,
+    "v2_3_batch_capabilities": {
+      "multi_scenario": true,
+      "multi_candidate": true,
+      "repeat_count": 2,
+      "failure_policy": "continue_on_failure"
+    },
+    "score_spec_ids": [
+      "task_success.main_chain_observed",
+      "efficiency.total_billed_tokens",
+      "decision_quality.subagent_count_observed",
+      "stability.recovery_absence",
+      "controllability.turn_limit_basic"
+    ],
+    "gate_policy_id": "default_v2_1_gate"
+  },
+  "results": [
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "repeat_index": 1,
+      "baseline_run_group_id": "group_v2_3_robustness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-03T070927456Z",
+      "baseline_run_id": "run_2026-05-03T070927462Z_execute_harness_smoke_minimal_baseline_default_49e858ae",
+      "baseline_user_action_id": "49e858ae-cbd7-4b4b-9210-a2cac28ebfdc",
+      "baseline_eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_1_147c3893038b",
+      "baseline_benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_1_147c3893038b",
+      "baseline_execution": {
+        "execution": {
+          "status": "completed",
+          "stdoutRef": "fixture_trace://synthetic",
+          "stderrRef": "fixture_trace://synthetic"
+        },
+        "capture": {
+          "status": "captured",
+          "user_action_id": "49e858ae-cbd7-4b4b-9210-a2cac28ebfdc",
+          "match_count": 1
+        },
+        "variant_apply": {
+          "env": {
+            "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+            "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_execute_harn_8962867b",
+            "CLAUDE_CODE_EVAL_VARIANT_ID": "var_baseline_def_eb4a038e",
+            "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+            "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "execute_harness_smoke_minimal",
+            "CLAUDE_CODE_EVAL_VARIANT_LABEL": "baseline_default",
+            "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_1_147c3893038b",
+            "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_1_147c3893038b",
+            "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+            "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "tests/evals/v2/configs/session_memory_default.runtime.json"
+          },
+          "cliArgs": [],
+          "metadata": {
+            "supported_variant_fields": [
+              "env_overrides",
+              "config_snapshot_ref",
+              "model_config",
+              "feature_gates"
+            ],
+            "config_snapshot_ref": "tests/evals/v2/configs/session_memory_default.runtime.json",
+            "feature_gate_count": 0,
+            "env_override_count": 0,
+            "model_config": null
+          }
+        },
+        "benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_1_147c3893038b",
+        "eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_1_147c3893038b"
+      },
+      "candidates": [
+        {
+          "candidate_variant_id": "candidate_session_memory_sparse",
+          "candidate_run_group_id": "group_v2_3_robustness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-03T070927456Z",
+          "candidate_run_id": "run_2026-05-03T070927467Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_1e5948a5",
+          "candidate_user_action_id": "1e5948a5-84e8-4aa0-b5d6-d84f28a1252a",
+          "candidate_eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_1_74d214d1e887",
+          "candidate_benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_1_74d214d1e887",
+          "candidate_execution": {
+            "execution": {
+              "status": "completed",
+              "stdoutRef": "fixture_trace://synthetic",
+              "stderrRef": "fixture_trace://synthetic"
+            },
+            "capture": {
+              "status": "captured",
+              "user_action_id": "1e5948a5-84e8-4aa0-b5d6-d84f28a1252a",
+              "match_count": 1
+            },
+            "variant_apply": {
+              "env": {
+                "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+                "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_execute_harn_8962867b",
+                "CLAUDE_CODE_EVAL_VARIANT_ID": "var_candidate_se_efbc2e82",
+                "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+                "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "execute_harness_smoke_minimal",
+                "CLAUDE_CODE_EVAL_VARIANT_LABEL": "candidate_session_memory_sparse",
+                "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_1_74d214d1e887",
+                "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_1_74d214d1e887",
+                "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+                "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "tests/evals/v2/configs/session_memory_sparse.runtime.json"
+              },
+              "cliArgs": [],
+              "metadata": {
+                "supported_variant_fields": [
+                  "env_overrides",
+                  "config_snapshot_ref",
+                  "model_config",
+                  "feature_gates"
+                ],
+                "config_snapshot_ref": "tests/evals/v2/configs/session_memory_sparse.runtime.json",
+                "feature_gate_count": 0,
+                "env_override_count": 0,
+                "model_config": null
+              }
+            },
+            "benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_1_74d214d1e887",
+            "eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_1_74d214d1e887"
+          },
+          "baseline_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "candidate_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": true,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "variant_effect_summary": {
+            "scenario_id": "execute_harness_smoke_minimal",
+            "candidate_variant_id": "candidate_session_memory_sparse",
+            "baseline_variant_effect_observed": false,
+            "candidate_variant_effect_observed": true,
+            "runtime_difference_observed": false,
+            "baseline_policy_mode": "unknown",
+            "candidate_policy_mode": "unknown",
+            "summary": [
+              "Baseline session_memory policy was not observed in V1 events.",
+              "Candidate session_memory policy was not observed in V1 events.",
+              "Candidate sparse-policy markers were observed in runtime evidence.",
+              "At least one score dimension changed between baseline and candidate.",
+              "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+            ]
+          },
+          "experiment_validity": {
+            "status": "valid",
+            "profile": "smoke",
+            "reason": "Smoke check passed: execute_harness closed the automatic execution and capture loop.",
+            "blockers": [],
+            "warnings": [],
+            "checks": {
+              "baseline_captured": true,
+              "candidate_captured": true,
+              "no_ambiguous_capture": true,
+              "score_evidence_present": true,
+              "variant_effect_observed": true,
+              "runtime_difference_observed": false,
+              "scenario_intent_matched": true
+            }
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927462Z_execute_harness_smoke_minimal_baseline_default_49e858ae_vs_run_2026-05-03T070927467Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_1e5948a5.md",
+          "gate_results": [
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "delta": -10,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer."
+          ],
+          "recommended_review_mode": "regression_review"
+        },
+        {
+          "candidate_variant_id": "candidate_eval_fixture_shadow",
+          "candidate_run_group_id": "group_v2_3_robustness_smoke_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_2026-05-03T070927456Z",
+          "candidate_run_id": "run_2026-05-03T070927478Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_09f1deec",
+          "candidate_user_action_id": "09f1deec-a00b-4943-8ba6-ff84062d7dbb",
+          "candidate_eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_1_20a3f4041e99",
+          "candidate_benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_1_20a3f4041e99",
+          "candidate_execution": {
+            "execution": {
+              "status": "completed",
+              "stdoutRef": "fixture_trace://synthetic",
+              "stderrRef": "fixture_trace://synthetic"
+            },
+            "capture": {
+              "status": "captured",
+              "user_action_id": "09f1deec-a00b-4943-8ba6-ff84062d7dbb",
+              "match_count": 1
+            },
+            "variant_apply": {
+              "env": {
+                "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+                "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_execute_harn_8962867b",
+                "CLAUDE_CODE_EVAL_VARIANT_ID": "var_candidate_ev_2bf59d78",
+                "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+                "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "execute_harness_smoke_minimal",
+                "CLAUDE_CODE_EVAL_VARIANT_LABEL": "candidate_eval_fixture_shadow",
+                "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_1_20a3f4041e99",
+                "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_1_20a3f4041e99",
+                "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+                "V2_FIXTURE_VARIANT_KIND": "shadow"
+              },
+              "cliArgs": [],
+              "metadata": {
+                "supported_variant_fields": [
+                  "env_overrides",
+                  "config_snapshot_ref",
+                  "model_config",
+                  "feature_gates"
+                ],
+                "config_snapshot_ref": null,
+                "feature_gate_count": 0,
+                "env_override_count": 1,
+                "model_config": null
+              }
+            },
+            "benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_1_20a3f4041e99",
+            "eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_1_20a3f4041e99"
+          },
+          "baseline_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "candidate_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "variant_effect_summary": {
+            "scenario_id": "execute_harness_smoke_minimal",
+            "candidate_variant_id": "candidate_eval_fixture_shadow",
+            "baseline_variant_effect_observed": false,
+            "candidate_variant_effect_observed": false,
+            "runtime_difference_observed": false,
+            "baseline_policy_mode": "unknown",
+            "candidate_policy_mode": "unknown",
+            "summary": [
+              "Baseline session_memory policy was not observed in V1 events.",
+              "Candidate session_memory policy was not observed in V1 events.",
+              "At least one score dimension changed between baseline and candidate.",
+              "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+            ]
+          },
+          "experiment_validity": {
+            "status": "valid",
+            "profile": "smoke",
+            "reason": "Smoke check passed: execute_harness closed the automatic execution and capture loop.",
+            "blockers": [],
+            "warnings": [],
+            "checks": {
+              "baseline_captured": true,
+              "candidate_captured": true,
+              "no_ambiguous_capture": true,
+              "score_evidence_present": true,
+              "variant_effect_observed": false,
+              "runtime_difference_observed": false,
+              "scenario_intent_matched": true
+            }
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927462Z_execute_harness_smoke_minimal_baseline_default_49e858ae_vs_run_2026-05-03T070927478Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_09f1deec.md",
+          "gate_results": [
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "delta": -5,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer."
+          ],
+          "recommended_review_mode": "regression_review"
+        }
+      ]
+    },
+    {
+      "scenario_id": "execute_harness_smoke_minimal",
+      "repeat_index": 2,
+      "baseline_run_group_id": "group_v2_3_robustness_smoke_execute_harness_smoke_minimal_baseline_default_2026-05-03T070927456Z",
+      "baseline_run_id": "run_2026-05-03T070927484Z_execute_harness_smoke_minimal_baseline_default_8600f149",
+      "baseline_user_action_id": "8600f149-b0cf-4e8c-b797-cc61cffeca36",
+      "baseline_eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_2_bd0d45035ee5",
+      "baseline_benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_2_bd0d45035ee5",
+      "baseline_execution": {
+        "execution": {
+          "status": "completed",
+          "stdoutRef": "fixture_trace://synthetic",
+          "stderrRef": "fixture_trace://synthetic"
+        },
+        "capture": {
+          "status": "captured",
+          "user_action_id": "8600f149-b0cf-4e8c-b797-cc61cffeca36",
+          "match_count": 1
+        },
+        "variant_apply": {
+          "env": {
+            "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+            "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_execute_harn_8962867b",
+            "CLAUDE_CODE_EVAL_VARIANT_ID": "var_baseline_def_eb4a038e",
+            "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+            "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "execute_harness_smoke_minimal",
+            "CLAUDE_CODE_EVAL_VARIANT_LABEL": "baseline_default",
+            "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_2_bd0d45035ee5",
+            "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_2_bd0d45035ee5",
+            "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+            "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "tests/evals/v2/configs/session_memory_default.runtime.json"
+          },
+          "cliArgs": [],
+          "metadata": {
+            "supported_variant_fields": [
+              "env_overrides",
+              "config_snapshot_ref",
+              "model_config",
+              "feature_gates"
+            ],
+            "config_snapshot_ref": "tests/evals/v2/configs/session_memory_default.runtime.json",
+            "feature_gate_count": 0,
+            "env_override_count": 0,
+            "model_config": null
+          }
+        },
+        "benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_2_bd0d45035ee5",
+        "eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_baseline_default_repeat_2_bd0d45035ee5"
+      },
+      "candidates": [
+        {
+          "candidate_variant_id": "candidate_session_memory_sparse",
+          "candidate_run_group_id": "group_v2_3_robustness_smoke_execute_harness_smoke_minimal_candidate_session_memory_sparse_2026-05-03T070927456Z",
+          "candidate_run_id": "run_2026-05-03T070927487Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_862641d4",
+          "candidate_user_action_id": "862641d4-2152-41bd-9449-30291b6cd507",
+          "candidate_eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_2_e1b73d3e5af2",
+          "candidate_benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_2_e1b73d3e5af2",
+          "candidate_execution": {
+            "execution": {
+              "status": "completed",
+              "stdoutRef": "fixture_trace://synthetic",
+              "stderrRef": "fixture_trace://synthetic"
+            },
+            "capture": {
+              "status": "captured",
+              "user_action_id": "862641d4-2152-41bd-9449-30291b6cd507",
+              "match_count": 1
+            },
+            "variant_apply": {
+              "env": {
+                "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+                "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_execute_harn_8962867b",
+                "CLAUDE_CODE_EVAL_VARIANT_ID": "var_candidate_se_efbc2e82",
+                "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+                "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "execute_harness_smoke_minimal",
+                "CLAUDE_CODE_EVAL_VARIANT_LABEL": "candidate_session_memory_sparse",
+                "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_2_e1b73d3e5af2",
+                "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_2_e1b73d3e5af2",
+                "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+                "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "tests/evals/v2/configs/session_memory_sparse.runtime.json"
+              },
+              "cliArgs": [],
+              "metadata": {
+                "supported_variant_fields": [
+                  "env_overrides",
+                  "config_snapshot_ref",
+                  "model_config",
+                  "feature_gates"
+                ],
+                "config_snapshot_ref": "tests/evals/v2/configs/session_memory_sparse.runtime.json",
+                "feature_gate_count": 0,
+                "env_override_count": 0,
+                "model_config": null
+              }
+            },
+            "benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_2_e1b73d3e5af2",
+            "eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_session_me_repeat_2_e1b73d3e5af2"
+          },
+          "baseline_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "candidate_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": true,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "variant_effect_summary": {
+            "scenario_id": "execute_harness_smoke_minimal",
+            "candidate_variant_id": "candidate_session_memory_sparse",
+            "baseline_variant_effect_observed": false,
+            "candidate_variant_effect_observed": true,
+            "runtime_difference_observed": false,
+            "baseline_policy_mode": "unknown",
+            "candidate_policy_mode": "unknown",
+            "summary": [
+              "Baseline session_memory policy was not observed in V1 events.",
+              "Candidate session_memory policy was not observed in V1 events.",
+              "Candidate sparse-policy markers were observed in runtime evidence.",
+              "At least one score dimension changed between baseline and candidate.",
+              "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+            ]
+          },
+          "experiment_validity": {
+            "status": "valid",
+            "profile": "smoke",
+            "reason": "Smoke check passed: execute_harness closed the automatic execution and capture loop.",
+            "blockers": [],
+            "warnings": [],
+            "checks": {
+              "baseline_captured": true,
+              "candidate_captured": true,
+              "no_ambiguous_capture": true,
+              "score_evidence_present": true,
+              "variant_effect_observed": true,
+              "runtime_difference_observed": false,
+              "scenario_intent_matched": true
+            }
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927484Z_execute_harness_smoke_minimal_baseline_default_8600f149_vs_run_2026-05-03T070927487Z_execute_harness_smoke_minimal_candidate_session_memory_sparse_862641d4.md",
+          "gate_results": [
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "delta": -10,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer."
+          ],
+          "recommended_review_mode": "regression_review"
+        },
+        {
+          "candidate_variant_id": "candidate_eval_fixture_shadow",
+          "candidate_run_group_id": "group_v2_3_robustness_smoke_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_2026-05-03T070927456Z",
+          "candidate_run_id": "run_2026-05-03T070927491Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_61d3ed8d",
+          "candidate_user_action_id": "61d3ed8d-3e51-4a48-84cf-e1b18d4a83d2",
+          "candidate_eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_2_89badae81e3c",
+          "candidate_benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_2_89badae81e3c",
+          "candidate_execution": {
+            "execution": {
+              "status": "completed",
+              "stdoutRef": "fixture_trace://synthetic",
+              "stderrRef": "fixture_trace://synthetic"
+            },
+            "capture": {
+              "status": "captured",
+              "user_action_id": "61d3ed8d-3e51-4a48-84cf-e1b18d4a83d2",
+              "match_count": 1
+            },
+            "variant_apply": {
+              "env": {
+                "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+                "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_execute_harn_8962867b",
+                "CLAUDE_CODE_EVAL_VARIANT_ID": "var_candidate_ev_2bf59d78",
+                "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+                "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "execute_harness_smoke_minimal",
+                "CLAUDE_CODE_EVAL_VARIANT_LABEL": "candidate_eval_fixture_shadow",
+                "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_2_89badae81e3c",
+                "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_2_89badae81e3c",
+                "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+                "V2_FIXTURE_VARIANT_KIND": "shadow"
+              },
+              "cliArgs": [],
+              "metadata": {
+                "supported_variant_fields": [
+                  "env_overrides",
+                  "config_snapshot_ref",
+                  "model_config",
+                  "feature_gates"
+                ],
+                "config_snapshot_ref": null,
+                "feature_gate_count": 0,
+                "env_override_count": 1,
+                "model_config": null
+              }
+            },
+            "benchmark_run_id": "bench_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_2_89badae81e3c",
+            "eval_run_id": "eval_v2_3_robustness_smok_execute_harness_smok_candidate_eval_fixtu_repeat_2_89badae81e3c"
+          },
+          "baseline_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "candidate_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "variant_effect_summary": {
+            "scenario_id": "execute_harness_smoke_minimal",
+            "candidate_variant_id": "candidate_eval_fixture_shadow",
+            "baseline_variant_effect_observed": false,
+            "candidate_variant_effect_observed": false,
+            "runtime_difference_observed": false,
+            "baseline_policy_mode": "unknown",
+            "candidate_policy_mode": "unknown",
+            "summary": [
+              "Baseline session_memory policy was not observed in V1 events.",
+              "Candidate session_memory policy was not observed in V1 events.",
+              "At least one score dimension changed between baseline and candidate.",
+              "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+            ]
+          },
+          "experiment_validity": {
+            "status": "valid",
+            "profile": "smoke",
+            "reason": "Smoke check passed: execute_harness closed the automatic execution and capture loop.",
+            "blockers": [],
+            "warnings": [],
+            "checks": {
+              "baseline_captured": true,
+              "candidate_captured": true,
+              "no_ambiguous_capture": true,
+              "score_evidence_present": true,
+              "variant_effect_observed": false,
+              "runtime_difference_observed": false,
+              "scenario_intent_matched": true
+            }
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927484Z_execute_harness_smoke_minimal_baseline_default_8600f149_vs_run_2026-05-03T070927491Z_execute_harness_smoke_minimal_candidate_eval_fixture_shadow_61d3ed8d.md",
+          "gate_results": [
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "delta": -5,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "execute_harness_smoke_minimal",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer."
+          ],
+          "recommended_review_mode": "regression_review"
+        }
+      ]
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "repeat_index": 1,
+      "baseline_run_group_id": "group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_baseline_default_2026-05-03T070927456Z",
+      "baseline_run_id": "run_2026-05-03T070927496Z_robustness_smoke_minimal_alt_baseline_default_231de0ad",
+      "baseline_user_action_id": "231de0ad-a147-4bc1-a6d3-1c997ab7c71d",
+      "baseline_eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_1_2f998148b932",
+      "baseline_benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_1_2f998148b932",
+      "baseline_execution": {
+        "execution": {
+          "status": "completed",
+          "stdoutRef": "fixture_trace://synthetic",
+          "stderrRef": "fixture_trace://synthetic"
+        },
+        "capture": {
+          "status": "captured",
+          "user_action_id": "231de0ad-a147-4bc1-a6d3-1c997ab7c71d",
+          "match_count": 1
+        },
+        "variant_apply": {
+          "env": {
+            "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+            "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_robustness_s_6a7f68b4",
+            "CLAUDE_CODE_EVAL_VARIANT_ID": "var_baseline_def_eb4a038e",
+            "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+            "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "robustness_smoke_minimal_alt",
+            "CLAUDE_CODE_EVAL_VARIANT_LABEL": "baseline_default",
+            "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_1_2f998148b932",
+            "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_1_2f998148b932",
+            "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+            "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "tests/evals/v2/configs/session_memory_default.runtime.json"
+          },
+          "cliArgs": [],
+          "metadata": {
+            "supported_variant_fields": [
+              "env_overrides",
+              "config_snapshot_ref",
+              "model_config",
+              "feature_gates"
+            ],
+            "config_snapshot_ref": "tests/evals/v2/configs/session_memory_default.runtime.json",
+            "feature_gate_count": 0,
+            "env_override_count": 0,
+            "model_config": null
+          }
+        },
+        "benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_1_2f998148b932",
+        "eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_1_2f998148b932"
+      },
+      "candidates": [
+        {
+          "candidate_variant_id": "candidate_session_memory_sparse",
+          "candidate_run_group_id": "group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_candidate_session_memory_sparse_2026-05-03T070927456Z",
+          "candidate_run_id": "run_2026-05-03T070927499Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_c53e147c",
+          "candidate_user_action_id": "c53e147c-51e7-4198-a565-79c92e9efd7f",
+          "candidate_eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_1_1e3611cdfc01",
+          "candidate_benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_1_1e3611cdfc01",
+          "candidate_execution": {
+            "execution": {
+              "status": "completed",
+              "stdoutRef": "fixture_trace://synthetic",
+              "stderrRef": "fixture_trace://synthetic"
+            },
+            "capture": {
+              "status": "captured",
+              "user_action_id": "c53e147c-51e7-4198-a565-79c92e9efd7f",
+              "match_count": 1
+            },
+            "variant_apply": {
+              "env": {
+                "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+                "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_robustness_s_6a7f68b4",
+                "CLAUDE_CODE_EVAL_VARIANT_ID": "var_candidate_se_efbc2e82",
+                "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+                "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "robustness_smoke_minimal_alt",
+                "CLAUDE_CODE_EVAL_VARIANT_LABEL": "candidate_session_memory_sparse",
+                "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_1_1e3611cdfc01",
+                "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_1_1e3611cdfc01",
+                "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+                "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "tests/evals/v2/configs/session_memory_sparse.runtime.json"
+              },
+              "cliArgs": [],
+              "metadata": {
+                "supported_variant_fields": [
+                  "env_overrides",
+                  "config_snapshot_ref",
+                  "model_config",
+                  "feature_gates"
+                ],
+                "config_snapshot_ref": "tests/evals/v2/configs/session_memory_sparse.runtime.json",
+                "feature_gate_count": 0,
+                "env_override_count": 0,
+                "model_config": null
+              }
+            },
+            "benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_1_1e3611cdfc01",
+            "eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_1_1e3611cdfc01"
+          },
+          "baseline_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "candidate_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": true,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "variant_effect_summary": {
+            "scenario_id": "robustness_smoke_minimal_alt",
+            "candidate_variant_id": "candidate_session_memory_sparse",
+            "baseline_variant_effect_observed": false,
+            "candidate_variant_effect_observed": true,
+            "runtime_difference_observed": false,
+            "baseline_policy_mode": "unknown",
+            "candidate_policy_mode": "unknown",
+            "summary": [
+              "Baseline session_memory policy was not observed in V1 events.",
+              "Candidate session_memory policy was not observed in V1 events.",
+              "Candidate sparse-policy markers were observed in runtime evidence.",
+              "At least one score dimension changed between baseline and candidate.",
+              "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+            ]
+          },
+          "experiment_validity": {
+            "status": "valid",
+            "profile": "smoke",
+            "reason": "Smoke check passed: execute_harness closed the automatic execution and capture loop.",
+            "blockers": [],
+            "warnings": [],
+            "checks": {
+              "baseline_captured": true,
+              "candidate_captured": true,
+              "no_ambiguous_capture": true,
+              "score_evidence_present": true,
+              "variant_effect_observed": true,
+              "runtime_difference_observed": false,
+              "scenario_intent_matched": true
+            }
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927496Z_robustness_smoke_minimal_alt_baseline_default_231de0ad_vs_run_2026-05-03T070927499Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_c53e147c.md",
+          "gate_results": [
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "delta": -10,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer."
+          ],
+          "recommended_review_mode": "regression_review"
+        },
+        {
+          "candidate_variant_id": "candidate_eval_fixture_shadow",
+          "candidate_run_group_id": "group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_2026-05-03T070927456Z",
+          "candidate_run_id": "run_2026-05-03T070927505Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_1afeb0f4",
+          "candidate_user_action_id": "1afeb0f4-cfb6-4643-82be-7e545c0c18a2",
+          "candidate_eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_1_ada6201f9287",
+          "candidate_benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_1_ada6201f9287",
+          "candidate_execution": {
+            "execution": {
+              "status": "completed",
+              "stdoutRef": "fixture_trace://synthetic",
+              "stderrRef": "fixture_trace://synthetic"
+            },
+            "capture": {
+              "status": "captured",
+              "user_action_id": "1afeb0f4-cfb6-4643-82be-7e545c0c18a2",
+              "match_count": 1
+            },
+            "variant_apply": {
+              "env": {
+                "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+                "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_robustness_s_6a7f68b4",
+                "CLAUDE_CODE_EVAL_VARIANT_ID": "var_candidate_ev_2bf59d78",
+                "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+                "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "robustness_smoke_minimal_alt",
+                "CLAUDE_CODE_EVAL_VARIANT_LABEL": "candidate_eval_fixture_shadow",
+                "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_1_ada6201f9287",
+                "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_1_ada6201f9287",
+                "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+                "V2_FIXTURE_VARIANT_KIND": "shadow"
+              },
+              "cliArgs": [],
+              "metadata": {
+                "supported_variant_fields": [
+                  "env_overrides",
+                  "config_snapshot_ref",
+                  "model_config",
+                  "feature_gates"
+                ],
+                "config_snapshot_ref": null,
+                "feature_gate_count": 0,
+                "env_override_count": 1,
+                "model_config": null
+              }
+            },
+            "benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_1_ada6201f9287",
+            "eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_1_ada6201f9287"
+          },
+          "baseline_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "candidate_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "variant_effect_summary": {
+            "scenario_id": "robustness_smoke_minimal_alt",
+            "candidate_variant_id": "candidate_eval_fixture_shadow",
+            "baseline_variant_effect_observed": false,
+            "candidate_variant_effect_observed": false,
+            "runtime_difference_observed": false,
+            "baseline_policy_mode": "unknown",
+            "candidate_policy_mode": "unknown",
+            "summary": [
+              "Baseline session_memory policy was not observed in V1 events.",
+              "Candidate session_memory policy was not observed in V1 events.",
+              "At least one score dimension changed between baseline and candidate.",
+              "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+            ]
+          },
+          "experiment_validity": {
+            "status": "valid",
+            "profile": "smoke",
+            "reason": "Smoke check passed: execute_harness closed the automatic execution and capture loop.",
+            "blockers": [],
+            "warnings": [],
+            "checks": {
+              "baseline_captured": true,
+              "candidate_captured": true,
+              "no_ambiguous_capture": true,
+              "score_evidence_present": true,
+              "variant_effect_observed": false,
+              "runtime_difference_observed": false,
+              "scenario_intent_matched": true
+            }
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927496Z_robustness_smoke_minimal_alt_baseline_default_231de0ad_vs_run_2026-05-03T070927505Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_1afeb0f4.md",
+          "gate_results": [
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "delta": -5,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer."
+          ],
+          "recommended_review_mode": "regression_review"
+        }
+      ]
+    },
+    {
+      "scenario_id": "robustness_smoke_minimal_alt",
+      "repeat_index": 2,
+      "baseline_run_group_id": "group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_baseline_default_2026-05-03T070927456Z",
+      "baseline_run_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf",
+      "baseline_user_action_id": "5ee185bf-0219-4052-84a4-c6f109eda670",
+      "baseline_eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_2_752782a6e13f",
+      "baseline_benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_2_752782a6e13f",
+      "baseline_execution": {
+        "execution": {
+          "status": "completed",
+          "stdoutRef": "fixture_trace://synthetic",
+          "stderrRef": "fixture_trace://synthetic"
+        },
+        "capture": {
+          "status": "captured",
+          "user_action_id": "5ee185bf-0219-4052-84a4-c6f109eda670",
+          "match_count": 1
+        },
+        "variant_apply": {
+          "env": {
+            "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+            "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_robustness_s_6a7f68b4",
+            "CLAUDE_CODE_EVAL_VARIANT_ID": "var_baseline_def_eb4a038e",
+            "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+            "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "robustness_smoke_minimal_alt",
+            "CLAUDE_CODE_EVAL_VARIANT_LABEL": "baseline_default",
+            "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_2_752782a6e13f",
+            "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_2_752782a6e13f",
+            "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+            "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "tests/evals/v2/configs/session_memory_default.runtime.json"
+          },
+          "cliArgs": [],
+          "metadata": {
+            "supported_variant_fields": [
+              "env_overrides",
+              "config_snapshot_ref",
+              "model_config",
+              "feature_gates"
+            ],
+            "config_snapshot_ref": "tests/evals/v2/configs/session_memory_default.runtime.json",
+            "feature_gate_count": 0,
+            "env_override_count": 0,
+            "model_config": null
+          }
+        },
+        "benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_2_752782a6e13f",
+        "eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_baseline_default_repeat_2_752782a6e13f"
+      },
+      "candidates": [
+        {
+          "candidate_variant_id": "candidate_session_memory_sparse",
+          "candidate_run_group_id": "group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_candidate_session_memory_sparse_2026-05-03T070927456Z",
+          "candidate_run_id": "run_2026-05-03T070927513Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_242dc6f0",
+          "candidate_user_action_id": "242dc6f0-95c4-4be4-8531-4ea532908b7c",
+          "candidate_eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_2_26ad9c80f7d1",
+          "candidate_benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_2_26ad9c80f7d1",
+          "candidate_execution": {
+            "execution": {
+              "status": "completed",
+              "stdoutRef": "fixture_trace://synthetic",
+              "stderrRef": "fixture_trace://synthetic"
+            },
+            "capture": {
+              "status": "captured",
+              "user_action_id": "242dc6f0-95c4-4be4-8531-4ea532908b7c",
+              "match_count": 1
+            },
+            "variant_apply": {
+              "env": {
+                "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+                "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_robustness_s_6a7f68b4",
+                "CLAUDE_CODE_EVAL_VARIANT_ID": "var_candidate_se_efbc2e82",
+                "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+                "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "robustness_smoke_minimal_alt",
+                "CLAUDE_CODE_EVAL_VARIANT_LABEL": "candidate_session_memory_sparse",
+                "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_2_26ad9c80f7d1",
+                "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_2_26ad9c80f7d1",
+                "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+                "CLAUDE_CODE_EVAL_CONFIG_SNAPSHOT_REF": "tests/evals/v2/configs/session_memory_sparse.runtime.json"
+              },
+              "cliArgs": [],
+              "metadata": {
+                "supported_variant_fields": [
+                  "env_overrides",
+                  "config_snapshot_ref",
+                  "model_config",
+                  "feature_gates"
+                ],
+                "config_snapshot_ref": "tests/evals/v2/configs/session_memory_sparse.runtime.json",
+                "feature_gate_count": 0,
+                "env_override_count": 0,
+                "model_config": null
+              }
+            },
+            "benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_2_26ad9c80f7d1",
+            "eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_session_me_repeat_2_26ad9c80f7d1"
+          },
+          "baseline_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "candidate_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": true,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "variant_effect_summary": {
+            "scenario_id": "robustness_smoke_minimal_alt",
+            "candidate_variant_id": "candidate_session_memory_sparse",
+            "baseline_variant_effect_observed": false,
+            "candidate_variant_effect_observed": true,
+            "runtime_difference_observed": false,
+            "baseline_policy_mode": "unknown",
+            "candidate_policy_mode": "unknown",
+            "summary": [
+              "Baseline session_memory policy was not observed in V1 events.",
+              "Candidate session_memory policy was not observed in V1 events.",
+              "Candidate sparse-policy markers were observed in runtime evidence.",
+              "At least one score dimension changed between baseline and candidate.",
+              "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+            ]
+          },
+          "experiment_validity": {
+            "status": "valid",
+            "profile": "smoke",
+            "reason": "Smoke check passed: execute_harness closed the automatic execution and capture loop.",
+            "blockers": [],
+            "warnings": [],
+            "checks": {
+              "baseline_captured": true,
+              "candidate_captured": true,
+              "no_ambiguous_capture": true,
+              "score_evidence_present": true,
+              "variant_effect_observed": true,
+              "runtime_difference_observed": false,
+              "scenario_intent_matched": true
+            }
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf_vs_run_2026-05-03T070927513Z_robustness_smoke_minimal_alt_candidate_session_memory_sparse_242dc6f0.md",
+          "gate_results": [
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 110,
+              "candidate_value": 100,
+              "delta": -10,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_session_memory_sparse",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer."
+          ],
+          "recommended_review_mode": "regression_review"
+        },
+        {
+          "candidate_variant_id": "candidate_eval_fixture_shadow",
+          "candidate_run_group_id": "group_v2_3_robustness_smoke_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_2026-05-03T070927456Z",
+          "candidate_run_id": "run_2026-05-03T070927518Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_59258ce7",
+          "candidate_user_action_id": "59258ce7-8f60-4962-98fc-ed2040c75255",
+          "candidate_eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_2_52a1672d7b21",
+          "candidate_benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_2_52a1672d7b21",
+          "candidate_execution": {
+            "execution": {
+              "status": "completed",
+              "stdoutRef": "fixture_trace://synthetic",
+              "stderrRef": "fixture_trace://synthetic"
+            },
+            "capture": {
+              "status": "captured",
+              "user_action_id": "59258ce7-8f60-4962-98fc-ed2040c75255",
+              "match_count": 1
+            },
+            "variant_apply": {
+              "env": {
+                "CLAUDE_CODE_EVAL_EXPERIMENT_ID": "exp_v2_3_robustn_d65b3df1",
+                "CLAUDE_CODE_EVAL_SCENARIO_ID": "scn_robustness_s_6a7f68b4",
+                "CLAUDE_CODE_EVAL_VARIANT_ID": "var_candidate_ev_2bf59d78",
+                "CLAUDE_CODE_EVAL_EXPERIMENT_LABEL": "v2_3_robustness_smoke",
+                "CLAUDE_CODE_EVAL_SCENARIO_LABEL": "robustness_smoke_minimal_alt",
+                "CLAUDE_CODE_EVAL_VARIANT_LABEL": "candidate_eval_fixture_shadow",
+                "CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_2_52a1672d7b21",
+                "CLAUDE_CODE_EVAL_RUN_ID": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_2_52a1672d7b21",
+                "V2_FIXTURE_DB_PATH": ".observability/v2-robustness-smoke.duckdb",
+                "V2_FIXTURE_VARIANT_KIND": "shadow"
+              },
+              "cliArgs": [],
+              "metadata": {
+                "supported_variant_fields": [
+                  "env_overrides",
+                  "config_snapshot_ref",
+                  "model_config",
+                  "feature_gates"
+                ],
+                "config_snapshot_ref": null,
+                "feature_gate_count": 0,
+                "env_override_count": 1,
+                "model_config": null
+              }
+            },
+            "benchmark_run_id": "bench_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_2_52a1672d7b21",
+            "eval_run_id": "eval_v2_3_robustness_smok_robustness_smoke_min_candidate_eval_fixtu_repeat_2_52a1672d7b21"
+          },
+          "baseline_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "candidate_variant_effect": {
+            "effect_type": "fixture_variant",
+            "policy_event_observed": false,
+            "variant_effect_observed": false,
+            "observed_policy": null,
+            "session_memory_subagent_count": 0,
+            "session_memory_trigger_details": []
+          },
+          "variant_effect_summary": {
+            "scenario_id": "robustness_smoke_minimal_alt",
+            "candidate_variant_id": "candidate_eval_fixture_shadow",
+            "baseline_variant_effect_observed": false,
+            "candidate_variant_effect_observed": false,
+            "runtime_difference_observed": false,
+            "baseline_policy_mode": "unknown",
+            "candidate_policy_mode": "unknown",
+            "summary": [
+              "Baseline session_memory policy was not observed in V1 events.",
+              "Candidate session_memory policy was not observed in V1 events.",
+              "At least one score dimension changed between baseline and candidate.",
+              "No stable runtime difference was observed yet; any score delta may still be execution noise rather than a proven harness effect."
+            ]
+          },
+          "experiment_validity": {
+            "status": "valid",
+            "profile": "smoke",
+            "reason": "Smoke check passed: execute_harness closed the automatic execution and capture loop.",
+            "blockers": [],
+            "warnings": [],
+            "checks": {
+              "baseline_captured": true,
+              "candidate_captured": true,
+              "no_ambiguous_capture": true,
+              "score_evidence_present": true,
+              "variant_effect_observed": false,
+              "runtime_difference_observed": false,
+              "scenario_intent_matched": true
+            }
+          },
+          "compare_report": "ObservrityTask\\10-系统版本\\v2\\06-运行报告\\compare_run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf_vs_run_2026-05-03T070927518Z_robustness_smoke_minimal_alt_candidate_eval_fixture_shadow_59258ce7.md",
+          "gate_results": [
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "hard_fail",
+              "score_spec_id": "task_success.main_chain_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "regression_pct": 0,
+              "condition": "candidate < baseline",
+              "notes": "Candidate cannot lose the main-chain success signal."
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "hard_fail",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 30 and task_success_not_improved",
+              "notes": "Cost cannot rise sharply without a success improvement."
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "soft_warning",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 10"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "rule_type": "soft_warning",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "verdict": "pass",
+              "passed": true,
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "regression_pct": 0,
+              "condition": "candidate_regression_pct > 50"
+            }
+          ],
+          "scorecard_summary": [
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "controllability.turn_limit_basic",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "decision_quality.subagent_count_observed",
+              "direction": "lower_is_better",
+              "baseline_value": 0,
+              "candidate_value": 0,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "efficiency.total_billed_tokens",
+              "direction": "lower_is_better",
+              "baseline_value": 110,
+              "candidate_value": 105,
+              "delta": -5,
+              "interpretation": "improved"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "stability.recovery_absence",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            },
+            {
+              "scenario_id": "robustness_smoke_minimal_alt",
+              "candidate_variant_id": "candidate_eval_fixture_shadow",
+              "score_spec_id": "task_success.main_chain_observed",
+              "direction": "higher_is_better",
+              "baseline_value": 1,
+              "candidate_value": 1,
+              "delta": 0,
+              "interpretation": "unchanged"
+            }
+          ],
+          "exploration_signals": [
+            "1 score dimension(s) changed; inspect the scorecard before treating the risk verdict as the final answer."
+          ],
+          "recommended_review_mode": "regression_review"
+        }
+      ]
+    }
+  ],
+  "run_failures": [],
+  "created_at": "2026-05-03T07:09:27.523Z"
+}

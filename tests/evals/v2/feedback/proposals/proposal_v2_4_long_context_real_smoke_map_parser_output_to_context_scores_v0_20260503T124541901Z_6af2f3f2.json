@@ -1,0 +1,24 @@
+{
+  "proposal_id": "proposal_v2_4_long_context_real_smoke_map_parser_output_to_context_scores_v0_20260503T124541901Z_6af2f3f2",
+  "based_on_hypothesis_ids": [
+    "hypothesis_v2_4_long_context_real_smoke_gate_inconclusive_due_to_missing_semantic_scores_20260503T124541901Z_f3494c13"
+  ],
+  "based_on_finding_ids": [
+    "finding_v2_4_long_context_real_smoke_risk_verdict_inconclusive_20260503T124541901Z_72968af2",
+    "finding_v2_4_long_context_real_smoke_missing_score_count_positive_20260503T124541901Z_70cd437b"
+  ],
+  "proposal_type": "score_binding_improvement",
+  "target_layer": "scorer",
+  "priority": "P1",
+  "queue_bucket": "blocked",
+  "description": "Map parser output into context score-spec fields so long-context risk gating can distinguish missing semantics from genuine regression risk.",
+  "expected_effect": "Reduce inconclusive gate results caused purely by absent semantic score evidence.",
+  "why_now": "The gate cannot become more informative until parser output is formally bound into context scores.",
+  "why_not_now": "This is blocked until a lightweight parser exists; there is nothing stable to bind before that.",
+  "blocking_finding_ids": [],
+  "manual_judgement_finding_ids": [],
+  "risks": [
+    "If missing semantic scores are ignored, risk gating may appear healthier than the evidence supports."
+  ],
+  "requires_human_approval": true
+}

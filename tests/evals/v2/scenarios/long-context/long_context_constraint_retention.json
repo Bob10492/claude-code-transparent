@@ -1,0 +1,109 @@
+{
+  "scenario_id": "long_context_constraint_retention",
+  "name": "Long Context Constraint Retention",
+  "description": "Verify that early hard constraints survive after the agent reads a longer mixed context packet.",
+  "input_prompt": "Read tests/evals/v2/fixtures/long-context/constraint-retention/context_body.md and answer the task without modifying files. Preserve the active hard constraints even if legacy notes suggest something else. Summarize the runner path, the preferred prompt metric, and the read-only mode.",
+  "tags": ["long-context", "constraint-retention", "v2.4"],
+  "expected_artifacts": ["final_answer"],
+  "expected_tools": ["Read"],
+  "expected_skills": [],
+  "expected_constraints": [
+    "Final answer must remain JSON-shaped",
+    "The answer must keep owner=v2-platform",
+    "The task remains read-only"
+  ],
+  "expected_facts": [
+    "runner_entrypoint",
+    "prompt_metric_total_prompt_input_tokens"
+  ],
+  "forbidden_confusions": [
+    "old_markdown_output_rule",
+    "wrong_metric_cache_create_tokens"
+  ],
+  "manual_review_questions": [
+    "Did the answer remain valid JSON instead of drifting into prose?",
+    "Did the answer preserve owner=v2-platform while staying read-only?"
+  ],
+  "context_profile_ref": "tests/evals/v2/fixtures/long-context/constraint-retention",
+  "long_context_profile": {
+    "context_family": "constraint_retention",
+    "context_size_class": "medium",
+    "fixture_ref": "tests/evals/v2/fixtures/long-context/constraint-retention",
+    "expected_retained_constraints": [
+      "json_output_only",
+      "owner_field_required",
+      "read_only_task"
+    ],
+    "expected_retrieved_facts": [
+      "runner_entrypoint",
+      "prompt_metric_total_prompt_input_tokens"
+    ],
+    "distractor_refs": [
+      "old_markdown_output_rule",
+      "wrong_metric_cache_create_tokens"
+    ],
+    "forbidden_confusions": [
+      "old_markdown_output_rule",
+      "wrong_metric_cache_create_tokens"
+    ],
+    "manual_review_questions": [
+      "Did the answer remain valid JSON instead of drifting into prose?",
+      "Did the answer preserve owner=v2-platform while staying read-only?"
+    ]
+  },
+  "expectations": [
+    {
+      "expectation_id": "retain_json_output_only",
+      "expectation_type": "retained_constraint",
+      "expectation_body": {
+        "constraint_id": "json_output_only",
+        "description": "Final output must stay JSON-shaped.",
+        "severity": "hard"
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "retrieve_prompt_metric",
+      "expectation_type": "retrieved_fact",
+      "expectation_body": {
+        "fact_id": "prompt_metric_total_prompt_input_tokens",
+        "description": "The preferred prompt metric is total_prompt_input_tokens."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "avoid_old_markdown_rule",
+      "expectation_type": "forbidden_confusion",
+      "expectation_body": {
+        "confusion_id": "old_markdown_output_rule",
+        "description": "Do not switch back to Markdown output."
+      },
+      "severity": "high"
+    },
+    {
+      "expectation_id": "respect_context_budget",
+      "expectation_type": "context_budget",
+      "expectation_body": {
+        "metric": "total_prompt_input_tokens",
+        "description": "Track prompt-input growth while preserving constraints."
+      },
+      "severity": "medium"
+    },
+    {
+      "expectation_id": "manual_check_output_shape",
+      "expectation_type": "manual_review",
+      "expectation_body": {
+        "questions": [
+          "Did the answer remain valid JSON instead of drifting into prose?",
+          "Did the answer preserve owner=v2-platform while staying read-only?"
+        ]
+      },
+      "severity": "medium"
+    }
+  ],
+  "max_turn_count": 8,
+  "max_total_billed_tokens": 180000,
+  "max_subagent_count": 2,
+  "owner": "local",
+  "status": "ready"
+}

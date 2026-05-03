@@ -1,0 +1,52 @@
+[
+  {
+    "score_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf_task_success_main_chain_observed",
+    "run_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf",
+    "dimension": "task_success",
+    "subdimension": "main_chain_observed",
+    "score_value": 1,
+    "score_label": "pass",
+    "evidence_ref": "queries",
+    "reason": "Main-thread root query is present in V1 evidence."
+  },
+  {
+    "score_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf_efficiency_total_billed_tokens",
+    "run_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf",
+    "dimension": "efficiency",
+    "subdimension": "total_billed_tokens",
+    "score_value": 110,
+    "score_label": "observed",
+    "evidence_ref": "user_actions.total_billed_tokens",
+    "reason": "Raw efficiency fact from V1 user_actions."
+  },
+  {
+    "score_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf_decision_quality_subagent_count_observed",
+    "run_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf",
+    "dimension": "decision_quality",
+    "subdimension": "subagent_count_observed",
+    "score_value": 0,
+    "score_label": "observed",
+    "evidence_ref": "subagents",
+    "reason": "Observed subagent count is a fact for later baseline vs candidate comparison."
+  },
+  {
+    "score_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf_stability_recovery_absence",
+    "run_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf",
+    "dimension": "stability",
+    "subdimension": "recovery_absence",
+    "score_value": 1,
+    "score_label": "pass",
+    "evidence_ref": "recoveries",
+    "reason": "No recovery events were observed for this action."
+  },
+  {
+    "score_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf_controllability_turn_limit_basic",
+    "run_id": "run_2026-05-03T070927510Z_robustness_smoke_minimal_alt_baseline_default_5ee185bf",
+    "dimension": "controllability",
+    "subdimension": "turn_limit_basic",
+    "score_value": 1,
+    "score_label": "pass",
+    "evidence_ref": "queries.turn_count",
+    "reason": "Root query turn_count=1; scenario limit is 1."
+  }
+]

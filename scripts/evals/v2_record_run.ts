@@ -97,6 +97,11 @@ function parseJsonRecord(value: unknown): JsonRecord | undefined {
   return undefined
 }
 
+function mergeJsonRecords(...records: Array<JsonRecord | undefined>): JsonRecord | undefined {
+  const merged = Object.assign({}, ...records.filter(Boolean))
+  return Object.keys(merged).length > 0 ? merged : undefined
+}
+
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
 }
@@ -158,6 +163,20 @@ async function loadScenario(scenarioId: string): Promise<EvalScenario> {
   try {
     return await readJson<EvalScenario>(directPath)
   } catch {
+    const nestedScenarioDir = path.join(evalRoot, 'scenarios')
+    const nestedEntries = await readdir(nestedScenarioDir, { withFileTypes: true }).catch(
+      () => [],
+    )
+    for (const entry of nestedEntries) {
+      if (!entry.isDirectory()) continue
+      const nestedPath = path.join(nestedScenarioDir, entry.name, `${scenarioId}.json`)
+      try {
+        return await readJson<EvalScenario>(nestedPath)
+      } catch {
+        // Keep searching nested directories before falling back to the catalog shell.
+      }
+    }
+
     // The phase-one catalog stores scenario shells before full manifests exist.
   }
 
@@ -214,6 +233,7 @@ function buildReport(params: {
   subagents: JsonRecord[]
   recoveries: JsonRecord[]
   variantEffect: JsonRecord
+  longContext?: JsonRecord
   scores: EvalScore[]
 }): string {
   const {
@@ -226,6 +246,7 @@ function buildReport(params: {
     subagents,
     recoveries,
     variantEffect,
+    longContext,
     scores,
   } = params
   const toolSummary =
@@ -255,6 +276,22 @@ function buildReport(params: {
   const policySummary = variantEffect.observed_policy
     ? JSON.stringify(variantEffect.observed_policy, null, 2)
     : 'null'
+  const longContextSummary = longContext
+    ? `- context_family: ${asString(longContext.context_family) || 'unknown'}
+- context_size_class: ${asString(longContext.context_size_class) || 'unknown'}
+- fixture_ref: ${asString(longContext.fixture_ref) || 'n/a'}
+- retained_constraints: ${(longContext.observed_retained_constraints as string[] | undefined)?.join(', ') || 'none'}
+- lost_constraints: ${(longContext.observed_lost_constraints as string[] | undefined)?.join(', ') || 'none'}
+- retrieved_facts: ${(longContext.observed_retrieved_facts as string[] | undefined)?.join(', ') || 'none'}
+- missed_facts: ${(longContext.observed_missed_facts as string[] | undefined)?.join(', ') || 'none'}
+- distractor_confusions: ${(longContext.observed_confusions as string[] | undefined)?.join(', ') || 'none'}
+- compaction_trigger_count: ${asNumber(longContext.compaction_trigger_count)}
+- compaction_saved_tokens: ${asNumber(longContext.compaction_saved_tokens)}
+- tool_result_budget_trigger_count: ${asNumber(longContext.tool_result_budget_trigger_count)}
+- memory_or_subagent_count: ${asNumber(longContext.memory_or_subagent_count)}
+- success_under_context_pressure: ${longContext.success_under_context_pressure ?? 'n/a'}
+- manual_review_questions: ${(longContext.manual_review_questions as string[] | undefined)?.join(' | ') || 'none'}`
+    : '- No long-context evidence attached to this run.'
 
   return `# V2 Run Report: ${run.run_id}
 
@@ -314,6 +351,10 @@ ${subagentSummary}
 \`\`\`json
 ${policySummary}
 \`\`\`
+
+## Long Context Evidence
+
+${longContextSummary}
 
 ## Scores
 
@@ -385,6 +426,37 @@ async function main(): Promise<void> {
     dbPath,
     `SELECT * FROM metrics_integrity_daily WHERE event_date = ${sqlString(asString(action.event_date))} LIMIT 1;`,
   )[0]
+  const longContextEvidenceRow = relationExists(dbPath, 'long_context_evidence')
+    ? queryDuckDb<JsonRecord>(
+        dbPath,
+        `SELECT payload_json FROM long_context_evidence WHERE user_action_id = ${sqlString(userActionId)} ORDER BY rowid DESC LIMIT 1;`,
+      )[0]
+    : undefined
+  const longContextPayload = parseJsonRecord(longContextEvidenceRow?.payload_json)
+  const eventRows = relationExists(dbPath, 'events_raw')
+    ? queryDuckDb<JsonRecord>(
+        dbPath,
+        [
+          'SELECT event_name, payload_json',
+          'FROM events_raw',
+          `WHERE user_action_id = ${sqlString(userActionId)}`,
+          "  AND event_name IN ('messages.compact_boundary.applied', 'messages.microcompact.applied', 'messages.tool_result_budget.applied')",
+          'ORDER BY ts_wall ASC;',
+        ].join(' '),
+      )
+    : []
+  const compactionTriggerCount = eventRows.filter(row =>
+    ['messages.compact_boundary.applied', 'messages.microcompact.applied'].includes(
+      asString(row.event_name),
+    ),
+  ).length
+  const toolResultBudgetTriggerCount = eventRows.filter(
+    row => asString(row.event_name) === 'messages.tool_result_budget.applied',
+  ).length
+  const compactionSavedTokens = eventRows.reduce((sum, row) => {
+    const payload = parseJsonRecord(row.payload_json)
+    return sum + asNumber(payload?.tokens_saved)
+  }, 0)
   const sessionMemoryPolicyRow = relationExists(dbPath, 'events_raw')
     ? queryDuckDb<JsonRecord>(
         dbPath,
@@ -404,6 +476,29 @@ async function main(): Promise<void> {
       asString(subagent.subagent_trigger_detail),
     ),
   )
+  const longContext = scenario.long_context_profile
+    ? mergeJsonRecords(
+        {
+          context_family: scenario.long_context_profile.context_family,
+          context_size_class: scenario.long_context_profile.context_size_class,
+          fixture_ref: scenario.long_context_profile.fixture_ref,
+          expected_retained_constraints:
+            scenario.long_context_profile.expected_retained_constraints,
+          expected_retrieved_facts:
+            scenario.long_context_profile.expected_retrieved_facts,
+          distractor_refs: scenario.long_context_profile.distractor_refs,
+          forbidden_confusions: scenario.long_context_profile.forbidden_confusions,
+          manual_review_questions:
+            scenario.long_context_profile.manual_review_questions,
+          compaction_trigger_count: compactionTriggerCount,
+          compaction_saved_tokens: compactionSavedTokens,
+          tool_result_budget_trigger_count: toolResultBudgetTriggerCount,
+          memory_or_subagent_count: asNumber(action.subagent_count),
+          total_prompt_input_tokens: asNumber(action.total_prompt_input_tokens),
+        },
+        longContextPayload,
+      )
+    : undefined
   const variantEffect: JsonRecord = {
     effect_type: 'session_memory_policy',
     policy_event_observed: observedPolicy !== undefined,
@@ -471,6 +566,7 @@ async function main(): Promise<void> {
     subagents,
     recoveries,
     variantEffect,
+    longContext,
   }, requestedScoreSpecIds)
 
   const runsDir = path.join(evalRoot, 'runs')
@@ -481,7 +577,7 @@ async function main(): Promise<void> {
 
   await writeFile(
     path.join(runsDir, `${runId}.json`),
-    `${JSON.stringify({ run, binding, scenario, variant, evidence: { action, rootQuery, tools, subagents, recoveries }, variant_effect: variantEffect }, null, 2)}\n`,
+    `${JSON.stringify({ run, binding, scenario, variant, evidence: { action, rootQuery, tools, subagents, recoveries }, variant_effect: variantEffect, long_context: longContext ?? null }, null, 2)}\n`,
   )
   await writeFile(
     path.join(scoresDir, `${runId}.scores.json`),
@@ -499,6 +595,7 @@ async function main(): Promise<void> {
       subagents,
       recoveries,
       variantEffect,
+      longContext,
       scores,
     }),
   )

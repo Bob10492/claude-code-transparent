@@ -1,0 +1,20 @@
+{
+  "next_experiment_plan_id": "experiment_plan_v2_4_long_context_real_smoke_candidate_feedback_input_contract_v0_20260503T145942988Z_1e6a3fb4",
+  "based_on_proposal_id": "proposal_v2_4_long_context_real_smoke_stabilize_feedback_input_contract_v0_20260503T145942988Z_a0ba210d",
+  "scenario_ids": [
+    "long_context_fact_retrieval_real_smoke"
+  ],
+  "baseline_variant_id": "baseline_default",
+  "candidate_variant_id": "candidate_feedback_input_contract_v0",
+  "repeat_count": 1,
+  "success_criteria": [
+    "Feedback queue semantics become stable and easier to approve.",
+    "Top recommendation remains unique.",
+    "No new schema ambiguity appears in feedback artifacts."
+  ],
+  "failure_criteria": [
+    "Feedback queue becomes contradictory or unstable across equivalent inputs.",
+    "Manual review and human approval boundaries become harder to distinguish."
+  ],
+  "manual_review_required": true
+}

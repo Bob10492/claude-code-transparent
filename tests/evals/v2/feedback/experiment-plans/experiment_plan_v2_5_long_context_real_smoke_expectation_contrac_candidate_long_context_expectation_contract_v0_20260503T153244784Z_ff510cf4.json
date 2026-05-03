@@ -1,0 +1,20 @@
+{
+  "next_experiment_plan_id": "experiment_plan_v2_5_long_context_real_smoke_expectation_contrac_candidate_long_context_expectation_contract_v0_20260503T153244784Z_ff510cf4",
+  "based_on_proposal_id": "proposal_v2_5_long_context_real_smoke_expectation_contrac_tighten_real_smoke_expectations_v0_20260503T153244784Z_8bc73d52",
+  "scenario_ids": [
+    "long_context_fact_retrieval_real_smoke_contract_v0"
+  ],
+  "baseline_variant_id": "baseline_default",
+  "candidate_variant_id": "candidate_long_context_expectation_contract_v0",
+  "repeat_count": 1,
+  "success_criteria": [
+    "Manual review prompts become more specific and lower-ambiguity.",
+    "Scenario intent remains matched.",
+    "No new flaky or failed run groups appear."
+  ],
+  "failure_criteria": [
+    "Scenario contract changes erase the current runtime-difference evidence.",
+    "Long-context intent becomes less specific or more brittle."
+  ],
+  "manual_review_required": true
+}

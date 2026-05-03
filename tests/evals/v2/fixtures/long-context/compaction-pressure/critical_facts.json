@@ -1,0 +1,16 @@
+{
+  "facts": [
+    {
+      "id": "compact_boundary_event",
+      "description": "Compaction signals use messages.compact_boundary.applied and messages.microcompact.applied."
+    },
+    {
+      "id": "tool_result_budget_event",
+      "description": "Tool-result budget pressure uses messages.tool_result_budget.applied."
+    },
+    {
+      "id": "compaction_saved_tokens_score",
+      "description": "The score spec name is context.compaction_saved_tokens."
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "proposal_id": "proposal_v2_4_long_context_real_smoke_tighten_real_smoke_expectations_v0_20260503T103210763Z_d022ab84",
+  "based_on_hypothesis_ids": [
+    "hypothesis_v2_4_long_context_real_smoke_manual_review_boundary_still_open_20260503T103210763Z_a207056a"
+  ],
+  "proposal_type": "scenario_improvement",
+  "target_layer": "scenario",
+  "description": "Tighten long-context real-smoke expected facts, constraints, and review questions so the evaluator has clearer semantic anchors without pretending to be fully automatic.",
+  "expected_effect": "Reduce avoidable manual-review ambiguity while preserving an explicit human-review boundary for nuanced outputs.",
+  "risks": [
+    "Treating manual review signals as auto-pass would overstate evaluator certainty."
+  ],
+  "requires_human_approval": true
+}
