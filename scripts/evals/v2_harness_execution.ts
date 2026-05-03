@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -74,6 +74,20 @@ const windowsLauncherBridgePath = path.join(
 
 function sqlString(value: string): string {
   return `'${value.replaceAll("'", "''")}'`
+}
+
+function runDuckDbSql(dbPath: string, sql: string): void {
+  const result = spawnSync(duckdbExe, [dbPath, sql], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  })
+  if (result.status !== 0) {
+    throw new Error(
+      String(result.stderr ?? '').trim() ||
+        String(result.stdout ?? '').trim() ||
+        String(result.error?.message ?? '').trim(),
+    )
+  }
 }
 
 function sanitizeId(value: string): string {
@@ -215,10 +229,13 @@ export function createRunIdentity(params: {
   scenarioId: string
   variantId: string
   stamp: string
+  repeatIndex?: number
 }): { eval_run_id: string; benchmark_run_id: string } {
-  const base = `${params.experimentId}_${params.scenarioId}_${params.variantId}_${params.stamp}`
+  const repeatPart =
+    typeof params.repeatIndex === 'number' ? `_repeat_${params.repeatIndex}` : ''
+  const base = `${params.experimentId}_${params.scenarioId}_${params.variantId}${repeatPart}_${params.stamp}`
   const humanPrefix = sanitizeId(
-    `${params.experimentId.slice(0, 20)}_${params.scenarioId.slice(0, 20)}_${params.variantId.slice(0, 20)}`,
+    `${params.experimentId.slice(0, 20)}_${params.scenarioId.slice(0, 20)}_${params.variantId.slice(0, 20)}${repeatPart}`,
   )
   const hash = createHash('sha1').update(base).digest('hex').slice(0, 12)
   const identity = `${humanPrefix}_${hash}`
@@ -484,6 +501,106 @@ export class CliPrintHarnessExecutionAdapter implements HarnessExecutionAdapter 
   }
 }
 
+export class FixtureTraceHarnessExecutionAdapter implements HarnessExecutionAdapter {
+  constructor(
+    private readonly options: {
+      execution?: EvalExperimentExecutionConfig
+      env: Record<string, string>
+    },
+  ) {}
+
+  async execute(input: HarnessExecutionAdapterInput): Promise<HarnessExecutionAdapterOutput> {
+    const runDir = path.join(harnessRunsRoot, artifactRunDirName(input.runId))
+    await mkdir(runDir, { recursive: true })
+    const stdoutPath = path.join(runDir, 'stdout.txt')
+    const stderrPath = path.join(runDir, 'stderr.txt')
+    const commandPath = path.join(runDir, 'command.json')
+    const dbPath = path.resolve(
+      repoRoot,
+      this.options.execution?.db_path ??
+        this.options.env.V2_FIXTURE_DB_PATH ??
+        path.join('.observability', 'v2-fixture-trace.duckdb'),
+    )
+
+    await writeFile(
+      commandPath,
+      `${JSON.stringify(
+        {
+          adapter: 'fixture_trace',
+          db_path: path.relative(repoRoot, dbPath),
+          timeout_ms: input.timeoutMs,
+          env_keys: Object.keys(this.options.env).sort(),
+        },
+        null,
+        2,
+      )}\n`,
+      'utf8',
+    )
+
+    if (this.options.env.V2_FIXTURE_FAIL_VARIANT === input.variantId) {
+      const message = `Fixture requested failure for variant ${input.variantId}`
+      await writeFile(stdoutPath, '', 'utf8')
+      await writeFile(stderrPath, message, 'utf8')
+      return {
+        status: 'failed',
+        stdoutRef: path.relative(repoRoot, stdoutPath),
+        stderrRef: path.relative(repoRoot, stderrPath),
+        error: message,
+      }
+    }
+
+    const now = new Date()
+    const endedAt = new Date(now.getTime() + 10).toISOString()
+    const userActionId = randomUUID()
+    const queryId = randomUUID()
+    const benchmarkRunId = this.options.env.CLAUDE_CODE_EVAL_BENCHMARK_RUN_ID
+    const evalRunId = this.options.env.CLAUDE_CODE_EVAL_RUN_ID
+    const experimentId =
+      this.options.env.CLAUDE_CODE_EVAL_EXPERIMENT_LABEL ?? input.experimentId
+    const scenarioId = this.options.env.CLAUDE_CODE_EVAL_SCENARIO_LABEL ?? input.scenarioId
+    const variantId = this.options.env.CLAUDE_CODE_EVAL_VARIANT_LABEL ?? input.variantId
+    const tokenBase =
+      input.variantId === 'baseline_default'
+        ? 110
+        : input.variantId.includes('sparse')
+          ? 100
+          : 105
+
+    const sql = [
+      'CREATE TABLE IF NOT EXISTS user_actions(event_date VARCHAR, user_action_id VARCHAR, started_at VARCHAR, started_at_ms BIGINT, ended_at VARCHAR, ended_at_ms BIGINT, duration_ms BIGINT, event_count BIGINT, query_count BIGINT, main_thread_query_count BIGINT, subagent_query_count BIGINT, subagent_count BIGINT, tool_call_count BIGINT, experiment_id VARCHAR, scenario_id VARCHAR, variant_id VARCHAR, benchmark_run_id VARCHAR, eval_run_id VARCHAR, raw_input_tokens BIGINT, output_tokens BIGINT, cache_read_tokens BIGINT, cache_create_tokens BIGINT, total_prompt_input_tokens BIGINT, total_billed_tokens BIGINT, main_thread_total_prompt_input_tokens BIGINT, subagent_total_prompt_input_tokens BIGINT);',
+      'CREATE TABLE IF NOT EXISTS queries(query_id VARCHAR, user_action_id VARCHAR, agent_name VARCHAR, started_at VARCHAR, turn_count BIGINT, terminal_reason VARCHAR);',
+      'CREATE TABLE IF NOT EXISTS tools(user_action_id VARCHAR, tool_name VARCHAR, is_closed BOOLEAN, has_failed BOOLEAN);',
+      'CREATE TABLE IF NOT EXISTS subagents(user_action_id VARCHAR, subagent_reason VARCHAR, subagent_trigger_kind VARCHAR, subagent_trigger_detail VARCHAR, duration_ms BIGINT);',
+      'CREATE TABLE IF NOT EXISTS recoveries(user_action_id VARCHAR, event_name VARCHAR, ts_wall VARCHAR);',
+      'CREATE TABLE IF NOT EXISTS metrics_integrity_daily(event_date VARCHAR, strict_query_completion_rate DOUBLE, strict_turn_state_closure_rate DOUBLE, tool_lifecycle_closure_rate DOUBLE, subagent_lifecycle_closure_rate DOUBLE);',
+      `INSERT INTO user_actions VALUES (${sqlString(now.toISOString().slice(0, 10))}, ${sqlString(userActionId)}, ${sqlString(now.toISOString())}, 0, ${sqlString(endedAt)}, 10, 10, 2, 1, 1, 0, 0, 0, ${sqlString(experimentId)}, ${sqlString(scenarioId)}, ${sqlString(variantId)}, ${sqlString(benchmarkRunId)}, ${sqlString(evalRunId)}, ${tokenBase - 10}, 10, 0, 0, ${tokenBase - 10}, ${tokenBase}, ${tokenBase - 10}, 0);`,
+      `INSERT INTO queries VALUES (${sqlString(queryId)}, ${sqlString(userActionId)}, 'main_thread', ${sqlString(now.toISOString())}, 1, 'fixture_completed');`,
+      `INSERT INTO metrics_integrity_daily VALUES (${sqlString(now.toISOString().slice(0, 10))}, 1, 1, 1, 1);`,
+    ].join('\n')
+
+    try {
+      runDuckDbSql(dbPath, sql)
+      await writeFile(stdoutPath, `fixture_user_action_id=${userActionId}\n`, 'utf8')
+      await writeFile(stderrPath, '', 'utf8')
+      return {
+        status: 'completed',
+        stdoutRef: path.relative(repoRoot, stdoutPath),
+        stderrRef: path.relative(repoRoot, stderrPath),
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      await writeFile(stdoutPath, '', 'utf8')
+      await writeFile(stderrPath, message, 'utf8')
+      return {
+        status: 'failed',
+        stdoutRef: path.relative(repoRoot, stdoutPath),
+        stderrRef: path.relative(repoRoot, stderrPath),
+        error: message,
+      }
+    }
+  }
+}
+
 export function createHarnessExecutionAdapter(params: {
   execution?: EvalExperimentExecutionConfig
   env: Record<string, string>
@@ -492,6 +609,7 @@ export function createHarnessExecutionAdapter(params: {
   const adapter = params.execution?.adapter ?? 'cli_print'
   if (adapter === 'disabled') return new DisabledHarnessExecutionAdapter()
   if (adapter === 'cli_print') return new CliPrintHarnessExecutionAdapter(params)
+  if (adapter === 'fixture_trace') return new FixtureTraceHarnessExecutionAdapter(params)
   throw new Error(`Unsupported execute_harness adapter: ${adapter}`)
 }
 
@@ -603,6 +721,7 @@ export async function executeHarnessAndCapture(params: {
   })
   const shouldRebuildDb =
     execution.status === 'completed' &&
+    params.execution?.adapter !== 'fixture_trace' &&
     (!params.dbPath ||
       (!params.execution?.command && !params.execution?.args))
 

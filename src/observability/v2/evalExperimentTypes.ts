@@ -66,11 +66,13 @@ export type EvalExperimentActionBinding =
   | EvalExperimentNestedActionBinding
 
 export interface EvalExperimentExecutionConfig {
-  adapter?: 'cli_print' | 'disabled'
+  adapter?: 'cli_print' | 'fixture_trace' | 'disabled'
   timeout_ms?: number
   max_turns?: number
+  failure_policy?: 'fail_fast' | 'continue_on_failure'
   allow_fallback_to_bind_existing?: boolean
   require_config_snapshot?: boolean
+  db_path?: string
   env?: Record<string, string | number | boolean>
   command?: string
   args?: string[]

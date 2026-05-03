@@ -67,6 +67,7 @@ interface ExperimentValidity {
 
 interface CandidateExperimentResult {
   candidate_variant_id: string
+  candidate_run_group_id: string
   candidate_run_id: string
   candidate_user_action_id: string
   candidate_eval_run_id?: string
@@ -86,12 +87,55 @@ interface CandidateExperimentResult {
 interface ScenarioExperimentResult {
   scenario_id: string
   repeat_index: number
+  baseline_run_group_id: string
   baseline_run_id: string
   baseline_user_action_id: string
   baseline_eval_run_id?: string
   baseline_benchmark_run_id?: string
   baseline_execution?: ExecuteHarnessResult
   candidates: CandidateExperimentResult[]
+}
+
+interface RunExecutionFailure {
+  scenario_id: string
+  variant_id: string
+  run_group_id: string
+  repeat_index: number
+  stage: 'execute_harness' | 'capture' | 'record_run' | 'compare'
+  error: string
+}
+
+interface RunGroupArtifact {
+  run_group_id: string
+  experiment_id: string
+  scenario_id: string
+  variant_id: string
+  repeat_count: number
+  run_ids: string[]
+  status: 'completed' | 'partial' | 'failed'
+  started_at: string | null
+  ended_at: string | null
+  aggregate_summary_ref: string | null
+  stability_metrics: StabilityMetrics
+  flaky_status: 'stable' | 'flaky' | 'unstable' | 'inconclusive'
+  failures: RunExecutionFailure[]
+}
+
+interface StabilityMetrics {
+  repeat_success_rate: number
+  capture_failure_rate: number
+  total_billed_tokens_mean: number | null
+  total_billed_tokens_min: number | null
+  total_billed_tokens_max: number | null
+  total_billed_tokens_stddev: number | null
+  e2e_duration_mean: number | null
+  e2e_duration_min: number | null
+  e2e_duration_max: number | null
+  e2e_duration_stddev: number | null
+  tool_call_count_variance: number | null
+  subagent_count_variance: number | null
+  turn_count_variance: number | null
+  recovery_rate: number
 }
 
 interface GateResult {
@@ -148,6 +192,7 @@ const bunExe = process.execPath
 const evalRoot = path.join(repoRoot, 'tests', 'evals', 'v2')
 const scoresRoot = path.join(evalRoot, 'scores')
 const runsRoot = path.join(evalRoot, 'runs')
+const runGroupsRoot = path.join(evalRoot, 'run-groups')
 const experimentRunsRoot = path.join(evalRoot, 'experiment-runs')
 
 function parseArgs(argv: string[]): Record<string, string | boolean> {
@@ -188,6 +233,22 @@ function asNumber(value: unknown): number {
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value.filter((item): item is string => typeof item === 'string' && item.length > 0)
+}
+
+function sanitizeId(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '')
+}
+
+function createRunGroupId(params: {
+  experimentId: string
+  scenarioId: string
+  variantId: string
+  stamp: string
+}): string {
+  const base = sanitizeId(
+    `group_${params.experimentId}_${params.scenarioId}_${params.variantId}_${params.stamp}`,
+  )
+  return base.length > 160 ? base.slice(0, 160) : base
 }
 
 async function listJsonFiles(dir: string): Promise<string[]> {
@@ -647,6 +708,8 @@ function buildRecordRunArgs(params: {
   scenarioId: string
   variantId: string
   userActionId: string
+  runGroupId: string
+  repeatIndex: number
   scoreSpecIds: string[]
   dbPath?: string
   snapshotDb: boolean
@@ -658,6 +721,10 @@ function buildRecordRunArgs(params: {
     params.variantId,
     '--user-action-id',
     params.userActionId,
+    '--run-group-id',
+    params.runGroupId,
+    '--repeat-index',
+    String(params.repeatIndex),
   ]
   if (params.snapshotDb) args.push('--snapshot-db')
   if (params.dbPath) args.push('--db', params.dbPath)
@@ -760,13 +827,58 @@ function scoreRefs(results: ScenarioExperimentResult[]): string[] {
   ])
 }
 
-function reportRefs(results: ScenarioExperimentResult[], experimentReport: string): string[] {
+function reportRefs(params: {
+  results: ScenarioExperimentResult[]
+  experimentReport: string
+  batchReport: string
+}): string[] {
   return [
-    ...results.flatMap(result =>
+    ...params.results.flatMap(result =>
       result.candidates.map(candidate => candidate.compare_report),
     ),
-    experimentReport,
+    params.batchReport,
+    params.experimentReport,
   ].filter(Boolean)
+}
+
+function numberOrNull(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+function mean(values: number[]): number | null {
+  if (values.length === 0) return null
+  return Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(6))
+}
+
+function variance(values: number[]): number | null {
+  if (values.length < 2) return 0
+  const avg = mean(values)
+  if (avg === null) return null
+  return Number(
+    (values.reduce((sum, value) => sum + (value - avg) ** 2, 0) / values.length).toFixed(6),
+  )
+}
+
+function stddev(values: number[]): number | null {
+  const value = variance(values)
+  return value === null ? null : Number(Math.sqrt(value).toFixed(6))
+}
+
+function minValue(values: number[]): number | null {
+  return values.length === 0 ? null : Math.min(...values)
+}
+
+function maxValue(values: number[]): number | null {
+  return values.length === 0 ? null : Math.max(...values)
+}
+
+function scoreValue(scores: EvalScore[], scoreSpecId: string): number | null {
+  return valueFor(scores, scoreSpecId)
 }
 
 function hasPolicyEventObserved(variantEffect: JsonRecord | undefined): boolean {
@@ -1046,9 +1158,291 @@ function aggregateVariantEffectSummary(results: ScenarioExperimentResult[]): Var
   )
 }
 
+function runGroupRefs(runGroups: RunGroupArtifact[]): string[] {
+  return runGroups.map(group =>
+    path.join('tests', 'evals', 'v2', 'run-groups', `${group.run_group_id}.json`),
+  )
+}
+
+async function buildRunGroups(params: {
+  experimentId: string
+  baselineVariantId: string
+  repeatCount: number
+  results: ScenarioExperimentResult[]
+  failures: RunExecutionFailure[]
+  aggregateSummaryRef: string
+}): Promise<RunGroupArtifact[]> {
+  const groups = new Map<
+    string,
+    {
+      experiment_id: string
+      scenario_id: string
+      variant_id: string
+      run_ids: string[]
+      failures: RunExecutionFailure[]
+    }
+  >()
+
+  function ensureGroup(runGroupId: string, scenarioId: string, variantId: string) {
+    if (!groups.has(runGroupId)) {
+      groups.set(runGroupId, {
+        experiment_id: params.experimentId,
+        scenario_id: scenarioId,
+        variant_id: variantId,
+        run_ids: [],
+        failures: [],
+      })
+    }
+    return groups.get(runGroupId)!
+  }
+
+  for (const result of params.results) {
+    ensureGroup(
+      result.baseline_run_group_id,
+      result.scenario_id,
+      params.baselineVariantId,
+    ).run_ids.push(result.baseline_run_id)
+    for (const candidate of result.candidates) {
+      ensureGroup(
+        candidate.candidate_run_group_id,
+        result.scenario_id,
+        candidate.candidate_variant_id,
+      ).run_ids.push(candidate.candidate_run_id)
+    }
+  }
+
+  for (const failure of params.failures) {
+    ensureGroup(failure.run_group_id, failure.scenario_id, failure.variant_id).failures.push(failure)
+  }
+
+  const artifacts: RunGroupArtifact[] = []
+  for (const [runGroupId, group] of groups.entries()) {
+    const runArtifacts = await Promise.all(group.run_ids.map(runId => readRunArtifact(runId)))
+    const scoreArtifacts = await Promise.all(
+      group.run_ids.map(runId =>
+        readJson<EvalScore[]>(path.join(scoresRoot, `${runId}.scores.json`)),
+      ),
+    )
+    const actions = runArtifacts
+      .map(artifact => (artifact as JsonRecord).evidence)
+      .map(evidence =>
+        evidence && typeof evidence === 'object' && !Array.isArray(evidence)
+          ? (evidence as JsonRecord).action
+          : undefined,
+      )
+      .filter(
+        (action): action is JsonRecord =>
+          Boolean(action) && typeof action === 'object' && !Array.isArray(action),
+      )
+    const rootQueries = runArtifacts
+      .map(artifact => (artifact as JsonRecord).evidence)
+      .map(evidence =>
+        evidence && typeof evidence === 'object' && !Array.isArray(evidence)
+          ? (evidence as JsonRecord).rootQuery
+          : undefined,
+      )
+      .filter(
+        (query): query is JsonRecord =>
+          Boolean(query) && typeof query === 'object' && !Array.isArray(query),
+      )
+    const totalBilledTokens = scoreArtifacts
+      .map(scores => scoreValue(scores, 'efficiency.total_billed_tokens'))
+      .filter((value): value is number => value !== null)
+    const durations = actions
+      .map(action => numberOrNull(action.duration_ms))
+      .filter((value): value is number => value !== null)
+    const toolCounts = actions
+      .map(action => numberOrNull(action.tool_call_count))
+      .filter((value): value is number => value !== null)
+    const subagentCounts = actions
+      .map(action => numberOrNull(action.subagent_count))
+      .filter((value): value is number => value !== null)
+    const turnCounts = rootQueries
+      .map(query => numberOrNull(query.turn_count))
+      .filter((value): value is number => value !== null)
+    const recoveryFlags = runArtifacts.map(artifact => {
+      const evidence = (artifact as JsonRecord).evidence
+      if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) return 0
+      const recoveries = (evidence as JsonRecord).recoveries
+      return Array.isArray(recoveries) && recoveries.length > 0 ? 1 : 0
+    })
+    const successCount = group.run_ids.length
+    const expectedCount = params.repeatCount
+    const failureCount = group.failures.length
+    const metrics: StabilityMetrics = {
+      repeat_success_rate: Number((successCount / expectedCount).toFixed(6)),
+      capture_failure_rate: Number((failureCount / expectedCount).toFixed(6)),
+      total_billed_tokens_mean: mean(totalBilledTokens),
+      total_billed_tokens_min: minValue(totalBilledTokens),
+      total_billed_tokens_max: maxValue(totalBilledTokens),
+      total_billed_tokens_stddev: stddev(totalBilledTokens),
+      e2e_duration_mean: mean(durations),
+      e2e_duration_min: minValue(durations),
+      e2e_duration_max: maxValue(durations),
+      e2e_duration_stddev: stddev(durations),
+      tool_call_count_variance: variance(toolCounts),
+      subagent_count_variance: variance(subagentCounts),
+      turn_count_variance: variance(turnCounts),
+      recovery_rate:
+        recoveryFlags.length === 0
+          ? 0
+          : Number(
+              (
+                recoveryFlags.reduce((sum, value) => sum + value, 0) /
+                recoveryFlags.length
+              ).toFixed(6),
+            ),
+    }
+    const tokenCv =
+      metrics.total_billed_tokens_mean && metrics.total_billed_tokens_stddev !== null
+        ? metrics.total_billed_tokens_stddev / Math.max(metrics.total_billed_tokens_mean, 1)
+        : 0
+    const status: RunGroupArtifact['status'] =
+      successCount === expectedCount && failureCount === 0
+        ? 'completed'
+        : successCount === 0
+          ? 'failed'
+          : 'partial'
+    const flakyStatus: RunGroupArtifact['flaky_status'] =
+      successCount === 0
+        ? 'unstable'
+        : expectedCount < 2
+          ? 'inconclusive'
+          : failureCount > 0 || successCount < expectedCount
+            ? 'flaky'
+            : tokenCv > 0.2 ||
+                (metrics.tool_call_count_variance ?? 0) > 1 ||
+                (metrics.subagent_count_variance ?? 0) > 1 ||
+                (metrics.turn_count_variance ?? 0) > 1
+              ? 'flaky'
+              : 'stable'
+
+    artifacts.push({
+      run_group_id: runGroupId,
+      experiment_id: group.experiment_id,
+      scenario_id: group.scenario_id,
+      variant_id: group.variant_id,
+      repeat_count: expectedCount,
+      run_ids: group.run_ids,
+      status,
+      started_at: actions.map(action => asString(action.started_at)).filter(Boolean).sort()[0] ?? null,
+      ended_at:
+        actions
+          .map(action => asString(action.ended_at))
+          .filter(Boolean)
+          .sort()
+          .at(-1) ?? null,
+      aggregate_summary_ref: params.aggregateSummaryRef,
+      stability_metrics: metrics,
+      flaky_status: flakyStatus,
+      failures: group.failures,
+    })
+  }
+
+  return artifacts.sort((a, b) =>
+    `${a.scenario_id}:${a.variant_id}`.localeCompare(`${b.scenario_id}:${b.variant_id}`),
+  )
+}
+
+async function writeRunGroups(runGroups: RunGroupArtifact[]): Promise<void> {
+  await mkdir(runGroupsRoot, { recursive: true })
+  for (const group of runGroups) {
+    await writeFile(
+      path.join(runGroupsRoot, `${group.run_group_id}.json`),
+      `${JSON.stringify(group, null, 2)}\n`,
+    )
+  }
+}
+
+function buildBatchReport(params: {
+  experiment: EvalExperimentV21
+  runGroups: RunGroupArtifact[]
+  failures: RunExecutionFailure[]
+  outputJson: string
+}): string {
+  const { experiment, runGroups, failures, outputJson } = params
+  const groupRows = runGroups
+    .map(group => {
+      const metrics = group.stability_metrics
+      return `| ${group.scenario_id} | ${group.variant_id} | ${group.repeat_count} | ${metrics.repeat_success_rate} | ${metrics.total_billed_tokens_mean ?? 'n/a'} | ${metrics.total_billed_tokens_stddev ?? 'n/a'} | ${metrics.e2e_duration_mean ?? 'n/a'} | ${metrics.e2e_duration_stddev ?? 'n/a'} | ${metrics.tool_call_count_variance ?? 'n/a'} | ${metrics.subagent_count_variance ?? 'n/a'} | ${metrics.turn_count_variance ?? 'n/a'} | ${metrics.recovery_rate} | ${group.flaky_status} |`
+    })
+    .join('\n')
+  const flakyRows = runGroups
+    .filter(group => group.flaky_status !== 'stable')
+    .map(group => `- ${group.scenario_id} / ${group.variant_id}: ${group.flaky_status}`)
+    .join('\n')
+  const rankingRows = runGroups
+    .filter(group => group.variant_id !== experiment.baseline_variant_id)
+    .sort((a, b) => {
+      const aMetrics = a.stability_metrics
+      const bMetrics = b.stability_metrics
+      if (bMetrics.repeat_success_rate !== aMetrics.repeat_success_rate) {
+        return bMetrics.repeat_success_rate - aMetrics.repeat_success_rate
+      }
+      return (
+        (aMetrics.total_billed_tokens_mean ?? Number.POSITIVE_INFINITY) -
+        (bMetrics.total_billed_tokens_mean ?? Number.POSITIVE_INFINITY)
+      )
+    })
+    .map(
+      (group, index) =>
+        `| ${index + 1} | ${group.variant_id} | ${group.scenario_id} | ${group.stability_metrics.repeat_success_rate} | ${group.stability_metrics.total_billed_tokens_mean ?? 'n/a'} | ${group.flaky_status} |`,
+    )
+    .join('\n')
+  const failureRows =
+    failures.length === 0
+      ? '- No run failures recorded.'
+      : failures
+          .map(
+            failure =>
+              `- ${failure.scenario_id} / ${failure.variant_id} / repeat ${failure.repeat_index}: ${failure.stage}: ${failure.error}`,
+          )
+          .join('\n')
+
+  return `# V2.3 Batch Experiment Summary: ${experiment.experiment_id}
+
+## Understanding
+
+- experiment: ${experiment.experiment_id}
+- mode: ${experiment.mode ?? 'bind_existing'}
+- scenario_count: ${experiment.scenario_ids?.length ?? 0}
+- candidate_count: ${experiment.candidate_variant_ids.length}
+- repeat_count: ${experiment.repeat_count ?? 1}
+- output_json: ${outputJson}
+
+## Batch Stability Table
+
+| scenario | variant | repeats | success_rate | token_mean | token_stddev | duration_mean_ms | duration_stddev_ms | tool_variance | subagent_variance | turn_variance | recovery_rate | flaky_status |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+${groupRows || '| n/a | n/a | 0 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | 0 | inconclusive |'}
+
+## Candidate Ranking
+
+| rank | candidate_variant | scenario | success_rate | token_mean | flaky_status |
+| ---: | --- | --- | ---: | ---: | --- |
+${rankingRows || '| n/a | n/a | n/a | n/a | n/a | n/a |'}
+
+## Flaky Scenario Notes
+
+${flakyRows || '- No flaky run group detected by the current V2.3 heuristic.'}
+
+## Run Failures
+
+${failureRows}
+
+## Interpretation Limits
+
+- V2.3 stability is based on repeat groups and trace-backed metrics; it is not a model-quality judge.
+- Flaky status is a first-pass engineering signal based on failures and coarse variance, not a statistical proof.
+`
+}
+
 function buildMarkdownReport(params: {
   experiment: EvalExperimentV21
   results: ScenarioExperimentResult[]
+  runGroups: RunGroupArtifact[]
+  failures: RunExecutionFailure[]
+  batchReport: string
   outputJson: string
   riskVerdict: RiskVerdict
   experimentValidity: ExperimentValidity
@@ -1060,6 +1454,9 @@ function buildMarkdownReport(params: {
   const {
     experiment,
     results,
+    runGroups,
+    failures,
+    batchReport,
     outputJson,
     riskVerdict,
     experimentValidity,
@@ -1088,6 +1485,23 @@ function buildMarkdownReport(params: {
       }),
     )
     .join('\n')
+
+  const runGroupRows = runGroups
+    .map(group => {
+      const metrics = group.stability_metrics
+      return `| ${group.scenario_id} | ${group.variant_id} | ${group.repeat_count} | ${metrics.repeat_success_rate} | ${metrics.total_billed_tokens_mean ?? 'n/a'} | ${metrics.total_billed_tokens_stddev ?? 'n/a'} | ${group.flaky_status} |`
+    })
+    .join('\n')
+
+  const failureRows =
+    failures.length === 0
+      ? '- No run failures recorded.'
+      : failures
+          .map(
+            failure =>
+              `- ${failure.scenario_id} / ${failure.variant_id} / repeat ${failure.repeat_index}: ${failure.stage}: ${failure.error}`,
+          )
+          .join('\n')
 
   const gateRows =
     allGateResults.length === 0
@@ -1225,6 +1639,20 @@ ${validityNotes || '- No additional blockers or warnings.'}
 
 ${runtimeDifferenceRows}
 
+## V2.3 Batch Robustness
+
+- batch_report: ${batchReport || 'not generated'}
+- run_group_count: ${runGroups.length}
+- run_failure_count: ${failures.length}
+
+| scenario | variant | repeats | success_rate | token_mean | token_stddev | flaky_status |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+${runGroupRows || '| n/a | n/a | 0 | 0 | n/a | n/a | inconclusive |'}
+
+### Run Failures
+
+${failureRows}
+
 ## Scorecard Summary
 
 | scenario | candidate_variant | score | baseline | candidate | delta | interpretation |
@@ -1287,8 +1715,13 @@ async function main(): Promise<void> {
 
   const scoreSpecs = await loadScoreSpecs()
   const gatePolicy = await loadGatePolicy(experiment.gate_policy_id)
-  const dbPath = typeof args.db === 'string' ? args.db : undefined
+  const configuredDbPath =
+    typeof experiment.execution?.db_path === 'string' && experiment.execution.db_path.trim()
+      ? path.resolve(repoRoot, experiment.execution.db_path)
+      : undefined
+  const dbPath = typeof args.db === 'string' ? args.db : configuredDbPath
   const snapshotDb = !Boolean(args['no-snapshot-db'])
+  const failurePolicy = experiment.execution?.failure_policy ?? 'fail_fast'
   for (const scoreSpecId of experiment.score_spec_ids ?? []) {
     if (!scoreSpecs.has(scoreSpecId)) {
       throw new Error(`Experiment references missing score_spec_id: ${scoreSpecId}`)
@@ -1308,19 +1741,9 @@ async function main(): Promise<void> {
   }
 
   const repeatCount = Math.max(experiment.repeat_count ?? 1, 1)
-  if (mode === 'execute_harness') {
-    if (scenarioIds.length !== 1) {
-      throw new Error('V2.2 execute_harness supports exactly one scenario.')
-    }
-    if (experiment.candidate_variant_ids.length !== 1) {
-      throw new Error('V2.2 execute_harness supports exactly one candidate variant.')
-    }
-    if (repeatCount !== 1) {
-      throw new Error('V2.2 execute_harness supports repeat_count=1 only.')
-    }
-  }
 
   const results: ScenarioExperimentResult[] = []
+  const failures: RunExecutionFailure[] = []
   if (mode === 'bind_existing') {
     for (const scenarioId of scenarioIds) {
       for (const variantId of [
@@ -1345,6 +1768,12 @@ async function main(): Promise<void> {
 
   for (const scenarioId of scenarioIds) {
     const scenario = mode === 'execute_harness' ? await loadScenario(scenarioId) : undefined
+    const baselineRunGroupId = createRunGroupId({
+      experimentId: experiment.experiment_id,
+      scenarioId,
+      variantId: experiment.baseline_variant_id,
+      stamp: executionStamp,
+    })
 
     for (let repeatIndex = 1; repeatIndex <= repeatCount; repeatIndex += 1) {
       let baselineUserActionId = findBoundUserActionId({
@@ -1355,6 +1784,11 @@ async function main(): Promise<void> {
       let baselineExecution: ExecuteHarnessResult | undefined
       let baselineEvalRunId: string | undefined
       let baselineBenchmarkRunId: string | undefined
+      let baselineRunId = ''
+      let baselineScores: EvalScore[] = []
+      let baselineRunArtifact: RunArtifact | undefined
+
+      try {
 
       if (mode === 'execute_harness') {
         if (!scenario) throw new Error(`Scenario not found: ${scenarioId}`)
@@ -1364,6 +1798,7 @@ async function main(): Promise<void> {
           scenarioId,
           variantId: experiment.baseline_variant_id,
           stamp: executionStamp,
+          repeatIndex,
         })
         baselineEvalRunId = identity.eval_run_id
         baselineBenchmarkRunId = identity.benchmark_run_id
@@ -1394,19 +1829,40 @@ async function main(): Promise<void> {
           scenarioId,
           variantId: experiment.baseline_variant_id,
           userActionId: baselineUserActionId,
+          runGroupId: baselineRunGroupId,
+          repeatIndex,
           scoreSpecIds: experiment.score_spec_ids ?? [],
           dbPath,
           snapshotDb,
         }),
       )
-      const baselineRunId = extractCreatedRunId(baselineOutput)
-      const baselineScores = await readJson<EvalScore[]>(
+      baselineRunId = extractCreatedRunId(baselineOutput)
+      baselineScores = await readJson<EvalScore[]>(
         path.join(scoresRoot, `${baselineRunId}.scores.json`),
       )
-      const baselineRunArtifact = await readRunArtifact(baselineRunId)
+      baselineRunArtifact = await readRunArtifact(baselineRunId)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (failurePolicy === 'fail_fast') throw error
+        failures.push({
+          scenario_id: scenarioId,
+          variant_id: experiment.baseline_variant_id,
+          run_group_id: baselineRunGroupId,
+          repeat_index: repeatIndex,
+          stage: message.includes('capture') ? 'capture' : mode === 'execute_harness' ? 'execute_harness' : 'record_run',
+          error: message,
+        })
+        continue
+      }
 
       const candidates: CandidateExperimentResult[] = []
       for (const candidateVariantId of experiment.candidate_variant_ids) {
+        const candidateRunGroupId = createRunGroupId({
+          experimentId: experiment.experiment_id,
+          scenarioId,
+          variantId: candidateVariantId,
+          stamp: executionStamp,
+        })
         let candidateActionId = findBoundUserActionId({
           experiment,
           scenarioId,
@@ -1416,6 +1872,8 @@ async function main(): Promise<void> {
         let candidateEvalRunId: string | undefined
         let candidateBenchmarkRunId: string | undefined
 
+        try {
+
         if (mode === 'execute_harness') {
           if (!scenario) throw new Error(`Scenario not found: ${scenarioId}`)
           const candidateVariant = await loadVariant(candidateVariantId)
@@ -1424,6 +1882,7 @@ async function main(): Promise<void> {
             scenarioId,
             variantId: candidateVariantId,
             stamp: executionStamp,
+            repeatIndex,
           })
           candidateEvalRunId = identity.eval_run_id
           candidateBenchmarkRunId = identity.benchmark_run_id
@@ -1454,6 +1913,8 @@ async function main(): Promise<void> {
             scenarioId,
             variantId: candidateVariantId,
             userActionId: candidateActionId,
+            runGroupId: candidateRunGroupId,
+            repeatIndex,
             scoreSpecIds: experiment.score_spec_ids ?? [],
             dbPath,
             snapshotDb,
@@ -1490,7 +1951,7 @@ async function main(): Promise<void> {
         const variantEffect = runtimeDifferenceAnalysis({
           scenarioId,
           candidateVariantId,
-          baselineVariantEffect: baselineRunArtifact.variant_effect,
+          baselineVariantEffect: baselineRunArtifact?.variant_effect,
           candidateVariantEffect: candidateRunArtifact.variant_effect,
           scorecard,
         })
@@ -1506,12 +1967,13 @@ async function main(): Promise<void> {
 
         candidates.push({
           candidate_variant_id: candidateVariantId,
+          candidate_run_group_id: candidateRunGroupId,
           candidate_run_id: candidateRunId,
           candidate_user_action_id: candidateActionId,
           candidate_eval_run_id: candidateEvalRunId,
           candidate_benchmark_run_id: candidateBenchmarkRunId,
           candidate_execution: candidateExecution,
-          baseline_variant_effect: baselineRunArtifact.variant_effect,
+          baseline_variant_effect: baselineRunArtifact?.variant_effect,
           candidate_variant_effect: candidateRunArtifact.variant_effect,
           variant_effect_summary: variantEffect,
           experiment_validity: experimentValidityForCandidate,
@@ -1530,11 +1992,25 @@ async function main(): Promise<void> {
             experimentValidity: experimentValidityForCandidate,
           }),
         })
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          if (failurePolicy === 'fail_fast') throw error
+          failures.push({
+            scenario_id: scenarioId,
+            variant_id: candidateVariantId,
+            run_group_id: candidateRunGroupId,
+            repeat_index: repeatIndex,
+            stage: message.includes('compare') ? 'compare' : message.includes('capture') ? 'capture' : mode === 'execute_harness' ? 'execute_harness' : 'record_run',
+            error: message,
+          })
+          continue
+        }
       }
 
       results.push({
         scenario_id: scenarioId,
         repeat_index: repeatIndex,
+        baseline_run_group_id: baselineRunGroupId,
         baseline_run_id: baselineRunId,
         baseline_user_action_id: baselineUserActionId,
         baseline_eval_run_id: baselineEvalRunId,
@@ -1559,6 +2035,11 @@ async function main(): Promise<void> {
     `experiment_${experiment.experiment_id}_${runStamp}.md`,
   )
   const outputMarkdownRel = path.relative(repoRoot, outputMarkdownPath)
+  const batchMarkdownPath = path.join(
+    reportRoot,
+    `batch_experiment_${experiment.experiment_id}_${runStamp}.md`,
+  )
+  const batchMarkdownRel = path.relative(repoRoot, batchMarkdownPath)
   const generatedAt = new Date().toISOString()
   const riskVerdict = summarizeRisk(results)
   const scorecardSummary = aggregateScorecard(results)
@@ -1566,6 +2047,15 @@ async function main(): Promise<void> {
   const recommendedReviewMode = aggregateReviewMode(results)
   const variantEffectSummary = aggregateVariantEffectSummary(results)
   const experimentValidity = aggregateExperimentValidity(results)
+  const runGroups = await buildRunGroups({
+    experimentId: experiment.experiment_id,
+    baselineVariantId: experiment.baseline_variant_id,
+    repeatCount,
+    results,
+    failures,
+    aggregateSummaryRef: batchMarkdownRel,
+  })
+  await writeRunGroups(runGroups)
 
   const warningMessages = results
     .flatMap(result => result.candidates.flatMap(candidate => candidate.gate_results))
@@ -1589,6 +2079,12 @@ async function main(): Promise<void> {
         `hard_fail: scenario=${result.scenario_id}, candidate=${result.candidate_variant_id}, score=${result.score_spec_id}`,
     )
   errorMessages.push(...experimentValidity.blockers)
+  errorMessages.push(
+    ...failures.map(
+      failure =>
+        `${failure.stage}: scenario=${failure.scenario_id}, variant=${failure.variant_id}, repeat=${failure.repeat_index}: ${failure.error}`,
+    ),
+  )
 
   await writeFile(
     outputJsonPath,
@@ -1603,8 +2099,13 @@ async function main(): Promise<void> {
         report_profile: experiment.report_profile ?? 'smoke',
         evaluation_intent: experiment.evaluation_intent ?? null,
         run_refs: runRefs(results),
+        run_group_refs: runGroupRefs(runGroups),
         score_refs: scoreRefs(results),
-        report_refs: reportRefs(results, outputMarkdownRel),
+        report_refs: reportRefs({
+          results,
+          experimentReport: outputMarkdownRel,
+          batchReport: batchMarkdownRel,
+        }),
         risk_verdict: riskVerdict,
         gate_verdict: riskVerdict,
         experiment_validity: experimentValidity,
@@ -1614,6 +2115,14 @@ async function main(): Promise<void> {
           'risk_verdict/gate_verdict is regression-risk-only and is not a final experiment judgment.',
         scorecard_summary: scorecardSummary,
         exploration_signals: explorationSignals,
+        stability_summary: runGroups,
+        flaky_scenarios: runGroups
+          .filter(group => group.flaky_status !== 'stable')
+          .map(group => ({
+            scenario_id: group.scenario_id,
+            variant_id: group.variant_id,
+            flaky_status: group.flaky_status,
+          })),
         recommended_review_mode: recommendedReviewMode,
         final_decision: null,
         errors: errorMessages,
@@ -1627,18 +2136,17 @@ async function main(): Promise<void> {
             requestedMode === 'execute_harness' && mode === 'bind_existing'
               ? 'execute_harness disabled by flag or environment; bind_existing fallback used'
               : null,
-          execute_harness_alpha_limits:
-            mode === 'execute_harness'
-              ? {
-                  scenario_count: 1,
-                  candidate_count: 1,
-                  repeat_count: 1,
-                }
-              : null,
+          v2_3_batch_capabilities: {
+            multi_scenario: scenarioIds.length > 1,
+            multi_candidate: experiment.candidate_variant_ids.length > 1,
+            repeat_count: repeatCount,
+            failure_policy: failurePolicy,
+          },
           score_spec_ids: experiment.score_spec_ids ?? [],
           gate_policy_id: experiment.gate_policy_id ?? null,
         },
         results,
+        run_failures: failures,
         created_at: generatedAt,
       },
       null,
@@ -1647,10 +2155,23 @@ async function main(): Promise<void> {
   )
 
   await writeFile(
+    batchMarkdownPath,
+    buildBatchReport({
+      experiment,
+      runGroups,
+      failures,
+      outputJson: outputJsonRel,
+    }),
+  )
+
+  await writeFile(
     outputMarkdownPath,
     buildMarkdownReport({
       experiment,
       results,
+      runGroups,
+      failures,
+      batchReport: batchMarkdownRel,
       outputJson: outputJsonRel,
       riskVerdict,
       experimentValidity,
@@ -1662,6 +2183,7 @@ async function main(): Promise<void> {
   )
 
   console.log(`Created V2 experiment summary: ${outputJsonRel}`)
+  console.log(`Created V2 batch summary: ${batchMarkdownRel}`)
   console.log(`Created V2 experiment report: ${outputMarkdownRel}`)
 }
 

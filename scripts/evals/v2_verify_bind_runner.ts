@@ -272,6 +272,32 @@ async function createMissingRootDb(): Promise<string> {
   return dbPath
 }
 
+async function createBindExistingDb(): Promise<string> {
+  const dbPath = path.join(tempRoot, 'bind-existing.duckdb')
+  const startedAt = '2026-05-01T00:00:00.000Z'
+  const sql = [
+    'CREATE TABLE user_actions(event_date VARCHAR, user_action_id VARCHAR, started_at VARCHAR, started_at_ms BIGINT, ended_at VARCHAR, ended_at_ms BIGINT, duration_ms BIGINT, event_count BIGINT, query_count BIGINT, main_thread_query_count BIGINT, subagent_query_count BIGINT, subagent_count BIGINT, tool_call_count BIGINT, raw_input_tokens BIGINT, output_tokens BIGINT, cache_read_tokens BIGINT, cache_create_tokens BIGINT, total_prompt_input_tokens BIGINT, total_billed_tokens BIGINT, main_thread_total_prompt_input_tokens BIGINT, subagent_total_prompt_input_tokens BIGINT);',
+    'CREATE TABLE queries(query_id VARCHAR, user_action_id VARCHAR, agent_name VARCHAR, started_at VARCHAR, turn_count BIGINT, terminal_reason VARCHAR);',
+    'CREATE TABLE tools(user_action_id VARCHAR, tool_name VARCHAR, is_closed BOOLEAN, has_failed BOOLEAN);',
+    'CREATE TABLE subagents(user_action_id VARCHAR, subagent_reason VARCHAR, subagent_trigger_kind VARCHAR, subagent_trigger_detail VARCHAR, duration_ms BIGINT);',
+    'CREATE TABLE recoveries(user_action_id VARCHAR, event_name VARCHAR, ts_wall VARCHAR);',
+    'CREATE TABLE metrics_integrity_daily(event_date VARCHAR, strict_query_completion_rate DOUBLE, strict_turn_state_closure_rate DOUBLE, tool_lifecycle_closure_rate DOUBLE, subagent_lifecycle_closure_rate DOUBLE);',
+    `INSERT INTO user_actions VALUES ('2026-05-01', '${baselineActionId}', '${startedAt}', 0, '2026-05-01T00:00:01.000Z', 1000, 1000, 2, 1, 1, 0, 0, 0, 100, 10, 0, 0, 100, 110, 100, 0);`,
+    `INSERT INTO user_actions VALUES ('2026-05-01', '${candidateActionId}', '${startedAt}', 0, '2026-05-01T00:00:01.000Z', 1000, 1000, 2, 1, 1, 0, 0, 0, 90, 10, 0, 0, 90, 100, 90, 0);`,
+    `INSERT INTO queries VALUES ('q-baseline', '${baselineActionId}', 'main_thread', '${startedAt}', 1, 'fixture_completed');`,
+    `INSERT INTO queries VALUES ('q-candidate', '${candidateActionId}', 'main_thread', '${startedAt}', 1, 'fixture_completed');`,
+    "INSERT INTO metrics_integrity_daily VALUES ('2026-05-01', 1, 1, 1, 1);",
+  ].join(' ')
+  const result = spawnSync(duckdbExe, [dbPath, sql], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  })
+  if (result.status !== 0) {
+    throw new Error(String(result.stderr || result.stdout || result.error?.message))
+  }
+  return dbPath
+}
+
 async function runCase(testCase: VerifyCase): Promise<VerifyResult> {
   const manifestPath = path.join(manifestsRoot, `${testCase.case_id}.json`)
   await writeJson(manifestPath, testCase.manifest)
@@ -332,6 +358,7 @@ async function runCase(testCase: VerifyCase): Promise<VerifyResult> {
 async function main(): Promise<void> {
   await mkdir(manifestsRoot, { recursive: true })
   await mkdir(reportsRoot, { recursive: true })
+  const bindExistingDb = await createBindExistingDb()
   const missingRootDb = await createMissingRootDb()
 
   const cases: VerifyCase[] = [
@@ -339,6 +366,8 @@ async function main(): Promise<void> {
       case_id: 'single_scenario_single_candidate',
       description: 'Single scenario plus one candidate should complete.',
       expect: 'success',
+      db_path: bindExistingDb,
+      no_snapshot_db: true,
       manifest: experiment({
         id: `v2_1_verify_single_candidate_${stamp}`,
         scenarioIds: ['cost_sensitive_task'],
@@ -353,6 +382,8 @@ async function main(): Promise<void> {
       case_id: 'single_scenario_multi_candidate',
       description: 'Single scenario plus multiple candidates should complete.',
       expect: 'success',
+      db_path: bindExistingDb,
+      no_snapshot_db: true,
       manifest: experiment({
         id: `v2_1_verify_multi_candidate_${stamp}`,
         scenarioIds: ['cost_sensitive_task'],
@@ -373,6 +404,8 @@ async function main(): Promise<void> {
       case_id: 'multi_scenario_single_candidate',
       description: 'Multiple scenarios plus one candidate should complete.',
       expect: 'success',
+      db_path: bindExistingDb,
+      no_snapshot_db: true,
       manifest: experiment({
         id: `v2_1_verify_multi_scenario_${stamp}`,
         scenarioIds: ['cost_sensitive_task', 'tool_choice_sensitive'],
@@ -406,6 +439,8 @@ async function main(): Promise<void> {
       description: 'Nonexistent V1 user_action_id should fail.',
       expect: 'failure',
       expected_error: 'user_action_id not found',
+      db_path: bindExistingDb,
+      no_snapshot_db: true,
       manifest: experiment({
         id: `v2_1_verify_missing_action_${stamp}`,
         scenarioIds: ['cost_sensitive_task'],
@@ -472,6 +507,8 @@ async function main(): Promise<void> {
       case_id: 'execute_harness_disabled_fallback',
       description: 'execute_harness can be disabled and falls back to bind_existing when action bindings are present.',
       expect: 'success',
+      db_path: bindExistingDb,
+      no_snapshot_db: true,
       extra_args: ['--disable-execute-harness'],
       manifest: experiment({
         id: `v2_1_verify_execute_harness_${stamp}`,

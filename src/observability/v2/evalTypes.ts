@@ -70,6 +70,8 @@ export interface EvalRun {
   run_id: string
   scenario_id: string
   variant_id: string
+  run_group_id?: string
+  repeat_index?: number
   started_at: string
   ended_at?: string
   status: EvalRunStatus

@@ -1,0 +1,12 @@
+{
+  "variant_id": "candidate_eval_fixture_shadow",
+  "name": "Candidate Eval Fixture Shadow",
+  "description": "V2.3 fixture-only candidate used to verify multi-candidate batch runner behavior without making a real harness claim.",
+  "change_layer": "harness",
+  "base_variant_id": "baseline_default",
+  "git_commit": "HEAD",
+  "env_overrides": {
+    "V2_FIXTURE_VARIANT_KIND": "shadow"
+  },
+  "notes": "This variant is for runner robustness verification only. It should not be interpreted as a product harness improvement."
+}

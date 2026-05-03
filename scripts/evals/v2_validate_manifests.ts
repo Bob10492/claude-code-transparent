@@ -43,6 +43,8 @@ const automationLevels = new Set(['automatic', 'manual_review', 'mixed'])
 const experimentModes = new Set(['bind_existing', 'execute_harness'])
 const reportProfiles = new Set(['smoke', 'real_experiment'])
 const evaluationIntents = new Set(['regression', 'exploration'])
+const failurePolicies = new Set(['fail_fast', 'continue_on_failure'])
+const executionAdapters = new Set(['cli_print', 'fixture_trace', 'disabled'])
 
 interface ValidationContext {
   scenarioIds: Set<string>
@@ -255,6 +257,26 @@ function validateExperiment(
     errors.push(
       `${filePath}.evaluation_intent has invalid value: ${experiment.evaluation_intent}`,
     )
+  }
+  if (
+    experiment.execution?.failure_policy !== undefined &&
+    !failurePolicies.has(experiment.execution.failure_policy)
+  ) {
+    errors.push(
+      `${filePath}.execution.failure_policy has invalid value: ${experiment.execution.failure_policy}`,
+    )
+  }
+  if (
+    experiment.execution?.db_path !== undefined &&
+    typeof experiment.execution.db_path !== 'string'
+  ) {
+    errors.push(`${filePath}.execution.db_path must be a string when present`)
+  }
+  if (
+    experiment.execution?.adapter !== undefined &&
+    !executionAdapters.has(experiment.execution.adapter)
+  ) {
+    errors.push(`${filePath}.execution.adapter has invalid value: ${experiment.execution.adapter}`)
   }
   if (experiment.action_bindings !== undefined) {
     requireArray(errors, filePath, 'action_bindings', experiment.action_bindings)

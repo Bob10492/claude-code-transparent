@@ -262,6 +262,8 @@ function buildReport(params: {
 
 - scenario: ${scenario.scenario_id} (${scenario.name})
 - variant: ${variant.variant_id} (${variant.name})
+- run_group_id: ${run.run_group_id ?? 'none'}
+- repeat_index: ${run.repeat_index ?? 'none'}
 - user_action_id: ${run.entry_user_action_id ?? 'unknown'}
 - root_query_id: ${run.root_query_id ?? 'unknown'}
 - observability_db_ref: ${run.observability_db_ref ?? 'unknown'}
@@ -323,6 +325,9 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2))
   const scenarioId = String(args.scenario ?? '')
   const variantId = String(args.variant ?? 'baseline_default')
+  const runGroupId = String(args['run-group-id'] ?? '')
+  const repeatIndex =
+    args['repeat-index'] === undefined ? undefined : asNumber(args['repeat-index'])
   const sourceDbPath = String(args.db ?? defaultDbPath)
   const dbPath = await resolveReadableDbPath(
     sourceDbPath,
@@ -440,6 +445,8 @@ async function main(): Promise<void> {
     run_id: runId,
     scenario_id: scenario.scenario_id,
     variant_id: variant.variant_id,
+    ...(runGroupId ? { run_group_id: runGroupId } : {}),
+    ...(repeatIndex !== undefined ? { repeat_index: repeatIndex } : {}),
     started_at: asString(action.started_at),
     ended_at: asString(action.ended_at),
     status: 'completed',

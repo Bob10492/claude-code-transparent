@@ -2,6 +2,16 @@
 
 This directory stores the local-first V2 evaluation system.
 
+## Recommended Overview
+
+If you want the project-level explanation first, start here:
+
+```text
+ObservrityTask/10-系统版本/v2/01-总览/V2.2.5版本项目介绍与阅读指南.md
+```
+
+Use this README after that when you want the concrete execution entrypoints and folder-level technical view.
+
 ## Structure
 
 - `scenarios/`: scenario manifests.
@@ -12,14 +22,15 @@ This directory stores the local-first V2 evaluation system.
 - `runs/`: generated run records bound to V1 evidence.
 - `scores/`: generated score artifacts.
 - `experiment-runs/`: experiment-level JSON summaries.
+- `run-groups/`: V2.3 repeat aggregation artifacts.
 - `verification-reports/`: runner verification reports.
 
 ## Modes
 
 - `bind_existing`: V2.1 stable mode. You provide existing V1 `user_action_id` values through `action_bindings`.
-- `execute_harness`: V2.2 mode. The runner executes one scenario through the headless harness, injects eval context into V1 events, captures the generated `user_action_id` by `benchmark_run_id`, then reuses the same score/report/risk-verdict pipeline.
+- `execute_harness`: V2.2+ mode. The runner executes scenarios through the headless harness, injects eval context into V1 events, captures generated `user_action_id` values by `benchmark_run_id`, then reuses the same score/report/risk-verdict pipeline.
 
-Current V2.2-beta deliberately supports only 1 scenario, 1 baseline, 1 candidate, and `repeat_count=1`.
+V2.3 adds batch robustness support on top of V2.2.5: multi-scenario, multi-candidate, `repeat_count > 1`, run groups, stability summaries, and flaky status.
 
 ## Basic Commands
 
@@ -90,10 +101,17 @@ Run the V2.2.5 manual `bind_existing` fallback experiment:
 bun run scripts/evals/v2_run_experiment.ts --experiment tests/evals/v2/experiments/session_memory_runtime_sparse_vs_default_manual.bind_existing.json
 ```
 
+Run the V2.3 no-cost robustness smoke:
+
+```powershell
+bun run scripts/evals/v2_run_experiment.ts --experiment tests/evals/v2/experiments/_experiment.robustness.smoke.json
+```
+
 Interpretation:
 
 - `smoke`: validates automatic execution, automatic capture, and automatic artifact generation.
 - `real_experiment`: asks whether the candidate changed runtime behavior in an observable and interpretable way.
+- `run_group`: groups repeats for one `scenario_id + variant_id` and reports success rate, token/duration variance, recovery rate, and flaky status.
 
 ## bind_existing Binding Shape
 
@@ -139,6 +157,8 @@ If capture returns zero matches, the run fails as `capture_failed`. If it return
 tests/evals/v2/V2.1-bind_existing-usage.md
 tests/evals/v2/V2.2-execute_harness-alpha-usage.md
 tests/evals/v2/V2.2.5-real-experiment-closure.md
+tests/evals/v2/V2.3-batch-robustness-usage.md
+tests/evals/v2/run-groups/
 tests/evals/v2/experiment-runs/README.md
 ```
 
@@ -160,4 +180,10 @@ List recorded runs:
 
 ```powershell
 bun run scripts/evals/v2_list_runs.ts --scenario tool_choice_sensitive
+```
+
+## V2.3 Project Overview
+
+```text
+ObservrityTask/10-系统版本/v2/01-总览/V2.3版本项目介绍与阅读指南.md
 ```

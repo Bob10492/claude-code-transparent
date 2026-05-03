@@ -1,0 +1,29 @@
+{
+  "scenario_id": "robustness_smoke_minimal_alt",
+  "name": "Robustness Smoke Minimal Alt",
+  "description": "A second tiny scenario used by V2.3 robustness smoke to exercise multi-scenario batch execution without model/API spend.",
+  "input_prompt": "只回复 READY，不要做任何额外解释。",
+  "tags": [
+    "observability-v2",
+    "robustness-smoke",
+    "fixture"
+  ],
+  "expected_artifacts": [],
+  "expected_tools": [],
+  "expected_skills": [],
+  "expected_constraints": [
+    "Should complete in one turn",
+    "Should not require tool calls",
+    "Used only for batch runner verification"
+  ],
+  "expected_observations": [
+    "Fixture trace should create one main_thread root query",
+    "Run group aggregation should include this scenario"
+  ],
+  "evaluation_note": "This is a runner smoke scenario, not a qualitative harness evaluation.",
+  "max_turn_count": 1,
+  "max_total_billed_tokens": 1000,
+  "max_subagent_count": 0,
+  "owner": "local",
+  "status": "ready"
+}

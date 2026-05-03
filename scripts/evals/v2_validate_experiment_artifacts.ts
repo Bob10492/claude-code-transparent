@@ -60,6 +60,18 @@ function validateArtifact(filePath: string, artifact: JsonRecord): string[] {
   requireArray(errors, filePath, 'report_refs', artifact.report_refs)
   requireArray(errors, filePath, 'errors', artifact.errors)
   requireArray(errors, filePath, 'warnings', artifact.warnings)
+  if (artifact.run_group_refs !== undefined) {
+    requireArray(errors, filePath, 'run_group_refs', artifact.run_group_refs)
+  }
+  if (artifact.stability_summary !== undefined) {
+    requireArray(errors, filePath, 'stability_summary', artifact.stability_summary)
+  }
+  if (artifact.flaky_scenarios !== undefined) {
+    requireArray(errors, filePath, 'flaky_scenarios', artifact.flaky_scenarios)
+  }
+  if (artifact.run_failures !== undefined) {
+    requireArray(errors, filePath, 'run_failures', artifact.run_failures)
+  }
   if (
     artifact.report_profile !== undefined &&
     !reportProfiles.has(String(artifact.report_profile))
