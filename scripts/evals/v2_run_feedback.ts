@@ -1054,15 +1054,27 @@ function buildMarkdownReport(params: {
   const topRecommendation =
     params.approvalCard.current_top_recommendation_proposal_ref ?? 'none'
 
-  return `# V2.5 Beta Feedback Report: ${params.feedbackRunId}
+  return `# V2.5 Feedback Appendix: ${params.feedbackRunId}
 
-## Understanding
+## Use This As Appendix
+
+- primary reading order:
+  - experiment-run JSON
+  - batch / compare / experiment report
+  - manual conclusion
+  - this feedback appendix
+- this report is advisory only
+- this report does not apply code changes automatically
+- findings are facts
+- hypotheses are inferences
+- proposals are suggestions for human review
+
+## Source Context
 
 - source_experiment_run: ${params.sourceExperimentRunRef}
 - source_reports:
 ${params.sourceReportRefs.map(ref => `  - ${ref}`).join('\n')}
 - generated_at: ${params.generatedAt}
-- this report is advisory only and does not apply code changes automatically
 
 ## Human Approval Card
 

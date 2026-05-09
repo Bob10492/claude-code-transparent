@@ -1,0 +1,200 @@
+flowchart TD
+  classDef action fill:#111827,stroke:#0f172a,color:#f9fafb
+  classDef query fill:#ecfeff,stroke:#0f766e,color:#042f2e
+  classDef subagent fill:#fff7ed,stroke:#c2410c,color:#431407
+  classDef summary fill:#f8fafc,stroke:#64748b,color:#0f172a
+  classDef tool fill:#eef2ff,stroke:#4338ca,color:#1e1b4b
+  classDef toolFail fill:#fff1f2,stroke:#e11d48,color:#4c0519
+  classDef artifact fill:#fef3c7,stroke:#b45309,color:#451a03
+  classDef artifactFinal fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef evidence fill:#ede9fe,stroke:#7c3aed,color:#2e1065
+  classDef more fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef repair fill:#fce7f3,stroke:#a21caf,color:#4a044e
+  ACTION["action 0e05fe1b<br/>duration 6546197ms<br/>phases 60 | queries 4 | tools 121"]
+  class ACTION action
+  P1["phase_01: output verification and residue checks<br/>2026-05-07 15:36:07 | 12588ms<br/>Readx1<br/>result: completed | completed"]
+  class P1 summary
+  ACTION --> P1
+  P2["phase_02: fork subagents<br/>2026-05-07 15:36:47 | 151ms<br/>Agentx2<br/>result: completed | completed"]
+  class P2 summary
+  P1 --> P2
+  P3["phase_03: environment setup and dependency checks<br/>2026-05-07 15:37:01 | 112809ms<br/>Bashx2<br/>completed"]
+  class P3 summary
+  P2 --> P3
+  P4["phase_04: environment setup and dependency checks<br/>2026-05-07 15:37:04 | 106139ms<br/>Bashx1<br/>completed"]
+  class P4 summary
+  P3 --> P4
+  P5["phase_05: environment setup and dependency checks<br/>2026-05-07 15:37:05 | 91102ms<br/>Bashx1<br/>completed"]
+  class P5 summary
+  P4 --> P5
+  P6["phase_06: subagent evidence review<br/>2026-05-07 15:38:49 | 30ms<br/>TaskOutputx1<br/>completed"]
+  class P6 summary
+  P5 --> P6
+  P7["phase_07: subagent thesis extraction<br/>2026-05-07 15:39:02 | 105577ms<br/>Bashx2<br/>completed"]
+  class P7 summary
+  P6 --> P7
+  P8["phase_08: output verification and residue checks<br/>2026-05-07 15:39:06 | 85563ms<br/>Bashx1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P8 summary
+  P7 --> P8
+  P9["phase_09: subagent template analysis<br/>2026-05-07 15:39:27 | 66518ms<br/>Bashx1<br/>completed"]
+  class P9 summary
+  P8 --> P9
+  P10["phase_10: environment setup and dependency checks<br/>2026-05-07 15:40:44 | 28447ms<br/>Bashx1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P10 summary
+  P9 --> P10
+  P11["phase_11: environment setup and dependency checks<br/>2026-05-07 15:40:45 | 170100ms<br/>Bashx2<br/>completed"]
+  class P11 summary
+  P10 --> P11
+  P12["phase_12: environment setup and dependency checks<br/>2026-05-07 15:41:33 | 123849ms<br/>Bashx2<br/>completed"]
+  class P12 summary
+  P11 --> P12
+  P13["phase_13: output verification and residue checks<br/>2026-05-07 15:41:36 | 116239ms<br/>Bashx1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P13 summary
+  P12 --> P13
+  P14["phase_14: environment setup and dependency checks<br/>2026-05-07 15:43:54 | 35851ms<br/>Bashx2<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P14 summary
+  P13 --> P14
+  P15["phase_15: subagent thesis extraction<br/>2026-05-07 15:43:55 | 752704ms<br/>Bashx6 + Readx4<br/>completed"]
+  class P15 summary
+  P14 --> P15
+  P16["phase_16: subagent template analysis<br/>2026-05-07 15:44:10 | 124801ms<br/>Bashx3<br/>completed"]
+  class P16 summary
+  P15 --> P16
+  P17["phase_17: output verification and residue checks<br/>2026-05-07 15:45:49 | 178046ms<br/>Bashx2<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P17 summary
+  P16 --> P17
+  P18["phase_18: subagent evidence review<br/>2026-05-07 15:46:38 | 119ms<br/>Readx1<br/>completed"]
+  class P18 summary
+  P17 --> P18
+  P19["phase_19: subagent template analysis<br/>2026-05-07 15:46:57 | 110858ms<br/>Bashx1<br/>completed"]
+  class P19 summary
+  P18 --> P19
+  P20["phase_20: subagent evidence review<br/>2026-05-07 15:49:05 | 439429ms<br/>Readx1 + Bashx2<br/>completed"]
+  class P20 summary
+  P19 --> P20
+  P21["phase_21: output verification and residue checks<br/>2026-05-07 15:49:05 | 68769ms<br/>Readx2<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P21 summary
+  P20 --> P21
+  P22["phase_22: output verification and residue checks<br/>2026-05-07 15:50:25 | 834409ms<br/>Bashx6 + TaskCreatex1 + TaskUpdatex1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P22 summary
+  P21 --> P22
+  P23["phase_23: subagent thesis extraction<br/>2026-05-07 15:57:06 | 664602ms<br/>Bashx5 + Readx7<br/>completed"]
+  class P23 summary
+  P22 --> P23
+  P24["phase_24: output verification and residue checks<br/>2026-05-07 16:04:40 | 2901ms<br/>Readx1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P24 summary
+  P23 --> P24
+  P25["phase_25: output verification and residue checks<br/>2026-05-07 16:05:09 | 334663ms<br/>Bashx3<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P25 summary
+  P24 --> P25
+  P26["phase_26: write script generate_ppt.py<br/>2026-05-07 16:15:32 | 31232ms<br/>Writex1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P26 summary
+  P25 --> P26
+  P27["phase_27: run script generate_ppt.py<br/>2026-05-07 16:16:23 | 46216ms<br/>Bashx1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P27 summary
+  P26 --> P27
+  P28["phase_28: output verification and residue checks<br/>2026-05-07 16:17:43 | 776526ms<br/>Bashx7 + Readx3<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P28 summary
+  P27 --> P28
+  P29["phase_29: write script generate_ppt_v2.py<br/>2026-05-07 16:33:45 | 34690ms<br/>Writex1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P29 summary
+  P28 --> P29
+  P30["phase_30: run script generate_ppt_v2.py<br/>2026-05-07 16:35:02 | 6731ms<br/>Bashx1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P30 summary
+  P29 --> P30
+  P31["phase_31: output verification and residue checks<br/>2026-05-07 16:35:33 | 114468ms<br/>Bashx2<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P31 summary
+  P30 --> P31
+  P32["phase_32: write script generate_ppt_v3.py<br/>2026-05-07 16:40:09 | 5601ms<br/>Writex1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P32 summary
+  P31 --> P32
+  P33["phase_33: run script generate_ppt_v3.py<br/>2026-05-07 16:41:16 | 17598ms<br/>Bashx1<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P33 summary
+  P32 --> P33
+  P34["phase_34: output verification and residue checks<br/>2026-05-07 16:43:09 | 446464ms<br/>Bashx5<br/>stdout: ---------------------------------------- 4.1/4.1 MB 133.2 kB/s 0:00:3..."]
+  class P34 summary
+  P33 --> P34
+  P35["phase_35: output verification and residue checks<br/>2026-05-07 16:53:08 | 142721ms<br/>Bashx1<br/>stdout: Copied template to new file Copied template to new file Copied templa..."]
+  class P35 summary
+  P34 --> P35
+  P36["phase_36: write script generate_ppt_final.py<br/>2026-05-07 16:57:53 | 42692ms<br/>Writex1<br/>stdout: Copied template to new file Copied template to new file Copied templa..."]
+  class P36 summary
+  P35 --> P36
+  P37["phase_37: run script generate_ppt_final.py<br/>2026-05-07 16:58:49 | 15256ms<br/>Bashx1<br/>stdout: Copied template to new file Copied template to new file Copied templa..."]
+  class P37 summary
+  P36 --> P37
+  P38["phase_38: run script generate_ppt_final.py<br/>2026-05-07 16:59:22 | 739ms<br/>Bashx1<br/>stdout: Copied template to new file Copied template to new file Copied templa..."]
+  class P38 summary
+  P37 --> P38
+  P39["phase_39: repair and adjustment edits<br/>2026-05-07 16:59:31 | 107455ms<br/>Bashx2<br/>stdout: Copied template to new file Copied template to new file Copied templa..."]
+  class P39 summary
+  P38 --> P39
+  P40["phase_40: execution or repair issue detection<br/>2026-05-07 17:01:37 | 5533ms<br/>Bashx1<br/>stdout: Copied template to new file hello test Copied template to new file he..."]
+  class P40 summary
+  P39 --> P40
+  P41["phase_41: edit script generate_ppt_final.py<br/>2026-05-07 17:02:13 | 3773ms<br/>Editx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Copied t..."]
+  class P41 summary
+  P40 --> P41
+  P42["phase_42: run script generate_ppt_final.py<br/>2026-05-07 17:02:31 | 861ms<br/>Bashx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Copied t..."]
+  class P42 summary
+  P41 --> P42
+  P43["phase_43: run script generate_ppt_final.py ⚠<br/>2026-05-07 17:02:48 | 142816ms<br/>Bashx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P43 summary
+  P42 --> P43
+  P44["phase_44: execution or repair issue detection ⚠<br/>2026-05-07 17:05:34 | 63ms<br/>Readx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P44 summary
+  P43 --> P44
+  P45["phase_45: run script generate_ppt_final.py ⚠<br/>2026-05-07 17:05:48 | 443ms<br/>Bashx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P45 summary
+  P44 --> P45
+  P46["phase_46: run script generate_ppt_final.py ⚠<br/>2026-05-07 17:06:26 | 113642ms<br/>Bashx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P46 summary
+  P45 --> P46
+  P47["phase_47: run script generate_ppt_final.py ⚠<br/>2026-05-07 17:08:52 | 370685ms<br/>Bashx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P47 summary
+  P46 --> P47
+  P48["phase_48: execution or repair issue detection ⚠<br/>2026-05-07 17:15:15 | 93ms<br/>Readx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P48 summary
+  P47 --> P48
+  P49["phase_49: edit script generate_ppt_final.py ⚠<br/>2026-05-07 17:15:57 | 62ms<br/>Editx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P49 summary
+  P48 --> P49
+  P50["phase_50: run script generate_ppt_final.py ⚠<br/>2026-05-07 17:16:10 | 6169ms<br/>Bashx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P50 summary
+  P49 --> P50
+  P51["phase_51: execution or repair issue detection ⚠<br/>2026-05-07 17:16:37 | 99ms<br/>Readx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P51 summary
+  P50 --> P51
+  P52["phase_52: edit script generate_ppt_final.py ⚠<br/>2026-05-07 17:18:03 | 47182ms<br/>Editx3<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P52 summary
+  P51 --> P52
+  P53["phase_53: run script generate_ppt_final.py ⚠<br/>2026-05-07 17:19:13 | 3071ms<br/>Bashx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P53 summary
+  P52 --> P53
+  P54["phase_54: execution or repair issue detection ⚠<br/>2026-05-07 17:19:35 | 150ms<br/>Readx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P54 summary
+  P53 --> P54
+  P55["phase_55: edit script generate_ppt_final.py ⚠<br/>2026-05-07 17:20:22 | 116ms<br/>Editx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P55 summary
+  P54 --> P55
+  P56["phase_56: run script generate_ppt_final.py ⚠<br/>2026-05-07 17:20:34 | 6622ms<br/>Bashx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P56 summary
+  P55 --> P56
+  P57["phase_57: execution or repair issue detection ⚠<br/>2026-05-07 17:21:08 | 92ms<br/>Readx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P57 summary
+  P56 --> P57
+  P58["phase_58: edit script generate_ppt_final.py ⚠<br/>2026-05-07 17:22:02 | 137ms<br/>Editx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P58 summary
+  P57 --> P58
+  P59["phase_59: run script generate_ppt_final.py ⚠<br/>2026-05-07 17:22:23 | 6407ms<br/>Bashx1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P59 summary
+  P58 --> P59
+  P60["phase_60: execution or repair issue detection ⚠<br/>2026-05-07 17:23:32 | 67516ms<br/>Readx3 + TaskUpdatex1<br/>stdout: Copied template to new file hello test Success: copied to v4 Tracebac..."]
+  class P60 summary
+  P59 --> P60
+  RC1["w file hello test Success: copied to v4 Traceback (most r..."]
+  class RC1 repair
+  P60 -. repair .-> RC1
+  RC2["w file hello test Success: copied to v4 Traceback (most r..."]
+  class RC2 repair
+  P60 -. repair .-> RC2

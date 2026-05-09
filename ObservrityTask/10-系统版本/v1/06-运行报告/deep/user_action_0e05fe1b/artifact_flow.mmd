@@ -1,0 +1,237 @@
+flowchart LR
+  classDef input fill:#ecfeff,stroke:#0f766e,color:#042f2e
+  classDef intermediate fill:#f8fafc,stroke:#64748b,color:#0f172a
+  classDef script fill:#eef2ff,stroke:#4338ca,color:#1e1b4b
+  classDef final fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef media fill:#fef3c7,stroke:#b45309,color:#451a03
+  classDef other fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  A1["bh6rbor2k.txt bqkf91isw.txt<br/>input"]
+  class A1 input
+  A2["bqkf91isw.txt<br/>input"]
+  class A2 input
+  A3["hj9j5w5hx.txt<br/>input"]
+  class A3 input
+  A4["叶先圆的答辩PPT(2).pptx<br/>input"]
+  class A4 input
+  A5["张舒宁-毕业论文-盲审版.docx<br/>input"]
+  class A5 input
+  A6["ppt_output.txt<br/>input"]
+  class A6 input
+  A7["PPT制作对齐样本.txt<br/>input"]
+  class A7 input
+  A8["thesis_ch12.txt<br/>input"]
+  class A8 input
+  A9["thesis_ch3_detail.txt<br/>input"]
+  class A9 input
+  A10["thesis_ch345.txt<br/>input"]
+  class A10 input
+  A11["thesis_ch4_detail.txt<br/>input"]
+  class A11 input
+  A12["thesis_ch5_detail.txt<br/>input"]
+  class A12 input
+  A13["thesis_conclusion.txt<br/>input"]
+  class A13 input
+  A14["thesis_structure.txt<br/>input"]
+  class A14 input
+  A15["ppt_analysis.txt<br/>intermediate"]
+  class A15 intermediate
+  A16["thesis_extract.txt<br/>intermediate"]
+  class A16 intermediate
+  A17["张舒宁答辩PPT_final.pptx<br/>script"]
+  class A17 script
+  A18["张舒宁答辩PPT_v4.pptx<br/>script"]
+  class A18 script
+  A19["generate_ppt_final.py<br/>script"]
+  class A19 script
+  A20["generate_ppt_v2.py<br/>script"]
+  class A20 script
+  A21["generate_ppt_v3.py<br/>script"]
+  class A21 script
+  A22["generate_ppt.py<br/>script"]
+  class A22 script
+  A23["张舒宁答辩PPT.pptx<br/>final"]
+  class A23 final
+  A24["zsn_ppt.pptx<br/>final"]
+  class A24 final
+  A25["img_001.png<br/>media"]
+  class A25 media
+  A26["img_004.png<br/>media"]
+  class A26 media
+  A27["img_005.png<br/>media"]
+  class A27 media
+  A28["img_006.png<br/>media"]
+  class A28 media
+  A29["python.exe<br/>other"]
+  class A29 other
+  A15 --> A1
+  A6 --> A1
+  A8 --> A1
+  A2 --> A1
+  A3 --> A1
+  A7 --> A1
+  A3 --> A2
+  A7 --> A2
+  A2 --> A3
+  A7 --> A3
+  A1 --> A29
+  A15 --> A29
+  A6 --> A29
+  A5 --> A4
+  A1 --> A4
+  A15 --> A4
+  A6 --> A4
+  A4 --> A5
+  A1 --> A5
+  A15 --> A5
+  A6 --> A5
+  A1 --> A17
+  A15 --> A17
+  A6 --> A17
+  A1 --> A18
+  A15 --> A18
+  A6 --> A18
+  A2 --> A18
+  A3 --> A18
+  A7 --> A18
+  A1 --> A23
+  A15 --> A23
+  A6 --> A23
+  A2 --> A23
+  A3 --> A23
+  A7 --> A23
+  A1 --> A19
+  A15 --> A19
+  A6 --> A19
+  A2 --> A19
+  A3 --> A19
+  A7 --> A19
+  A1 --> A20
+  A15 --> A20
+  A6 --> A20
+  A1 --> A21
+  A15 --> A21
+  A6 --> A21
+  A1 --> A22
+  A15 --> A22
+  A6 --> A22
+  A1 --> A15
+  A6 --> A15
+  A8 --> A15
+  A2 --> A15
+  A3 --> A15
+  A7 --> A15
+  A1 --> A6
+  A15 --> A6
+  A8 --> A6
+  A2 --> A6
+  A3 --> A6
+  A7 --> A6
+  A2 --> A7
+  A3 --> A7
+  A1 --> A8
+  A15 --> A8
+  A6 --> A8
+  A2 --> A8
+  A3 --> A8
+  A7 --> A8
+  A1 --> A9
+  A15 --> A9
+  A6 --> A9
+  A2 --> A9
+  A3 --> A9
+  A7 --> A9
+  A1 --> A10
+  A15 --> A10
+  A6 --> A10
+  A2 --> A10
+  A3 --> A10
+  A7 --> A10
+  A1 --> A11
+  A15 --> A11
+  A6 --> A11
+  A2 --> A11
+  A3 --> A11
+  A7 --> A11
+  A1 --> A12
+  A15 --> A12
+  A6 --> A12
+  A2 --> A12
+  A3 --> A12
+  A7 --> A12
+  A1 --> A13
+  A15 --> A13
+  A6 --> A13
+  A2 --> A13
+  A3 --> A13
+  A7 --> A13
+  A1 --> A16
+  A15 --> A16
+  A6 --> A16
+  A2 --> A16
+  A3 --> A16
+  A7 --> A16
+  A1 --> A14
+  A15 --> A14
+  A6 --> A14
+  A2 --> A14
+  A3 --> A14
+  A7 --> A14
+  A1 --> A24
+  A15 --> A24
+  A6 --> A24
+  A1 --> A25
+  A15 --> A25
+  A6 --> A25
+  A2 --> A25
+  A3 --> A25
+  A7 --> A25
+  A1 --> A26
+  A15 --> A26
+  A6 --> A26
+  A2 --> A26
+  A3 --> A26
+  A7 --> A26
+  A1 --> A27
+  A15 --> A27
+  A6 --> A27
+  A2 --> A27
+  A3 --> A27
+  A7 --> A27
+  A1 --> A28
+  A15 --> A28
+  A6 --> A28
+  A2 --> A28
+  A3 --> A28
+  A7 --> A28
+  subgraph SG_input_intermediate["input → intermediate"]
+    A1 -.-> A15
+    A1 -.-> A16
+    A2 -.-> A15
+    A2 -.-> A16
+    A3 -.-> A15
+    A3 -.-> A16
+    A4 -.-> A15
+    A4 -.-> A16
+    A5 -.-> A15
+    A5 -.-> A16
+  end
+  subgraph SG_intermediate_script["intermediate → script"]
+    A15 -.-> A17
+    A15 -.-> A18
+    A15 -.-> A19
+    A16 -.-> A17
+    A16 -.-> A18
+    A16 -.-> A19
+  end
+  subgraph SG_script_final["script → final"]
+    A17 -.-> A23
+    A17 -.-> A24
+    A18 -.-> A23
+    A18 -.-> A24
+    A19 -.-> A23
+    A19 -.-> A24
+    A20 -.-> A23
+    A20 -.-> A24
+    A21 -.-> A23
+    A21 -.-> A24
+  end

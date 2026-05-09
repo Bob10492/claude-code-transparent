@@ -12,87 +12,133 @@ type Props = {
   pose?: ClawdPose
 }
 
-// Standard-terminal pose fragments. Each row is split into segments so we can
-// vary only the parts that change (eyes, arms) while keeping the body/bg spans
-// stable. All poses end up 9 cols wide.
+// ORION pixel art — 5 rows, each letter 3 cols wide with 1-col spacing.
+// Uses Unicode block-drawing chars for a pixel/3D look.
+// Colors: gradient from Claude Blue (left) to warm amber (right).
 //
-// arms-up: the row-2 arm shapes (▝▜ / ▛▘) move to row 1 as their
-// bottom-heavy mirrors (▗▟ / ▙▖) — same silhouette, one row higher.
+// The "3D" effect comes from:
+//   - Row 0: ▄ top highlights (lighter colors)
+//   - Rows 1-3: █ solid body (main colors)
+//   - Row 4: ▀ bottom shadow (darker colors)
+
+// Color gradient across the 5 letters O-R-I-O-N
+const COLORS = [
+  'rgb(87,105,247)',  // O — Claude Blue
+  'rgb(120,90,220)',  // R — violet
+  'rgb(175,80,180)',  // I — magenta
+  'rgb(215,119,87)',  // O — terra cotta (Claude Orange)
+  'rgb(240,160,60)',  // N — warm amber
+] as const satisfies readonly `rgb(${number},${number},${number})`[]
+
+// Shadow colors (darker versions for 3D depth)
+const SHADOW_COLORS = [
+  'rgb(40,50,140)',   // O shadow
+  'rgb(60,40,120)',   // R shadow
+  'rgb(100,40,100)',  // I shadow
+  'rgb(140,70,45)',   // O shadow
+  'rgb(160,100,30)',  // N shadow
+] as const satisfies readonly `rgb(${number},${number},${number})`[]
+
+// Highlight colors (lighter top edge)
+const HIGHLIGHT_COLORS = [
+  'rgb(140,155,255)', // O highlight
+  'rgb(170,140,255)', // R highlight
+  'rgb(220,140,220)', // I highlight
+  'rgb(255,170,130)', // O highlight
+  'rgb(255,200,100)', // N highlight
+] as const satisfies readonly `rgb(${number},${number},${number})`[]
+
+// Pixel art layout for ORION (5 rows x 19 cols)
 //
-// look-* use top-quadrant eye chars (▙/▟) so both eyes change from the
-// default (▛/▜, bottom pupils) — otherwise only one eye would appear to move.
-type Segments = {
-  /** row 1 left (no bg): optional raised arm + side */
-  r1L: string
-  /** row 1 eyes (with bg): left-eye, forehead, right-eye */
-  r1E: string
-  /** row 1 right (no bg): side + optional raised arm */
-  r1R: string
-  /** row 2 left (no bg): arm + body curve */
-  r2L: string
-  /** row 2 right (no bg): body curve + arm */
-  r2R: string
-}
+//   ▄██▄  ▄██▄  ▄█▄  ▄██▄  ▄█▄
+//   █  █  █  █   █   █  █  █ █
+//   █  █  ███    █   █  █  █ █
+//   █  █  █ █    █   █  █  █ █
+//   ▀██▀  █ █   █▀   ▀██▀  █ █
 
-const POSES: Record<ClawdPose, Segments> = {
-  default: { r1L: ' ▐', r1E: '▛███▜', r1R: '▌', r2L: '▝▜', r2R: '▛▘' },
-  'look-left': { r1L: ' ▐', r1E: '▟███▟', r1R: '▌', r2L: '▝▜', r2R: '▛▘' },
-  'look-right': { r1L: ' ▐', r1E: '▙███▙', r1R: '▌', r2L: '▝▜', r2R: '▛▘' },
-  'arms-up': { r1L: '▗▟', r1E: '▛███▜', r1R: '▙▖', r2L: ' ▜', r2R: '▛ ' },
-}
+// Each row is an array of [char, color] tuples.
+// Empty string color means space (no coloring needed).
+type PixelRow = ReadonlyArray<readonly [string, string]>
 
-// Apple Terminal uses a bg-fill trick (see below), so only eye poses make
-// sense. Arm poses fall back to default.
-const APPLE_EYES: Record<ClawdPose, string> = {
-  default: ' ▗   ▖ ',
-  'look-left': ' ▘   ▘ ',
-  'look-right': ' ▝   ▝ ',
-  'arms-up': ' ▗   ▖ ',
-}
+const ROWS: readonly PixelRow[] = [
+  // Row 0: top edge (▄ = top of letters)
+  [
+    ['▄', HIGHLIGHT_COLORS[0]], ['█', HIGHLIGHT_COLORS[0]], ['▄', HIGHLIGHT_COLORS[0]], [' ', ''],
+    ['▄', HIGHLIGHT_COLORS[1]], ['█', HIGHLIGHT_COLORS[1]], ['▄', HIGHLIGHT_COLORS[1]], [' ', ''],
+    ['▄', HIGHLIGHT_COLORS[2]], ['█', HIGHLIGHT_COLORS[2]], ['▄', HIGHLIGHT_COLORS[2]], [' ', ''],
+    ['▄', HIGHLIGHT_COLORS[3]], ['█', HIGHLIGHT_COLORS[3]], ['▄', HIGHLIGHT_COLORS[3]], [' ', ''],
+    ['▄', HIGHLIGHT_COLORS[4]], ['█', HIGHLIGHT_COLORS[4]], ['▄', HIGHLIGHT_COLORS[4]],
+  ] as const,
+  // Row 1: upper body (N: left + diagonal start)
+  [
+    ['█', COLORS[0]], [' ', ''], ['█', COLORS[0]], [' ', ''],
+    ['█', COLORS[1]], [' ', ''], ['█', COLORS[1]], [' ', ''],
+    ['█', COLORS[2]], [' ', ''], ['█', COLORS[2]], [' ', ''],
+    ['█', COLORS[3]], [' ', ''], ['█', COLORS[3]], [' ', ''],
+    ['█', COLORS[4]], ['█', COLORS[4]], [' ', ''],
+  ] as const,
+  // Row 2: middle body (R crossbar, N diagonal middle)
+  [
+    ['█', COLORS[0]], [' ', ''], ['█', COLORS[0]], [' ', ''],
+    ['█', COLORS[1]], ['█', COLORS[1]], ['█', COLORS[1]], [' ', ''],
+    ['█', COLORS[2]], [' ', ''], ['█', COLORS[2]], [' ', ''],
+    ['█', COLORS[3]], [' ', ''], ['█', COLORS[3]], [' ', ''],
+    ['█', COLORS[4]], [' ', ''], ['█', COLORS[4]],
+  ] as const,
+  // Row 3: lower body (R leg, I serif, N diagonal end)
+  [
+    ['█', COLORS[0]], [' ', ''], ['█', COLORS[0]], [' ', ''],
+    ['█', COLORS[1]], [' ', ''], ['█', COLORS[1]], [' ', ''],
+    ['█', COLORS[2]], [' ', ''], ['▀', COLORS[2]], [' ', ''],
+    ['█', COLORS[3]], [' ', ''], ['█', COLORS[3]], [' ', ''],
+    [' ', ''], ['█', COLORS[4]], ['█', COLORS[4]],
+  ] as const,
+  // Row 4: bottom edge (▀ = bottom of letters) + shadow
+  [
+    ['▀', SHADOW_COLORS[0]], ['█', SHADOW_COLORS[0]], ['▀', SHADOW_COLORS[0]], [' ', ''],
+    ['▀', SHADOW_COLORS[1]], [' ', ''], ['█', SHADOW_COLORS[1]], [' ', ''],
+    [' ', ''], ['▀', SHADOW_COLORS[2]], [' ', ''], [' ', ''],
+    ['▀', SHADOW_COLORS[3]], ['█', SHADOW_COLORS[3]], ['▀', SHADOW_COLORS[3]], [' ', ''],
+    ['▀', SHADOW_COLORS[4]], [' ', ''], ['█', SHADOW_COLORS[4]],
+  ] as const,
+] as const
 
 export function Clawd({ pose = 'default' }: Props = {}): React.ReactNode {
   if (env.terminal === 'Apple_Terminal') {
     return <AppleTerminalClawd pose={pose} />
   }
-  const p = POSES[pose]
   return (
     <Box flexDirection="column">
-      <Text>
-        <Text color="clawd_body">{p.r1L}</Text>
-        <Text color="clawd_body" backgroundColor="clawd_background">
-          {p.r1E}
+      {ROWS.map((row, rowIdx) => (
+        <Text key={rowIdx}>
+          {row.map(([ch, color], colIdx) =>
+            ch === ' ' ? (
+              <Text key={colIdx}> </Text>
+            ) : (
+              <Text key={colIdx} color={color as `rgb(${number},${number},${number})`}>{ch}</Text>
+            )
+          )}
         </Text>
-        <Text color="clawd_body">{p.r1R}</Text>
-      </Text>
-      <Text>
-        <Text color="clawd_body">{p.r2L}</Text>
-        <Text color="clawd_body" backgroundColor="clawd_background">
-          █████
-        </Text>
-        <Text color="clawd_body">{p.r2R}</Text>
-      </Text>
-      <Text color="clawd_body">
-        {'  '}▘▘ ▝▝{'  '}
-      </Text>
+      ))}
     </Box>
   )
 }
 
 function AppleTerminalClawd({ pose }: { pose: ClawdPose }): React.ReactNode {
-  // Apple's Terminal renders vertical space between chars by default.
-  // It does NOT render vertical space between background colors
-  // so we use background color to draw the main shape.
+  // Apple Terminal fallback — simpler rendering
   return (
     <Box flexDirection="column" alignItems="center">
-      <Text>
-        <Text color="clawd_body">▗</Text>
-        <Text color="clawd_background" backgroundColor="clawd_body">
-          {APPLE_EYES[pose]}
+      {ROWS.map((row, rowIdx) => (
+        <Text key={rowIdx}>
+          {row.map(([ch, color], colIdx) =>
+            ch === ' ' ? (
+              <Text key={colIdx}> </Text>
+            ) : (
+              <Text key={colIdx} color={color as `rgb(${number},${number},${number})`}>{ch}</Text>
+            )
+          )}
         </Text>
-        <Text color="clawd_body">▖</Text>
-      </Text>
-      <Text backgroundColor="clawd_body">{' '.repeat(7)}</Text>
-      <Text color="clawd_body">▘▘ ▝▝</Text>
+      ))}
     </Box>
   )
 }

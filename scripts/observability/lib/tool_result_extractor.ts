@@ -60,6 +60,15 @@ const FILE_HINT_KEYWORDS = [
   "\u5df2\u751f\u6210",
 ]
 
+const LOW_VALUE_RESULT_PATTERNS = [
+  /^fork started\b/iu,
+  /^async agent launched\b/iu,
+  /^agent launched\b/iu,
+  /^background agent started\b/iu,
+  /^task created\b/iu,
+  /^subagent spawned\b/iu,
+]
+
 const FILE_PATTERN =
   /([A-Za-z]:[\\/][^\s"'`<>|]+|(?:\.{1,2}[\\/])?[\w .-]+(?:[\\/][\w .-]+)*\.(?:docx|pptx|txt|json|py|js|ts|ps1|csv|md|xml|html|png|jpg|jpeg|svg|pdf|xlsx|output))/giu
 
@@ -105,6 +114,12 @@ function findKeywordSummary(texts: string[], keywords: string[]): string {
     return squash(text.slice(Math.max(0, index - 40), index + 180))
   }
   return ""
+}
+
+function isLowValueResult(text: string): boolean {
+  if (!text) return false
+  const trimmed = text.trim()
+  return LOW_VALUE_RESULT_PATTERNS.some(pattern => pattern.test(trimmed))
 }
 
 function summarizeStructuredResult(record: Record<string, JsonValue>): {
@@ -344,24 +359,54 @@ export function enrichToolCallsWithResults(params: {
 }): RichToolCall[] {
   const resultIndex = buildTurnToolResultIndex(params.turnSnapshotsByKey)
 
+  const toolCountByTurn = new Map<string, number>()
+  for (const tool of params.tools) {
+    const key = `${tool.query_id ?? "unknown"}|${tool.turn_id ?? "unknown"}`
+    toolCountByTurn.set(key, (toolCountByTurn.get(key) ?? 0) + 1)
+  }
+
   return params.tools.map(tool => {
     const turnKey = `${tool.query_id ?? "unknown"}|${tool.turn_id ?? "unknown"}`
     const exact = resultIndex.exactByTurnAndTool.get(`${turnKey}|${tool.tool_call_id}`)
-    const fallback = resultIndex.fallbackByTurn.get(turnKey)
+    const turnToolCount = toolCountByTurn.get(turnKey) ?? 1
+    const fallback = turnToolCount <= 1 ? resultIndex.fallbackByTurn.get(turnKey) : undefined
     const selected = exact ?? fallback
     const warnings = [...tool.warnings, ...(selected?.warnings ?? [])]
-    const texts = [
+    if (!exact && turnToolCount > 1 && !fallback) {
+      warnings.push("multi-tool turn: fallback disabled to avoid cross-contamination")
+    }
+
+    const rawResultText = [
+      selected?.text_summary ?? "",
+      selected?.stdout_summary ?? "",
+      tool.output_summary,
+    ].filter(Boolean).join(" ")
+    const filteredResultText = isLowValueResult(rawResultText) ? "" : rawResultText
+
+    const problemTexts = [
+      selected?.error_summary ?? "",
+      selected?.stderr_summary ?? "",
+      filteredResultText,
+    ]
+    const detectedProblem = findKeywordSummary(problemTexts, PROBLEM_KEYWORDS)
+
+    const fixTexts = [
+      selected?.error_summary ?? "",
+      selected?.stderr_summary ?? "",
+      selected?.stdout_summary ?? "",
+      selected?.text_summary ?? "",
+      filteredResultText,
+    ]
+    const detectedFixSignal = findKeywordSummary(fixTexts, FIX_KEYWORDS)
+
+    const hintTexts = [
       selected?.error_summary ?? "",
       selected?.stderr_summary ?? "",
       selected?.stdout_summary ?? "",
       selected?.text_summary ?? "",
       tool.output_summary,
-      tool.input_summary,
-      tool.prompt_summary,
     ]
-    const detectedProblem = findKeywordSummary(texts, PROBLEM_KEYWORDS)
-    const detectedFixSignal = findKeywordSummary(texts, FIX_KEYWORDS)
-    const outputHints = findKeywordSummary(texts, FILE_HINT_KEYWORDS)
+    const outputHints = findKeywordSummary(hintTexts, FILE_HINT_KEYWORDS)
     const resultFiles = unique([
       ...tool.produced_files,
       ...(selected?.result_files ?? []),
@@ -377,7 +422,7 @@ export function enrichToolCallsWithResults(params: {
         selected?.error_summary ? `error: ${selected.error_summary}` : "",
         selected?.stderr_summary ? `stderr: ${selected.stderr_summary}` : "",
         selected?.stdout_summary ? `stdout: ${selected.stdout_summary}` : "",
-        selected?.text_summary ? `result: ${selected.text_summary}` : "",
+        filteredResultText ? `result: ${filteredResultText}` : "",
         !selected && tool.output_summary ? tool.output_summary : "",
       ]
         .filter(Boolean)

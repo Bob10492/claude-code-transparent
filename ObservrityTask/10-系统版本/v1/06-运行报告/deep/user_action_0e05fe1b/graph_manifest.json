@@ -1,0 +1,142 @@
+{
+  "user_action_id": "0e05fe1b-ece6-4f6b-9f90-b862e0e88308",
+  "generated_at": "2026-05-09T07:41:41.593Z",
+  "phase_count": 60,
+  "tool_count": 121,
+  "artifact_count": 29,
+  "repair_chain_count": 2,
+  "chunks": [
+    {
+      "file_name": "rich_stage_flow.overview.mmd",
+      "profile": "overview",
+      "phase_range": "all",
+      "stats": {
+        "size_bytes": 13042,
+        "line_count": 200,
+        "node_count": 63,
+        "edge_count": 60,
+        "subgraph_count": 0
+      },
+      "renderable": true
+    },
+    {
+      "file_name": "rich_stage_flow.part_01_phase_01_10.mmd",
+      "profile": "rich",
+      "phase_range": "phase_01 – phase_10",
+      "stats": {
+        "size_bytes": 9894,
+        "line_count": 178,
+        "node_count": 49,
+        "edge_count": 48,
+        "subgraph_count": 10
+      },
+      "renderable": true
+    },
+    {
+      "file_name": "rich_stage_flow.part_02_phase_11_20.mmd",
+      "profile": "rich",
+      "phase_range": "phase_11 – phase_20",
+      "stats": {
+        "size_bytes": 13590,
+        "line_count": 244,
+        "node_count": 71,
+        "edge_count": 70,
+        "subgraph_count": 10
+      },
+      "renderable": true
+    },
+    {
+      "file_name": "rich_stage_flow.part_03_phase_21_30.mmd",
+      "profile": "rich",
+      "phase_range": "phase_21 – phase_30",
+      "stats": {
+        "size_bytes": 17756,
+        "line_count": 292,
+        "node_count": 87,
+        "edge_count": 86,
+        "subgraph_count": 10
+      },
+      "renderable": true
+    },
+    {
+      "file_name": "rich_stage_flow.part_04_phase_31_40.mmd",
+      "profile": "rich",
+      "phase_range": "phase_31 – phase_40",
+      "stats": {
+        "size_bytes": 14863,
+        "line_count": 241,
+        "node_count": 70,
+        "edge_count": 69,
+        "subgraph_count": 10
+      },
+      "renderable": true
+    },
+    {
+      "file_name": "rich_stage_flow.part_05_phase_41_50.mmd",
+      "profile": "rich",
+      "phase_range": "phase_41 – phase_50",
+      "stats": {
+        "size_bytes": 14404,
+        "line_count": 244,
+        "node_count": 71,
+        "edge_count": 68,
+        "subgraph_count": 10
+      },
+      "renderable": true
+    },
+    {
+      "file_name": "rich_stage_flow.part_06_phase_51_60.mmd",
+      "profile": "rich",
+      "phase_range": "phase_51 – phase_60",
+      "stats": {
+        "size_bytes": 15816,
+        "line_count": 262,
+        "node_count": 77,
+        "edge_count": 75,
+        "subgraph_count": 10
+      },
+      "renderable": true
+    },
+    {
+      "file_name": "rich_stage_flow.full.mmd",
+      "profile": "full",
+      "phase_range": "all",
+      "stats": {
+        "size_bytes": 91688,
+        "line_count": 1600,
+        "node_count": 473,
+        "edge_count": 518,
+        "subgraph_count": 60
+      },
+      "renderable": false
+    },
+    {
+      "file_name": "artifact_flow.mmd",
+      "profile": "artifact",
+      "phase_range": "all",
+      "stats": {
+        "size_bytes": 4465,
+        "line_count": 237,
+        "node_count": 29,
+        "edge_count": 140,
+        "subgraph_count": 3
+      },
+      "renderable": true
+    },
+    {
+      "file_name": "debug_chain_flow.mmd",
+      "profile": "debug",
+      "phase_range": "all",
+      "stats": {
+        "size_bytes": 2094,
+        "line_count": 53,
+        "node_count": 16,
+        "edge_count": 14,
+        "subgraph_count": 0
+      },
+      "renderable": true
+    }
+  ],
+  "full_graph_too_large": true,
+  "recommended_entry": "rich_stage_flow.overview.mmd"
+}

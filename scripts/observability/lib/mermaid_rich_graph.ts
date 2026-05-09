@@ -2,6 +2,9 @@ import type {
   ActionRow,
   ArtifactRecord,
   EvidenceRecord,
+  GraphChunkManifest,
+  GraphManifest,
+  GraphStats,
   PhaseRecord,
   QueryRow,
   RepairChain,
@@ -294,6 +297,268 @@ export function buildDebugChainFlow(params: {
     lines.push(`  ${previous} --> ${verificationId}`)
     lines.push(`  ${verificationId} --> ${resultId}`)
   })
+
+  return lines.join("\n")
+}
+
+export function computeGraphStats(mermaid: string): GraphStats {
+  const lines = mermaid.split("\n")
+  let nodeCount = 0
+  let edgeCount = 0
+  let subgraphCount = 0
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (/^subgraph\b/u.test(trimmed)) subgraphCount += 1
+    else if (/-->|-\.\.->/u.test(trimmed)) edgeCount += 1
+    else if (/\["[^"]*"\]/u.test(trimmed) && !/^classDef\b/u.test(trimmed) && !trimmed.startsWith("class ")) nodeCount += 1
+  }
+  return {
+    size_bytes: Buffer.byteLength(mermaid, "utf8"),
+    line_count: lines.length,
+    node_count: nodeCount,
+    edge_count: edgeCount,
+    subgraph_count: subgraphCount,
+  }
+}
+
+const CLASS_DEFS = [
+  "  classDef action fill:#111827,stroke:#0f172a,color:#f9fafb",
+  "  classDef query fill:#ecfeff,stroke:#0f766e,color:#042f2e",
+  "  classDef subagent fill:#fff7ed,stroke:#c2410c,color:#431407",
+  "  classDef summary fill:#f8fafc,stroke:#64748b,color:#0f172a",
+  "  classDef tool fill:#eef2ff,stroke:#4338ca,color:#1e1b4b",
+  "  classDef toolFail fill:#fff1f2,stroke:#e11d48,color:#4c0519",
+  "  classDef artifact fill:#fef3c7,stroke:#b45309,color:#451a03",
+  "  classDef artifactFinal fill:#dcfce7,stroke:#16a34a,color:#14532d",
+  "  classDef evidence fill:#ede9fe,stroke:#7c3aed,color:#2e1065",
+  "  classDef more fill:#f1f5f9,stroke:#94a3b8,color:#334155",
+  "  classDef repair fill:#fce7f3,stroke:#a21caf,color:#4a044e",
+]
+
+export function buildOverviewFlow(params: {
+  action: ActionRow
+  queries: QueryRow[]
+  phases: PhaseRecord[]
+  repairChains: RepairChain[]
+}): string {
+  const lines = ["flowchart TD", ...CLASS_DEFS]
+
+  lines.push(
+    `  ACTION["${esc(
+      [
+        `action ${shortId(params.action.user_action_id)}`,
+        `duration ${params.action.duration_ms}ms`,
+        `phases ${params.phases.length} | queries ${params.action.query_count} | tools ${params.action.tool_call_count}`,
+      ].join("<br/>"),
+    )}"]`,
+  )
+  lines.push("  class ACTION action")
+
+  let previousId = "ACTION"
+  params.phases.forEach((phase, index) => {
+    const id = `P${index + 1}`
+    const toolNames = Object.entries(phase.tool_counts)
+      .map(([name, count]) => `${name}x${count}`)
+      .join(" + ")
+    const problemFlag = phase.problems.length > 0 ? " ⚠" : ""
+    lines.push(
+      `  ${id}["${esc(
+        [
+          `${phase.phase_id}: ${phase.phase_name}${problemFlag}`,
+          `${phase.start_local} | ${phase.duration_ms}ms`,
+          toolNames || "no tools",
+          shortText(phase.result_summary, 80),
+        ].join("<br/>"),
+      )}"]`,
+    )
+    lines.push(`  class ${id} summary`)
+    lines.push(`  ${previousId} --> ${id}`)
+    previousId = id
+  })
+
+  params.repairChains.forEach((chain, index) => {
+    const id = `RC${index + 1}`
+    lines.push(`  ${id}["${esc(shortText(chain.problem_summary, 60))}"]`)
+    lines.push(`  class ${id} repair`)
+    lines.push(`  ${previousId} -. repair .-> ${id}`)
+  })
+
+  return lines.join("\n")
+}
+
+export function buildPhaseChunkFlow(params: {
+  action: ActionRow
+  phases: PhaseRecord[]
+  chunkPhases: PhaseRecord[]
+  chunkIndex: number
+  tools: RichToolCall[]
+  artifacts: ArtifactRecord[]
+  evidence: EvidenceRecord[]
+  repairChains: RepairChain[]
+}): string {
+  const lines = ["flowchart TD", ...CLASS_DEFS]
+
+  const chunkLabel = `Phases ${params.chunkPhases[0]?.phase_id ?? "?"} – ${params.chunkPhases.at(-1)?.phase_id ?? "?"}`
+  lines.push(
+    `  CHUNK["${esc(
+      [
+        `chunk ${params.chunkIndex + 1}: ${chunkLabel}`,
+        `action ${shortId(params.action.user_action_id)}`,
+      ].join("<br/>"),
+    )}"]`,
+  )
+  lines.push("  class CHUNK action")
+
+  const toolsById = new Map(params.tools.map(tool => [tool.tool_call_id, tool]))
+  const evidenceByRef = new Map(params.evidence.map(item => [item.snapshot_ref, item]))
+  const phaseSummaryNodes: string[] = []
+
+  params.chunkPhases.forEach((phase, index) => {
+    const subgraphId = `PH${index + 1}`
+    const summaryNodeId = `${subgraphId}_SUM`
+    phaseSummaryNodes.push(summaryNodeId)
+    const toolNames = Object.entries(phase.tool_counts)
+      .map(([name, count]) => `${name}x${count}`)
+      .join(" + ")
+    lines.push(
+      `  subgraph ${subgraphId}["${esc(
+        `${phase.phase_id} ${phase.phase_name} | ${phase.start_local} | ${toolNames || "no tools"}`,
+      )}"]`,
+    )
+    lines.push(
+      `    ${summaryNodeId}["${esc(
+        [
+          `reason: ${shortText(phase.reason_summary, 90)}`,
+          `action: ${shortText(phase.action_summary, 90)}`,
+          `result: ${shortText(phase.result_summary, 90)}`,
+        ].join("<br/>"),
+      )}"]`,
+    )
+    lines.push(`    class ${summaryNodeId} summary`)
+
+    const phaseTools = phase.phase_tool_call_ids
+      .map(id => toolsById.get(id))
+      .filter((tool): tool is RichToolCall => Boolean(tool))
+    phaseTools.slice(0, 5).forEach((tool, toolIndex) => {
+      const toolId = `${subgraphId}_T${toolIndex + 1}`
+      lines.push(`    ${toolId}["${toolSummary(tool)}"]`)
+      lines.push(`    class ${toolId} ${tool.success === false || tool.detected_problem ? "toolFail" : "tool"}`)
+      lines.push(`    ${summaryNodeId} --> ${toolId}`)
+    })
+    if (phaseTools.length > 5) {
+      const moreId = `${subgraphId}_TMORE`
+      lines.push(`    ${moreId}["+${phaseTools.length - 5} more tools in CSV"]`)
+      lines.push(`    class ${moreId} more`)
+      lines.push(`    ${summaryNodeId} --> ${moreId}`)
+    }
+
+    const phaseArtifacts = params.artifacts.filter(
+      artifact =>
+        artifact.created_by_phase_id === phase.phase_id ||
+        artifact.first_seen_phase === phase.phase_id ||
+        phase.primary_artifacts.includes(artifact.artifact_path),
+    )
+    phaseArtifacts.slice(0, 3).forEach((artifact, artifactIndex) => {
+      const artifactId = `${subgraphId}_A${artifactIndex + 1}`
+      lines.push(`    ${artifactId}["${artifactSummary(artifact)}"]`)
+      lines.push(`    class ${artifactId} ${artifact.artifact_type === "final" ? "artifactFinal" : "artifact"}`)
+      lines.push(`    ${summaryNodeId} --> ${artifactId}`)
+    })
+
+    const phaseEvidence = phase.evidence_refs
+      .map(ref => evidenceByRef.get(ref))
+      .filter((item): item is EvidenceRecord => Boolean(item))
+      .slice(0, 2)
+    phaseEvidence.forEach((item, evidenceIndex) => {
+      const evidenceId = `${subgraphId}_E${evidenceIndex + 1}`
+      lines.push(`    ${evidenceId}["${evidenceSummary(item)}"]`)
+      lines.push(`    class ${evidenceId} evidence`)
+      lines.push(`    ${summaryNodeId} --> ${evidenceId}`)
+    })
+
+    lines.push("  end")
+    if (index === 0) {
+      lines.push(`  CHUNK --> ${summaryNodeId}`)
+    } else {
+      lines.push(`  ${phaseSummaryNodes[index - 1]} --> ${summaryNodeId}`)
+    }
+  })
+
+  params.repairChains
+    .filter(chain => chain.phase_ids.some(pid => params.chunkPhases.some(p => p.phase_id === pid)))
+    .forEach((chain, index) => {
+      const id = `RC${index + 1}`
+      lines.push(`  ${id}["${esc(shortText(chain.problem_summary, 60))}"]`)
+      lines.push(`  class ${id} repair`)
+      lines.push(`  ${phaseSummaryNodes[phaseSummaryNodes.length - 1]} -. repair .-> ${id}`)
+    })
+
+  return lines.join("\n")
+}
+
+export function buildGraphManifest(params: {
+  userActionId: string
+  phases: PhaseRecord[]
+  tools: RichToolCall[]
+  artifacts: ArtifactRecord[]
+  repairChains: RepairChain[]
+  chunks: GraphChunkManifest[]
+}): GraphManifest {
+  const fullStats = params.chunks.find(c => c.profile === "full")?.stats
+  const fullTooLarge = Boolean(fullStats && (fullStats.size_bytes > 80 * 1024 || fullStats.node_count > 300))
+  const overviewChunk = params.chunks.find(c => c.profile === "overview")
+  return {
+    user_action_id: params.userActionId,
+    generated_at: new Date().toISOString(),
+    phase_count: params.phases.length,
+    tool_count: params.tools.length,
+    artifact_count: params.artifacts.length,
+    repair_chain_count: params.repairChains.length,
+    chunks: params.chunks,
+    full_graph_too_large: fullTooLarge,
+    recommended_entry: overviewChunk?.file_name ?? "rich_stage_flow.overview.mmd",
+  }
+}
+
+export function buildGraphIndex(manifest: GraphManifest): string {
+  const lines: string[] = [
+    "# Graph Index",
+    "",
+    `Generated: ${manifest.generated_at}`,
+    `Action: ${manifest.user_action_id}`,
+    `Phases: ${manifest.phase_count} | Tools: ${manifest.tool_count} | Artifacts: ${manifest.artifact_count} | Repair chains: ${manifest.repair_chain_count}`,
+    "",
+    "## Recommended Entry",
+    "",
+    `Start with: **${manifest.recommended_entry}**`,
+    "",
+  ]
+
+  if (manifest.full_graph_too_large) {
+    lines.push(
+      "> **Warning**: The full graph exceeds 80KB or 300 nodes. Do not attempt to render it in web-based Mermaid viewers.",
+      "> Use the overview or per-chunk graphs instead.",
+      "",
+    )
+  }
+
+  lines.push("## Available Graphs", "")
+  lines.push("| File | Profile | Phase Range | Size | Nodes | Edges | Renderable |")
+  lines.push("| --- | --- | --- | --- | --- | --- | --- |")
+  for (const chunk of manifest.chunks) {
+    const renderable = chunk.renderable ? "yes" : "too large"
+    const sizeKb = `${(chunk.stats.size_bytes / 1024).toFixed(1)}KB`
+    lines.push(
+      `| ${chunk.file_name} | ${chunk.profile} | ${chunk.phase_range} | ${sizeKb} | ${chunk.stats.node_count} | ${chunk.stats.edge_count} | ${renderable} |`,
+    )
+  }
+
+  lines.push("")
+  lines.push("## Reading Paths", "")
+  lines.push("- **5-minute view**: `rich_stage_flow.overview.mmd` — phase-level overview, no tool details")
+  lines.push("- **30-minute view**: `rich_stage_flow.part_XX.mmd` chunks — per-phase tool and artifact details")
+  lines.push("- **Forensics**: `rich_stage_flow.full.mmd` + `debug_chain_flow.mmd` + `artifact_flow.mmd` — complete trace")
+  lines.push("")
 
   return lines.join("\n")
 }

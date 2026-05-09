@@ -1,0 +1,53 @@
+flowchart TD
+  classDef problem fill:#fee2e2,stroke:#dc2626,color:#450a0a
+  classDef root fill:#fef3c7,stroke:#d97706,color:#451a03
+  classDef fix fill:#f3e8ff,stroke:#9333ea,color:#3b0764
+  classDef verification fill:#dbeafe,stroke:#2563eb,color:#172554
+  classDef resolved fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef unresolved fill:#fed7aa,stroke:#ea580c,color:#431407
+  D1_P["w file hello test Success: copied to v4 Traceback (most recent call last): File 'C:\Use..."]
+  D1_R["script_execution_error"]
+  D1_V["stdout: Copied template to new file hello test Success: copied to v4 Traceback (most re..."]
+  D1_O["unresolved"]
+  class D1_P problem
+  class D1_R root
+  class D1_V verification
+  class D1_O unresolved
+  D1_P --> D1_R
+  D1_F1["Bash: 'C:\Users\10677\AppData\Local\Programs\Python\Python314\python.exe' -X utf8 'C:\U..."]
+  class D1_F1 fix
+  D1_R --> D1_F1
+  D1_F2["Read: C:\Users\10677\Desktop\ppt_output.txt"]
+  class D1_F2 fix
+  D1_F1 --> D1_F2
+  D1_F3["Bash: ls -la 'C:\Users\10677\Desktop\ppt_output.txt' 2>&1; ls -la 'C:\Users\10677\Deskt..."]
+  class D1_F3 fix
+  D1_F2 --> D1_F3
+  D1_F4["Bash: rm -f 'C:\Users\10677\Desktop\张舒宁答辩PPT_v4.pptx' && echo 'Deleted'"]
+  class D1_F4 fix
+  D1_F3 --> D1_F4
+  D1_F4 --> D1_V
+  D1_V --> D1_O
+  D2_P["w file hello test Success: copied to v4 Traceback (most recent call last): File 'C:\Use..."]
+  D2_R["script_execution_error"]
+  D2_V["stdout: Copied template to new file hello test Success: copied to v4 Traceback (most re..."]
+  D2_O["unresolved"]
+  class D2_P problem
+  class D2_R root
+  class D2_V verification
+  class D2_O unresolved
+  D2_P --> D2_R
+  D2_F1["Read: C:\Users\10677\Desktop\ppt_output.txt"]
+  class D2_F1 fix
+  D2_R --> D2_F1
+  D2_F2["Edit: C:\Users\10677\Desktop\generate_ppt_final.py"]
+  class D2_F2 fix
+  D2_F1 --> D2_F2
+  D2_F3["Bash: rm -f 'C:\Users\10677\Desktop\张舒宁答辩PPT_v4.pptx' && 'C:\Users\10677\AppData\Local\..."]
+  class D2_F3 fix
+  D2_F2 --> D2_F3
+  D2_F4["TaskUpdate: {'status':'completed','taskId':'1'}"]
+  class D2_F4 fix
+  D2_F3 --> D2_F4
+  D2_F4 --> D2_V
+  D2_V --> D2_O

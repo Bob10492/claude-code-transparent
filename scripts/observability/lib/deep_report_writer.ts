@@ -2,6 +2,7 @@ import type {
   ActionRow,
   ArtifactRecord,
   EvidenceRecord,
+  GraphManifest,
   IntegrityRow,
   PhaseRecord,
   QueryRow,
@@ -52,10 +53,9 @@ export function writeDeepReport(params: {
   artifacts: ArtifactRecord[]
   evidence: EvidenceRecord[]
   repairChains: RepairChain[]
+  manifest: GraphManifest
   selectedBy: SelectionMode
   terminalReason: string
-  richMermaidPath: string
-  debugMermaidPath: string
   baselineReportPath: string | null
 }): string {
   const missingSnapshotCount = params.tools.filter(tool => tool.warnings.length > 0).length
@@ -82,10 +82,12 @@ export function writeDeepReport(params: {
   }
 
   lines.push("## How To Read", "")
-  lines.push("- `rich_stage_flow.mmd`: phase structure, tool nodes, artifact nodes, evidence nodes.")
-  lines.push("- `debug_chain_flow.mmd`: problem -> fix -> verification chains.")
-  lines.push("- `deep_report.md`: per-phase reason, action, and result.")
-  lines.push("- CSV files are drill-down detail, not the primary reading path.", "")
+  lines.push("- `graph_index.md`: entry point — lists available graphs, stats, and suggests which to open")
+  lines.push("- `rich_stage_flow.overview.mmd`: **start here** — compact phase-level overview, renders in any Mermaid viewer")
+  lines.push("- `rich_stage_flow.part_XX.mmd`: **deep dive** — per-phase tool/artifact details, split into renderable chunks")
+  lines.push("- `artifact_flow.mmd`: input → intermediate → script → final artifact chain")
+  lines.push("- `debug_chain_flow.mmd`: problem -> fix -> verification chains")
+  lines.push("- CSV files are drill-down detail, not the primary reading path", "")
 
   lines.push("## Summary", "")
   lines.push(
@@ -109,6 +111,29 @@ export function writeDeepReport(params: {
   }
   lines.push("")
 
+  if (params.manifest.full_graph_too_large) {
+    lines.push(
+      "> **Warning**: Full graph exceeds 80KB or 300 nodes, which may cause issues in web-based Mermaid renderers.",
+      "> Use `rich_stage_flow.overview.mmd` or `rich_stage_flow.part_XX.mmd` chunks instead.",
+      "",
+    )
+  }
+
+  lines.push("## Recommended Reading Path", "")
+  lines.push("| View | Files | Purpose |")
+  lines.push("| --- | --- | --- |")
+  lines.push(
+    `| **5-minute** | \`rich_stage_flow.overview.mmd\` | Phase-level bird's-eye view, compact enough for any renderer |`,
+  )
+  lines.push(
+    `| **30-minute** | \`rich_stage_flow.part_XX.mmd\` chunks | Per-phase tool artifacts and evidence details |`,
+  )
+  lines.push(
+    `| **Forensics** | \`rich_stage_flow.full.mmd\` + \`debug_chain_flow.mmd\` + \`artifact_flow.mmd\` | Complete trace including repair chains and artifact lineage |`,
+  )
+  lines.push("", "")
+  lines.push(`See \`graph_index.md\` for graph stats and recommended entry point.`, "")
+
   if (params.integrity) {
     lines.push("## Integrity Snapshot", "")
     for (const [key, value] of Object.entries(params.integrity)) {
@@ -131,8 +156,12 @@ export function writeDeepReport(params: {
   lines.push("")
 
   lines.push("## Graph Outputs", "")
-  lines.push(`- rich stage flow: ${params.richMermaidPath}`)
-  lines.push(`- debug chain flow: ${params.debugMermaidPath}`)
+  lines.push("- graph index: `graph_index.md` (recommended entry point)")
+  lines.push("- overview: `rich_stage_flow.overview.mmd`")
+  lines.push("- full: `rich_stage_flow.full.mmd`")
+  lines.push("- debug chain flow: `debug_chain_flow.mmd`")
+  lines.push("- artifact flow: `artifact_flow.mmd`")
+  lines.push(`- rich phase chunks: ${params.manifest.chunks.filter(c => c.profile === "rich").length} files (${params.manifest.chunks.filter(c => c.profile === "rich").map(c => `\`${c.file_name}\``).join(", ")} or see graph_index.md)`)
   if (params.baselineReportPath) {
     lines.push(`- baseline explain_action report: ${params.baselineReportPath}`)
   }

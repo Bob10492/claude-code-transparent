@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { useRegisterOverlay } from '../../context/overlayContext.js'
 import { type InputEvent, useInput } from '@anthropic/ink'
 import { useKeybindings } from '../../keybindings/useKeybinding.js'
@@ -95,9 +95,11 @@ export const useSelectInput = <T>({
   imagesSelected = false,
   onEnterImageSelection,
 }: UseSelectProps<T>) => {
-  // Automatically register as an overlay when onCancel is provided.
-  // This ensures CancelRequestHandler won't intercept Escape when the select is active.
-  useRegisterOverlay('select', !!state.onCancel)
+  // Always register interactive selects as modal overlays so PromptInput history
+  // navigation (up/down) does not compete with Select navigation.
+  // Use a per-instance id to avoid collisions when multiple selects are mounted.
+  const selectOverlayId = useId()
+  useRegisterOverlay(`select-${selectOverlayId}`, !isDisabled)
 
   // Determine if the focused option is an input type
   const isInInput = useMemo(() => {

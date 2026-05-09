@@ -47,6 +47,12 @@ Version layering:
 - `V2.4`: long-context scenario families, `context.*` score-specs, `long_context` run evidence, and `long_context_summary`
 - `V2.5`: feedback loop beta, turning experiment reports into structured findings, hypotheses, proposals, proposal queues, and approval-ready next-step plans
 
+Current recommended interpretation of `V2.5`:
+
+- primary output: experiment facts + human-written manual conclusion
+- appendix output: automated feedback report
+- do not treat `proposal_queue` as the final decision
+
 ## Basic Commands
 
 Validate manifests:
@@ -83,6 +89,12 @@ Run the V2.5 feedback loop beta on an experiment-run summary:
 
 ```powershell
 bun run scripts/evals/v2_run_feedback.ts --experiment-run tests/evals/v2/experiment-runs/v2_4_long_context_real_smoke_2026-05-03T060617173Z.json
+```
+
+Create a manual-first conclusion draft from an experiment-run summary:
+
+```powershell
+bun run scripts/evals/v2_create_manual_conclusion.ts --experiment-run tests/evals/v2/experiment-runs/v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.json
 ```
 
 Validate generated V2.5 feedback artifact schema:
@@ -154,7 +166,8 @@ bun run scripts/evals/v2_run_experiment.ts --experiment tests/evals/v2/experimen
 - `real_experiment`: asks whether a candidate produced an interpretable runtime difference in a real path.
 - `run_group`: groups repeats for one `scenario_id + variant_id` and reports success rate, token/duration variance, recovery rate, and flaky status.
 - `long_context_summary`: aggregates long-context retention, retrieval, distractor resistance, compaction evidence, and manual-review hints by `scenario + candidate`.
-- `feedback run`: converts a completed experiment summary into `findings -> hypotheses -> proposals -> proposal queue -> candidate draft -> next experiment plan`, while keeping human approval as a hard gate.
+- `manual conclusion`: a human-written conclusion page generated from experiment facts; this is now the recommended primary reading layer after the batch report.
+- `feedback run`: converts a completed experiment summary into `findings -> hypotheses -> proposals -> proposal queue -> candidate draft -> next experiment plan`, but should be treated as an appendix rather than the final decision.
 
 ## bind_existing Binding Shape
 

@@ -1,0 +1,85 @@
+{
+  "verification_id": "v2_2_execute_harness_alpha_2026-05-02T150946774Z",
+  "generated_at": "2026-05-02T15:10:06.911Z",
+  "temp_root": ".observability\\v2-execute-harness-verification\\2026-05-02T150946774Z",
+  "passed": false,
+  "case_count": 9,
+  "failed_count": 3,
+  "note": "Success-path verification uses a fixture command to avoid model/API spend; the production default adapter is cli_print.",
+  "results": [
+    {
+      "case_id": "execute_harness_success_fixture",
+      "description": "execute_harness success path creates run, score, report, and risk verdict through benchmark_run_id capture.",
+      "passed": false,
+      "expected": "success",
+      "status": 1,
+      "artifacts_cleaned": false,
+      "error_excerpt": "Command failed: bun run scripts/evals/v2_record_run.ts --scenario cost_sensitive_task --variant baseline_default --user-action-id a67fb27b-68a6-4551-8b6e-37358f4c5a83 --db E:\\claude-code-transparent\\.observability\\v2-execute-harness-verification\\2026-05-02T150946774Z\\success.duckdb --score-spec-ids task_success.main_chain_observed,efficiency.total_billed_tokens,decision_quality.subagent_count_observed,stability.recovery_absence,controllability.turn_limit_basic\nDuckDB query failed. Close other DuckDB readers and retry. Catalog Error: Table with name events_raw does not exist!\r\nDid you mean \"pg_constraint\"?\r\n\r\nLINE 1: SELECT ts_wall, query_source, payload_json FROM events_raw WHERE user_action"
+    },
+    {
+      "case_id": "adapter_not_found",
+      "description": "Unsupported adapter should fail clearly.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Unsupported execute_harness adapter: not_real_adapter"
+    },
+    {
+      "case_id": "capture_failed",
+      "description": "Completed execution without matching benchmark_run_id should fail capture.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "baseline scenario=cost_sensitive_task variant=baseline_default action capture capture_failed: No user_action_id found for benchmark_run_id=bench_v2_2_verify_capture_failed_2026-05-02T150946774Z_cost_sensitive_task_baseline_default_2026-05-02T151002844Z"
+    },
+    {
+      "case_id": "ambiguous_capture",
+      "description": "Multiple user_action_id rows for one benchmark_run_id should fail capture.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "baseline scenario=cost_sensitive_task variant=baseline_default action capture ambiguous_capture: Multiple user_action_id values found for benchmark_run_id=bench_v2_2_verify_ambiguous_capture_2026-05-02T150946774Z_cost_sensitive_task_baseline_default_2026-05-02T151003275Z"
+    },
+    {
+      "case_id": "variant_apply_failed",
+      "description": "Strict config snapshot check should fail before execution when the referenced snapshot is missing.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Variant apply failed: config_snapshot_ref does not exist: path/to/baseline-config.json"
+    },
+    {
+      "case_id": "scenario_missing",
+      "description": "Missing scenario manifest should fail before execution.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Scenario not found: not_real_scenario"
+    },
+    {
+      "case_id": "baseline_failure",
+      "description": "Baseline execution failure should stop the experiment.",
+      "passed": true,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "baseline scenario=cost_sensitive_task variant=baseline_default execute_harness failed: Fixture requested failure for variant baseline_default"
+    },
+    {
+      "case_id": "candidate_failure",
+      "description": "Candidate execution failure should stop the experiment after the baseline succeeds.",
+      "passed": false,
+      "expected": "failure",
+      "status": 1,
+      "error_excerpt": "Command failed: bun run scripts/evals/v2_record_run.ts --scenario cost_sensitive_task --variant baseline_default --user-action-id 89329117-7d14-44d4-93f7-d7a69b011bc5 --db E:\\claude-code-transparent\\.observability\\v2-execute-harness-verification\\2026-05-02T150946774Z\\candidate-fail.duckdb --score-spec-ids task_success.main_chain_observed,efficiency.total_billed_tokens,decision_quality.subagent_count_observed,stability.recovery_absence,controllability.turn_limit_basic\nDuckDB query failed. Close other DuckDB readers and retry. Catalog Error: Table with name events_raw does not exist!\r\nDid you mean \"pg_constraint\"?\r\n\r\nLINE 1: SELECT ts_wall, query_source, payload_json FROM events_raw WHERE user"
+    },
+    {
+      "case_id": "disabled_fallback_to_bind_existing",
+      "description": "Automation can be disabled and fall back to bind_existing.",
+      "passed": false,
+      "expected": "success",
+      "status": 1,
+      "artifacts_cleaned": false,
+      "error_excerpt": "Command failed: bun run scripts/evals/v2_record_run.ts --scenario cost_sensitive_task --variant baseline_default --user-action-id v2-verify-baseline-action --db E:\\claude-code-transparent\\.observability\\v2-execute-harness-verification\\2026-05-02T150946774Z\\fallback.duckdb --score-spec-ids task_success.main_chain_observed,efficiency.total_billed_tokens,decision_quality.subagent_count_observed,stability.recovery_absence,controllability.turn_limit_basic\nDuckDB query failed. Close other DuckDB readers and retry. Catalog Error: Table with name events_raw does not exist!\r\nDid you mean \"pg_constraint\"?\r\n\r\nLINE 1: SELECT ts_wall, query_source, payload_json FROM events_raw WHERE user_action_id = 'v2-"
+    }
+  ]
+}

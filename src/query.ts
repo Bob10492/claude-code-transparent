@@ -25,8 +25,10 @@ import {
 } from 'src/services/analytics/index.js'
 import {
   emitHarnessEvent,
+  isQuerySendDebugEnabled,
   storeHarnessSnapshot,
 } from 'src/observability/harness.js'
+import { readFile } from 'fs/promises'
 import { ImageSizeError } from './utils/imageValidation.js'
 import { ImageResizeError } from './utils/imageResizer.js'
 import { findToolByName, type ToolUseContext } from './Tool.js'
@@ -101,7 +103,11 @@ import { StreamingToolExecutor } from './services/tools/StreamingToolExecutor.js
 import { queryCheckpoint } from './utils/queryProfiler.js'
 import { runTools } from './services/tools/toolOrchestration.js'
 import { applyToolResultBudget } from './utils/toolResultStorage.js'
-import { recordContentReplacement } from './utils/sessionStorage.js'
+import {
+  getAgentTranscriptPath,
+  getTranscriptPath,
+  recordContentReplacement,
+} from './utils/sessionStorage.js'
 import { handleStopHooks } from './query/stopHooks.js'
 import { buildQueryConfig } from './query/config.js'
 import { productionDeps, type QueryDeps } from './query/deps.js'
@@ -326,6 +332,137 @@ function summarizePromptComposition({
     prepended_context_message_chars: prependedContextMessage
       ? jsonStringify(prependedContextMessage).length
       : 0,
+  }
+}
+
+function serializeReadFileStateForDebug(
+  readFileState: ToolUseContext['readFileState'],
+): Record<string, unknown> {
+  return {
+    size: readFileState.size,
+    max_entries: readFileState.max,
+    max_size_bytes: readFileState.maxSize,
+    calculated_size_bytes: readFileState.calculatedSize,
+    keys: Array.from(readFileState.keys()),
+    entries: Object.fromEntries(readFileState.entries()),
+  }
+}
+
+function serializeToolUseContextForDebug(
+  toolUseContext: ToolUseContext,
+): Record<string, unknown> {
+  let appStateSummary: Record<string, unknown> | null = null
+  try {
+    const appState = toolUseContext.getAppState()
+    const appStateRecord = appState as unknown as Record<string, unknown>
+    appStateSummary = {
+      messages_count: Array.isArray(appStateRecord.messages)
+        ? appStateRecord.messages.length
+        : null,
+      permission_mode: appState.toolPermissionContext.mode,
+      additional_working_directories: Array.from(
+        appState.toolPermissionContext.additionalWorkingDirectories.keys(),
+      ),
+      task_count: Object.keys(appState.tasks ?? {}).length,
+      mcp_tool_count: appState.mcp.tools.length,
+      has_pending_mcp_servers: appState.mcp.clients.some(
+        client => client.type === 'pending',
+      ),
+      fast_mode: appState.fastMode,
+      effort_value: appState.effortValue ?? null,
+      advisor_model: appState.advisorModel ?? null,
+    }
+  } catch (error) {
+    appStateSummary = {
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+
+  return {
+    agent_id: toolUseContext.agentId ?? null,
+    agent_type: toolUseContext.agentType ?? null,
+    user_action_id: toolUseContext.userActionId ?? null,
+    tool_use_id: toolUseContext.toolUseId ?? null,
+    query_tracking: toolUseContext.queryTracking ?? null,
+    messages_count: toolUseContext.messages.length,
+    file_reading_limits: toolUseContext.fileReadingLimits ?? null,
+    glob_limits: toolUseContext.globLimits ?? null,
+    require_can_use_tool: toolUseContext.requireCanUseTool ?? false,
+    loaded_nested_memory_paths: Array.from(
+      toolUseContext.loadedNestedMemoryPaths ?? [],
+    ),
+    nested_memory_attachment_triggers: Array.from(
+      toolUseContext.nestedMemoryAttachmentTriggers ?? [],
+    ),
+    dynamic_skill_dir_triggers: Array.from(
+      toolUseContext.dynamicSkillDirTriggers ?? [],
+    ),
+    discovered_skill_names: Array.from(
+      toolUseContext.discoveredSkillNames ?? [],
+    ),
+    content_replacement_state_present:
+      toolUseContext.contentReplacementState !== undefined,
+    rendered_system_prompt_present:
+      toolUseContext.renderedSystemPrompt !== undefined,
+    read_file_state: serializeReadFileStateForDebug(
+      toolUseContext.readFileState,
+    ),
+    options: {
+      debug: toolUseContext.options.debug,
+      verbose: toolUseContext.options.verbose,
+      main_loop_model: toolUseContext.options.mainLoopModel,
+      thinking_config: toolUseContext.options.thinkingConfig,
+      is_non_interactive_session:
+        toolUseContext.options.isNonInteractiveSession,
+      query_source: toolUseContext.options.querySource ?? null,
+      custom_system_prompt_present:
+        toolUseContext.options.customSystemPrompt !== undefined,
+      append_system_prompt_present:
+        toolUseContext.options.appendSystemPrompt !== undefined,
+      commands_count: toolUseContext.options.commands.length,
+      command_names: toolUseContext.options.commands.map(command => command.name),
+      tools_count: toolUseContext.options.tools.length,
+      tool_names: toolUseContext.options.tools.map(tool => tool.name),
+      mcp_clients_count: toolUseContext.options.mcpClients.length,
+      mcp_clients: toolUseContext.options.mcpClients.map(client => ({
+        name: 'name' in client ? client.name : null,
+        type: client.type,
+      })),
+      mcp_resource_server_names: Object.keys(
+        toolUseContext.options.mcpResources,
+      ),
+      active_agent_types:
+        toolUseContext.options.agentDefinitions.activeAgents.map(
+          agent => agent.agentType,
+        ),
+      allowed_agent_types:
+        toolUseContext.options.agentDefinitions.allowedAgentTypes ?? null,
+    },
+    app_state: appStateSummary,
+  }
+}
+
+async function getTranscriptDebugPayload(
+  toolUseContext: ToolUseContext,
+): Promise<Record<string, unknown>> {
+  const transcriptPath = toolUseContext.agentId
+    ? getAgentTranscriptPath(toolUseContext.agentId)
+    : getTranscriptPath()
+
+  try {
+    const content = await readFile(transcriptPath, 'utf8')
+    return {
+      path: transcriptPath,
+      format: 'jsonl',
+      bytes: Buffer.byteLength(content, 'utf8'),
+      content,
+    }
+  } catch (error) {
+    return {
+      path: transcriptPath,
+      format: 'jsonl',
+      error: error instanceof Error ? error.message : String(error),
+    }
   }
 }
 
@@ -1270,6 +1407,66 @@ async function* queryLoop(
             thinkingConfig: toolUseContext.options.thinkingConfig,
             toolNames: toolUseContext.options.tools.map(tool => tool.name),
           })
+          if (isQuerySendDebugEnabled()) {
+            const debugSnapshot = await storeHarnessSnapshot(
+              'query-send-debug-pre-normalize',
+              {
+                stage: 'pre_normalize',
+                provider: getAPIProvider(),
+                querySource,
+                model: currentModel,
+                query_tracking: queryTracking,
+                turn_id: turnId,
+                loop_iter: turnCount,
+                transition: state.transition ?? null,
+                transcript: await getTranscriptDebugPayload(toolUseContext),
+                state: {
+                  messages_count: messages.length,
+                  messages_for_query_count: messagesForQuery.length,
+                  request_messages_count: requestMessages.length,
+                  pending_tool_use_summary_present:
+                    pendingToolUseSummary !== undefined,
+                  auto_compact_tracking: autoCompactTracking ?? null,
+                  max_output_tokens_recovery_count:
+                    maxOutputTokensRecoveryCount,
+                  has_attempted_reactive_compact:
+                    hasAttemptedReactiveCompact,
+                  max_output_tokens_override: maxOutputTokensOverride ?? null,
+                  stop_hook_active: stopHookActive ?? false,
+                },
+                tool_use_context:
+                  serializeToolUseContextForDebug(toolUseContext),
+                read_file_state: serializeReadFileStateForDebug(
+                  toolUseContext.readFileState,
+                ),
+                system_prompt: fullSystemPrompt,
+                system_context: systemContext,
+                user_context: userContext,
+                messages_before_prepend: messagesForQuery,
+                request_messages: requestMessages,
+                attachments_in_request_messages: requestMessages.filter(
+                  message => message.type === 'attachment',
+                ),
+                thinking_config: toolUseContext.options.thinkingConfig,
+                tool_names: toolUseContext.options.tools.map(tool => tool.name),
+                request_snapshot_ref: requestSnapshot.snapshot_ref,
+              },
+            )
+            await emitHarnessEvent({
+              event: 'query_send_debug.pre_normalize_snapshot',
+              component: 'query_loop',
+              user_action_id: toolUseContext.userActionId ?? null,
+              query_id: queryTracking.chainId,
+              turn_id: turnId,
+              loop_iter: turnCount,
+              query_source: querySource,
+              payload: {
+                snapshot_ref: debugSnapshot.snapshot_ref,
+                bytes: debugSnapshot.bytes,
+                raw_request_snapshot_ref: requestSnapshot.snapshot_ref,
+              },
+            })
+          }
           await emitHarnessEvent({
             event: 'prompt.snapshot.stored',
             component: 'query_loop',

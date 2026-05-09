@@ -1,146 +1,50 @@
-# V2 运行报告
+# V2 运行报告目录
 
-当前目录用于保存由 V2 runner / scorer 生成的 run、compare、experiment 报告。
+这个目录放的是 `V2 runner / scorer / compare / summary` 自动生成的人类可读报告。
 
-第一阶段报告的核心作用：
+## 先说最重要的整理原则
 
-- 记录 `run_id`
-- 绑定 `scenario_id`
-- 绑定 `variant_id`
-- 绑定 V1 的 `user_action_id`
-- 展示从 V1 DuckDB 抽取的基础证据
-- 展示第一批 rule / structure score
+这个目录里的很多文件 **不要随便手动移动**。
 
-## 当前推荐入口：V2.1 实验闭环
+原因很简单：
 
-现在日常跑评测，优先使用 experiment manifest：
+- `tests/evals/v2/experiment-runs/*.json` 里会直接写 `report_refs`
+- `tests/evals/v2/feedback/runs/*.json` 里也会直接写 `source_report_refs` 或 `report_ref`
 
-```powershell
-bun run scripts/evals/v2_validate_manifests.ts
-bun run scripts/evals/v2_run_experiment.ts --experiment <experiment_id>
-```
+所以这里的整理方式不是“把生成报告到处搬”，而是：
 
-当前样例：
+- 保持生成文件原位
+- 通过 `README` 和 `阅读入口` 文件收口
 
-```powershell
-bun run scripts/evals/v2_run_experiment.ts --experiment session_memory_sparse_vs_default
-```
+## 推荐入口
 
-这会自动完成：
+先看：
 
-1. 根据 experiment manifest 找到 scenario、baseline variant、candidate variant 和 V1 `user_action_id` 绑定。
-2. 调用 `v2_record_run.ts` 生成 baseline run 和 candidate run。
-3. 生成每个 run 的 score。
-4. 调用 `v2_compare_runs.ts` 生成 baseline vs candidate 对比报告。
-5. 应用 gate policy。
-6. 生成 experiment summary。
+- [00-阅读入口.md](./00-%E9%98%85%E8%AF%BB%E5%85%A5%E5%8F%A3.md)
+- [报告解读](./%E6%8A%A5%E5%91%8A%E8%A7%A3%E8%AF%BB/)
 
-当前 V2.1 是 `bind_existing` 模式：它不会自动启动 harness 跑 prompt。你需要先通过真实 debug/使用过程产生 baseline 和 candidate 对应的 V1 `user_action_id`，再把它们写进 experiment manifest。
+## 当前最值得先读的报告
 
-## 底层调试入口
+- V2.3
+  - [batch_experiment_v2_3_robustness_smoke_2026-05-03T070927523Z.md](./batch_experiment_v2_3_robustness_smoke_2026-05-03T070927523Z.md)
+- V2.4 fixture
+  - [batch_experiment_v2_4_long_context_fixture_smoke_2026-05-03T070957231Z.md](./batch_experiment_v2_4_long_context_fixture_smoke_2026-05-03T070957231Z.md)
+- V2.4 real
+  - [batch_experiment_v2_4_long_context_real_smoke_2026-05-03T145644822Z.md](./batch_experiment_v2_4_long_context_real_smoke_2026-05-03T145644822Z.md)
+- V2.5 expectation contract
+  - [batch_experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md](./batch_experiment_v2_5_long_context_real_smoke_expectation_contract_v0_2026-05-03T153229792Z.md)
 
-如果只想手动登记一次 run，可以使用：
+## 这个目录里三类常见文件怎么理解
 
-```powershell
-bun run scripts/evals/v2_record_run.ts --scenario tool_choice_sensitive --variant baseline_default --user-action-id <user_action_id> --snapshot-db
-```
+- `run_*.md`
+  - 单次 run 的报告
+- `compare_run_*.md`
+  - baseline vs candidate 的对比
+- `batch_experiment_*.md` / `experiment_*.md`
+  - 一整场实验的摘要入口
 
-如果只想手动比较两个 run，可以使用：
+## 日常建议
 
-```powershell
-bun run scripts/evals/v2_compare_runs.ts --baseline-run <baseline_run_id> --candidate-run <candidate_run_id>
-```
-
-查找 run：
-
-```powershell
-bun run scripts/evals/v2_list_runs.ts --scenario tool_choice_sensitive
-```
-
-按 scenario 自动比较最近的 baseline / candidate：
-
-```powershell
-bun run scripts/evals/v2_compare_scenario.ts --scenario tool_choice_sensitive --candidate candidate_tool_router_v2
-```
-
-## 最小使用例子：当前 V2.1
-
-目标：测试某个改动是否让 agent 的运行效果变好。
-
-1. 保持 dashboard watcher 运行。
-
-```powershell
-powershell -ExecutionPolicy Bypass -File E:\claude-code-transparent\scripts\observability\watch_dashboard.ps1
-```
-
-2. 在当前代码状态下跑一次 debug query，作为 baseline。
-
-3. 记下 baseline 的 `user_action_id`。
-
-4. 修改你想测试的 harness / skill / tool / model 配置，并确保 candidate variant 文件已存在。
-
-5. 再跑同一个 debug query，作为 candidate。
-
-6. 记下 candidate 的 `user_action_id`。
-
-7. 准备或更新 experiment manifest，例如：
-
-```json
-{
-  "experiment_id": "my_candidate_vs_default",
-  "baseline_variant_id": "baseline_default",
-  "candidate_variant_ids": ["candidate_tool_router_v2"],
-  "scenario_ids": ["tool_choice_sensitive"],
-  "score_spec_ids": [
-    "task_success.main_chain_observed",
-    "efficiency.total_billed_tokens",
-    "decision_quality.subagent_count_observed",
-    "stability.recovery_absence",
-    "controllability.turn_limit_basic"
-  ],
-  "gate_policy_id": "default_v2_1_gate",
-  "mode": "bind_existing",
-  "action_bindings": [
-    {
-      "scenario_id": "tool_choice_sensitive",
-      "variant_id": "baseline_default",
-      "entry_user_action_id": "<baseline_user_action_id>"
-    },
-    {
-      "scenario_id": "tool_choice_sensitive",
-      "variant_id": "candidate_tool_router_v2",
-      "entry_user_action_id": "<candidate_user_action_id>"
-    }
-  ]
-}
-```
-
-保存到：
-
-```text
-tests/evals/v2/experiments/my_candidate_vs_default.json
-```
-
-8. 校验 manifest。
-
-```powershell
-bun run scripts/evals/v2_validate_manifests.ts
-```
-
-9. 一条命令跑完整实验。
-
-```powershell
-bun run scripts/evals/v2_run_experiment.ts --experiment my_candidate_vs_default
-```
-
-阅读 experiment 报告时，先看：
-
-- `task_success.main_chain_observed`
-- `decision_quality.expected_tool_hit_rate`
-- `efficiency.total_billed_tokens`
-- `stability.v1_closure_health`
-- `stability.recovery_absence`
-- `controllability.turn_limit_basic`
-- `decision_quality.subagent_count_observed`
-
-这些指标不是最终智能总分，而是第一阶段可追溯的 V1 证据评分。
+- 平时先看 `batch_experiment_*.md`
+- 不够时再看 `compare_run_*.md`
+- 还不够时再去看 `tests/evals/v2/runs/*.json`

@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process"
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
-import { buildArtifactChain, enrichToolPaths } from "./lib/artifact_tracker"
+import { buildArtifactChain, buildArtifactFlow, enrichToolPaths } from "./lib/artifact_tracker"
 import { writeDeepReport } from "./lib/deep_report_writer"
 import type {
   ActionRow,
@@ -21,7 +21,7 @@ import type {
   TurnRow,
   TurnSnapshotBundle,
 } from "./lib/deep_action_types"
-import { buildDebugChainFlow, buildRichStageFlow } from "./lib/mermaid_rich_graph"
+import { buildDebugChainFlow, buildGraphIndex, buildGraphManifest, buildOverviewFlow, buildPhaseChunkFlow, buildRichStageFlow, computeGraphStats } from "./lib/mermaid_rich_graph"
 import { inferPhases } from "./lib/phase_infer"
 import { detectRepairChains } from "./lib/repair_chain_detector"
 import { SnapshotReader } from "./lib/snapshot_reader"
@@ -354,7 +354,7 @@ function main(): void {
       join(repoRoot, "ObservrityTask", "action-reports", "deep", `user_action_${shortId(userActionId)}`)
     mkdirSync(outputDir, { recursive: true })
 
-    const richMermaid = buildRichStageFlow({
+    const richFullMermaid = buildRichStageFlow({
       action,
       queries,
       subagents,
@@ -370,8 +370,94 @@ function main(): void {
       artifacts,
       evidence,
     })
-    writeFileSync(join(outputDir, "rich_stage_flow.mmd"), richMermaid, "utf8")
+    const overviewMermaid = buildOverviewFlow({
+      action,
+      queries,
+      phases,
+      repairChains,
+    })
+    writeFileSync(join(outputDir, "rich_stage_flow.mmd"), richFullMermaid, "utf8")
+    writeFileSync(join(outputDir, "rich_stage_flow.full.mmd"), richFullMermaid, "utf8")
+    writeFileSync(join(outputDir, "rich_stage_flow.overview.mmd"), overviewMermaid, "utf8")
     writeFileSync(join(outputDir, "debug_chain_flow.mmd"), debugMermaid, "utf8")
+
+    const artifactMermaid = buildArtifactFlow(artifacts)
+    writeFileSync(join(outputDir, "artifact_flow.mmd"), artifactMermaid, "utf8")
+
+    const chunkSize = 10
+    const chunkManifests: GraphChunkManifest[] = []
+    let chunkIndex = 0
+    for (let offset = 0; offset < phases.length; offset += chunkSize) {
+      const chunkPhases = phases.slice(offset, offset + chunkSize)
+      chunkIndex += 1
+      const chunkMermaid = buildPhaseChunkFlow({
+        action,
+        phases,
+        chunkPhases,
+        chunkIndex,
+        tools: richTools,
+        artifacts,
+        evidence,
+        repairChains,
+      })
+      const partFileName = `rich_stage_flow.part_${String(chunkIndex).padStart(2, "0")}_phase_${chunkPhases[0]!.phase_id.replace("phase_", "")}_${chunkPhases.at(-1)!.phase_id.replace("phase_", "")}.mmd`
+      writeFileSync(join(outputDir, partFileName), chunkMermaid, "utf8")
+      chunkManifests.push({
+        file_name: partFileName,
+        profile: "rich",
+        phase_range: `${chunkPhases[0]!.phase_id} – ${chunkPhases.at(-1)!.phase_id}`,
+        stats: computeGraphStats(chunkMermaid),
+        renderable: true,
+      })
+    }
+
+    const overviewStats = computeGraphStats(overviewMermaid)
+    chunkManifests.unshift({
+      file_name: "rich_stage_flow.overview.mmd",
+      profile: "overview",
+      phase_range: "all",
+      stats: overviewStats,
+      renderable: true,
+    })
+
+    const fullStats = computeGraphStats(richFullMermaid)
+    chunkManifests.push({
+      file_name: "rich_stage_flow.full.mmd",
+      profile: "full",
+      phase_range: "all",
+      stats: fullStats,
+      renderable: fullStats.size_bytes <= 80 * 1024 && fullStats.node_count <= 300,
+    })
+
+    const artifactStats = computeGraphStats(artifactMermaid)
+    chunkManifests.push({
+      file_name: "artifact_flow.mmd",
+      profile: "artifact",
+      phase_range: "all",
+      stats: artifactStats,
+      renderable: true,
+    })
+
+    const debugStats = computeGraphStats(debugMermaid)
+    chunkManifests.push({
+      file_name: "debug_chain_flow.mmd",
+      profile: "debug",
+      phase_range: "all",
+      stats: debugStats,
+      renderable: true,
+    })
+
+    const manifest = buildGraphManifest({
+      userActionId,
+      phases,
+      tools: richTools,
+      artifacts,
+      repairChains,
+      chunks: chunkManifests,
+    })
+    const graphIndexMd = buildGraphIndex(manifest)
+    writeFileSync(join(outputDir, "graph_manifest.json"), JSON.stringify(manifest, null, 2), "utf8")
+    writeFileSync(join(outputDir, "graph_index.md"), graphIndexMd, "utf8")
 
     writeFileSync(
       join(outputDir, "phase_timeline_mapping.csv"),
@@ -537,13 +623,28 @@ function main(): void {
       artifacts,
       evidence,
       repairChains,
+      manifest,
       selectedBy: args.selectedBy ?? "explicit_user_action_id",
       terminalReason: terminalReason(queries),
-      richMermaidPath: "rich_stage_flow.mmd",
-      debugMermaidPath: "debug_chain_flow.mmd",
       baselineReportPath: args.baselineReportPath ? "baseline_action_report.md" : null,
     })
     writeFileSync(join(outputDir, "deep_report.md"), report, "utf8")
+
+    const outputFiles = [
+      "deep_report.md",
+      "rich_stage_flow.overview.mmd",
+      "rich_stage_flow.full.mmd",
+      "rich_stage_flow.mmd",
+      "debug_chain_flow.mmd",
+      "artifact_flow.mmd",
+      "graph_manifest.json",
+      "graph_index.md",
+      "phase_timeline_mapping.csv",
+      "tool_calls_rich.csv",
+      "artifact_chain.csv",
+      "snapshot_evidence_index.csv",
+      ...chunkManifests.filter(c => c.profile === "rich").map(c => c.file_name),
+    ]
 
     console.log(
       JSON.stringify(
@@ -552,15 +653,9 @@ function main(): void {
           selectedBy: args.selectedBy ?? "explicit_user_action_id",
           outputDir,
           repairChainCount: repairChains.length,
-          files: [
-            "deep_report.md",
-            "rich_stage_flow.mmd",
-            "debug_chain_flow.mmd",
-            "phase_timeline_mapping.csv",
-            "tool_calls_rich.csv",
-            "artifact_chain.csv",
-            "snapshot_evidence_index.csv",
-          ],
+          fullGraphTooLarge: !fullStats || fullStats.size_bytes > 80 * 1024 || fullStats.node_count > 300,
+          graphOverviewStats: overviewStats,
+          files: outputFiles,
         },
         null,
         2,

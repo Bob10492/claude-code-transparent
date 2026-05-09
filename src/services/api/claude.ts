@@ -132,6 +132,11 @@ import {
   setThinkingClearLatched,
 } from 'src/bootstrap/state.js'
 import {
+  emitHarnessEvent,
+  isQuerySendDebugEnabled,
+  storeHarnessSnapshot,
+} from 'src/observability/harness.js'
+import {
   AFK_MODE_BETA_HEADER,
   CONTEXT_1M_BETA_HEADER,
   CONTEXT_MANAGEMENT_BETA_HEADER,
@@ -1860,6 +1865,51 @@ async function* queryModel(
           getAPIProvider() === 'firstParty' && isFirstPartyAnthropicBaseUrl()
             ? randomUUID()
             : undefined
+
+        if (isQuerySendDebugEnabled()) {
+          const apiParams = { ...params, stream: true }
+          const sdkRequestOptions = {
+            signal: '<AbortSignal>',
+            ...(clientRequestId && {
+              headers: { [CLIENT_REQUEST_ID_HEADER]: clientRequestId },
+            }),
+          }
+          const debugSnapshot = await storeHarnessSnapshot(
+            'query-send-debug-post-normalize-api-request',
+            {
+              stage: 'post_normalize_api_request',
+              provider: getAPIProvider(),
+              querySource: options.querySource,
+              model: options.model,
+              agent_id: options.agentId ?? null,
+              attempt,
+              retry_context: context,
+              query_tracking: options.queryTracking ?? null,
+              params: apiParams,
+              sdk_request_options: sdkRequestOptions,
+            },
+          )
+          await emitHarnessEvent({
+            event: 'query_send_debug.post_normalize_api_request_snapshot',
+            component: 'api',
+            query_id: options.queryTracking?.chainId ?? null,
+            query_source: options.querySource,
+            subagent_id: options.agentId ?? null,
+            payload: {
+              snapshot_ref: debugSnapshot.snapshot_ref,
+              bytes: debugSnapshot.bytes,
+              messages_count: params.messages.length,
+              system_blocks_count: Array.isArray(params.system)
+                ? params.system.length
+                : params.system
+                  ? 1
+                  : 0,
+              tools_count: params.tools?.length ?? 0,
+              betas_count: params.betas?.length ?? 0,
+              has_client_request_id: clientRequestId !== undefined,
+            },
+          })
+        }
 
         // Use raw stream instead of BetaMessageStream to avoid O(n²) partial JSON parsing
         // BetaMessageStream calls partialParse() on every input_json_delta, which we don't need

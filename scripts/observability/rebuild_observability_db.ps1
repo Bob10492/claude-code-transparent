@@ -1,4 +1,4 @@
-﻿param(
+param(
   [string]$Date,
   [string]$EventsFile,
   [switch]$Quiet
@@ -8,7 +8,6 @@ $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $etlScript = Join-Path $repoRoot "scripts\observability\build_duckdb_etl.ts"
 $duckdbExe = Join-Path $repoRoot "tools\duckdb\duckdb.exe"
 $dbPath = Join-Path $repoRoot ".observability\observability_v1.duckdb"
-$sqlPath = Join-Path $repoRoot ".observability\load_observability_v1.sql"
 
 if (-not (Test-Path -LiteralPath $duckdbExe)) {
   throw "DuckDB executable not found at $duckdbExe"
@@ -28,11 +27,6 @@ if ($LASTEXITCODE -ne 0) {
 
 if (-not $Quiet) {
   Write-Output $etlOutput
-}
-
-& $duckdbExe -batch $dbPath -f $sqlPath
-if ($LASTEXITCODE -ne 0) {
-  exit $LASTEXITCODE
 }
 
 if (-not $Quiet) {

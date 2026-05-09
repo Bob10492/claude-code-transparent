@@ -15,7 +15,13 @@ function toolMs(tool: RichToolCall): number {
 }
 
 function isProblemTool(tool: RichToolCall): boolean {
-  return Boolean(tool.success === false || tool.detected_problem || /found|remaining|residue|error|failed|timeout|permission|readonly|locked/iu.test(tool.result_summary_rich))
+  if (tool.tool_name === "Agent") return false
+  if (tool.success === false) return true
+  if (tool.detected_problem) return true
+  const text = tool.result_summary_rich
+  if (!text) return false
+  if (/fork started|async agent launched|agent launched|background agent started/iu.test(text)) return false
+  return /traceback|exception|error:|failed:|timeout|permission denied|readonly|locked/iu.test(text)
 }
 
 function isFixTool(tool: RichToolCall): boolean {
@@ -41,10 +47,10 @@ function isVerificationTool(tool: RichToolCall): boolean {
 
 function rootCauseGuess(text: string): string {
   const lowered = text.toLowerCase()
-  if (/readonly|locked|save|copy2|permission/iu.test(lowered)) return "save_or_permission_repair"
+  if (/readonly|locked|permission denied/iu.test(lowered)) return "save_or_permission_repair"
   if (/ncalnn|ncalnnn|repeated replace/iu.test(lowered)) return "replacement_pollution_repair"
-  if (/master|footer|run|xml|a:t/iu.test(lowered)) return "ppt_xml_or_footer_repair"
-  if (/residue|remaining|found/iu.test(lowered)) return "residue_scan_repair"
+  if (/traceback|exception|importerror|modulenotfounderror/iu.test(lowered)) return "script_execution_error"
+  if (/timeout|timed out/iu.test(lowered)) return "timeout_repair"
   return "generic_execution_repair"
 }
 
@@ -120,9 +126,9 @@ export function detectRepairChains(params: {
         isRunTool(current) ||
         isVerificationTool(current) ||
         relatedArtifact ||
-        /readonly|locked|save|copy2|permission|ncalnn|ncalnnn|master|footer|xml|a:t|residue|remaining/iu.test(
-          `${current.input_summary} ${current.result_summary_rich}`,
-        )
+        (current.tool_name !== "Agent" && /readonly|locked|permission denied|ncalnn|ncalnnn/iu.test(
+          `${current.result_summary_rich} ${current.stderr_summary} ${current.error_summary}`,
+        ))
 
       if (!sameLoop) continue
 

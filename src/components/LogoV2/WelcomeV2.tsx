@@ -4,6 +4,122 @@ import { env } from '../../utils/env.js'
 
 const WELCOME_V2_WIDTH = 58
 
+// ORION color palette (same as Clawd.tsx)
+const C = [
+  'rgb(87,105,247)',   // O
+  'rgb(120,90,220)',   // R
+  'rgb(175,80,180)',   // I
+  'rgb(215,119,87)',   // O
+  'rgb(240,160,60)',   // N
+] as const
+const CH = [
+  'rgb(140,155,255)',  // O highlight
+  'rgb(170,140,255)',  // R highlight
+  'rgb(220,140,220)',  // I highlight
+  'rgb(255,170,130)',  // O highlight
+  'rgb(255,200,100)',  // N highlight
+] as const
+const CS = [
+  'rgb(40,50,140)',    // O shadow
+  'rgb(60,40,120)',    // R shadow
+  'rgb(100,40,100)',   // I shadow
+  'rgb(140,70,45)',    // O shadow
+  'rgb(160,100,30)',   // N shadow
+] as const
+
+type Rgb = `rgb(${number},${number},${number})`
+
+// ORION inline renderer for the welcome screen
+function OrionInline(): React.ReactNode {
+  return (
+    <Box flexDirection="column">
+      <Text>
+        <Text color={CH[0] as Rgb}>▄█▄</Text>
+        <Text> </Text>
+        <Text color={CH[1] as Rgb}>▄█▄</Text>
+        <Text> </Text>
+        <Text color={CH[2] as Rgb}>▄█▄</Text>
+        <Text> </Text>
+        <Text color={CH[3] as Rgb}>▄█▄</Text>
+        <Text> </Text>
+        <Text color={CH[4] as Rgb}>▄█▄</Text>
+      </Text>
+      <Text>
+        <Text color={C[0] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[0] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[1] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[1] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[2] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[2] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[3] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[3] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[4] as Rgb}>██</Text>
+      </Text>
+      <Text>
+        <Text color={C[0] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[0] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[1] as Rgb}>███</Text>
+        <Text> </Text>
+        <Text color={C[2] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[2] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[3] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[3] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[4] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[4] as Rgb}>█</Text>
+      </Text>
+      <Text>
+        <Text color={C[0] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[0] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[1] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[1] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[2] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[2] as Rgb}>▀</Text>
+        <Text> </Text>
+        <Text color={C[3] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[3] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={C[4] as Rgb}> ██</Text>
+      </Text>
+      <Text>
+        <Text color={CS[0] as Rgb}>▀█▀</Text>
+        <Text> </Text>
+        <Text color={CS[1] as Rgb}>▀</Text>
+        <Text> </Text>
+        <Text color={CS[1] as Rgb}>█</Text>
+        <Text> </Text>
+        <Text color={CS[2] as Rgb}> ▀ </Text>
+        <Text> </Text>
+        <Text color={CS[3] as Rgb}>▀█▀</Text>
+        <Text> </Text>
+        <Text color={CS[4] as Rgb}>▀</Text>
+        <Text> </Text>
+        <Text color={CS[4] as Rgb}>█</Text>
+      </Text>
+    </Box>
+  )
+}
+
 export function WelcomeV2(): React.ReactNode {
   const [theme] = useTheme()
   const welcomeMessage = 'Welcome to Claude Code'
@@ -58,26 +174,18 @@ export function WelcomeV2(): React.ReactNode {
             {'                                            ▒▒      ██   ▒'}
           </Text>
           <Text>
-            {'      '}
-            <Text color="clawd_body"> █████████ </Text>
-            {'                         ▒▒░░▒▒      ▒ ▒▒'}
+            {'                                          ▒▒░░▒▒      ▒ ▒▒'}
           </Text>
           <Text>
             {'      '}
-            <Text color="clawd_body" backgroundColor="clawd_background">
-              ██▄█████▄██
-            </Text>
+            <OrionInline />
             {'                           ▒▒         ▒▒ '}
           </Text>
           <Text>
-            {'      '}
-            <Text color="clawd_body"> █████████ </Text>
-            {'                          ░          ▒   '}
+            {'                           ░          ▒   '}
           </Text>
           <Text>
-            {'…………………'}
-            <Text color="clawd_body">{'█ █   █ █'}</Text>
-            {'……………………………………………………………………░…………………………▒…………'}
+            {'………………………………………………………………………………………………………………░…………………………▒…………'}
           </Text>
         </Text>
       </Box>
@@ -128,26 +236,15 @@ export function WelcomeV2(): React.ReactNode {
         </Text>
         <Text>
           {'      '}
-          <Text color="clawd_body"> █████████ </Text>
+          <OrionInline />
           {'                                       '}
           <Text dimColor>*</Text>
           <Text> </Text>
         </Text>
         <Text>
-          {'      '}
-          <Text color="clawd_body">██▄█████▄██</Text>
-          <Text>{'                        '}</Text>
-          <Text bold>*</Text>
-          <Text>{'                '}</Text>
-        </Text>
-        <Text>
-          {'      '}
-          <Text color="clawd_body"> █████████ </Text>
           {'     *                                   '}
         </Text>
         <Text>
-          {'…………………'}
-          <Text color="clawd_body">{'█ █   █ █'}</Text>
           {'………………………………………………………………………………………………………………'}
         </Text>
       </Text>
@@ -216,29 +313,14 @@ function AppleTerminalWelcomeV2({
           </Text>
           <Text>
             {'      '}
-            <Text color="clawd_body">▗</Text>
-            <Text color="clawd_background" backgroundColor="clawd_body">
-              {' '}
-              ▗{'     '}▖{' '}
-            </Text>
-            <Text color="clawd_body">▖</Text>
+            <OrionInline />
             {'                           ▒▒         ▒▒ '}
           </Text>
           <Text>
-            {'       '}
-            <Text backgroundColor="clawd_body">{' '.repeat(9)}</Text>
             {'                           ░          ▒   '}
           </Text>
           <Text>
-            {'…………………'}
-            <Text backgroundColor="clawd_body"> </Text>
-            <Text> </Text>
-            <Text backgroundColor="clawd_body"> </Text>
-            <Text>{'   '}</Text>
-            <Text backgroundColor="clawd_body"> </Text>
-            <Text> </Text>
-            <Text backgroundColor="clawd_body"> </Text>
-            {'……………………………………………………………………░…………………………▒…………'}
+            {'………………………………………………………………………………………………………………░…………………………▒…………'}
           </Text>
         </Text>
       </Box>
@@ -294,30 +376,15 @@ function AppleTerminalWelcomeV2({
         </Text>
         <Text>
           {'        '}
-          <Text color="clawd_body">▗</Text>
-          <Text color="clawd_background" backgroundColor="clawd_body">
-            {' '}
-            ▗{'     '}▖{' '}
-          </Text>
-          <Text color="clawd_body">▖</Text>
+          <OrionInline />
           <Text>{'                       '}</Text>
           <Text bold>*</Text>
           <Text>{'                '}</Text>
         </Text>
         <Text>
-          {'        '}
-          <Text backgroundColor="clawd_body">{' '.repeat(9)}</Text>
           {'      *                                   '}
         </Text>
         <Text>
-          {'…………………'}
-          <Text backgroundColor="clawd_body"> </Text>
-          <Text> </Text>
-          <Text backgroundColor="clawd_body"> </Text>
-          <Text>{'   '}</Text>
-          <Text backgroundColor="clawd_body"> </Text>
-          <Text> </Text>
-          <Text backgroundColor="clawd_body"> </Text>
           {'………………………………………………………………………………………………………………'}
         </Text>
       </Text>

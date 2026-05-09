@@ -1,6 +1,6 @@
 # Query Loop 全流程详解（源码版）
 
-本文基于当前仓库 `E:\claude-code-transparent` 的源码重新整理，目标是把一次用户 query 从输入、组装 prompt、发送 API、流式响应、工具执行、上下文压缩、hook、子 agent、状态迁移到最终结束的全过程讲清楚。
+本文基于当前仓库 `E:\claude-code-transparent` 的源码重新整理，目标是把一次用户 query 从输入、组装 prompt、发送 API、流式响应、工具执行、上下文压缩、hook、子 agent、沙箱、状态迁移到最终结束的全过程讲清楚。
 
 重点结论先放在最前面：
 
@@ -11,6 +11,8 @@
 - 上下文压缩不是单一动作，而是一条分层管线：compact boundary 截断可见历史、tool result budget、snip、microcompact、context collapse、autocompact、reactive compact。
 - 本仓库当前 `snipCompact.ts` 与 `contextCollapse/index.ts` 是 stub，所以调用链存在，但当前实现基本不改变 messages。
 - hook 不是一个点，而是分布在输入提交、工具前、工具后、停止阶段、压缩前后、session start/end、notification、subagent stop 等多个阶段。
+- transcript、readFileState、attachment、toolUseContext 都不是同一层的东西：transcript 是持久化日志，readFileState 是工具运行时缓存，attachment 是运行时状态投影成的内部 message，toolUseContext 是本地工具执行上下文。
+- 沙箱不是权限系统本身，而是 shell 子进程的 OS 级能力边界；权限系统决定能不能执行，沙箱决定执行后最多能碰到哪些文件和网络目标。
 
 核心源码入口：
 
@@ -800,7 +802,7 @@ const requestSnapshot = await storeHarnessSnapshot('request', {
 })
 ```
 
-你提供的 [单次发送所有内容.txt](E:/claude-code/docs/单次发送所有内容.txt:1) 正是这一层的 request snapshot，而不是最终 HTTP body。
+你提供的 [单次发送所有内容.txt](E:/claude-code-transparent/docs/单次发送所有内容.txt:1) 正是这一层的 request snapshot，而不是最终 HTTP body。
 
 它包含：
 
@@ -1645,7 +1647,7 @@ hooks 的统一执行框架在 [hooks.ts](E:/claude-code-transparent/src/utils/h
 
 ## 19. 结合你的 request snapshot 解释“发给 API 的内容”
 
-你的 [单次发送所有内容.txt](E:/claude-code/docs/单次发送所有内容.txt:1) 是 `query.ts` 中 `storeHarnessSnapshot('request', ...)` 的产物。
+你的 [单次发送所有内容.txt](E:/claude-code-transparent/docs/单次发送所有内容.txt:1) 是 `query.ts` 中 `storeHarnessSnapshot('request', ...)` 的产物。
 
 它是“即将调用 `deps.callModel` 前的内部请求快照”，不是 provider 最终 HTTP payload。
 
@@ -1721,7 +1723,723 @@ API 层会结合模型能力决定是否发送 thinking 参数：
 
 ---
 
-## 20. 最后的时序流程图
+## 20. 深挖：transcript、恢复链、readFileState 和一次 API 请求
+
+这一节专门回答几个容易混在一起的概念：`transcript`、恢复链、`readFileState`、`attachment`、`pendingToolUseSummary`、`reactive compact`，以及它们到底哪些会体现在一次模型 API 请求里。
+
+### 20.1 transcript 是什么
+
+`transcript` 是会话持久化日志，不等于 API 请求里的 `messages`。
+
+它的作用是：
+
+1. 把用户、assistant、system、attachment 等内部消息按 JSONL 形式持久化到磁盘。
+2. 支持 resume 时从历史恢复会话。
+3. 支持 UI transcript view、session memory、extract memories、TaskOutput、子 agent transcript 等旁路能力。
+4. 记录比 API 请求更“内部”的结构，例如 UUID、parentUuid、cwd、sessionId、permissionMode、isMeta、attachment 类型等。
+
+源码入口：
+
+- [logs.ts](E:/claude-code-transparent/src/types/logs.ts:221): `TranscriptMessage` 类型。
+- [sessionStorage.ts](E:/claude-code-transparent/src/utils/sessionStorage.ts:129): `isTranscriptMessage()`，判断哪些 JSONL entry 算 transcript message。
+- [sessionStorage.ts](E:/claude-code-transparent/src/utils/sessionStorage.ts:1039): 写入 transcript message。
+- [QueryEngine.ts](E:/claude-code-transparent/src/QueryEngine.ts:467): `recordTranscript(messages)`。
+
+一个 transcript entry 大致长这样：
+
+```json
+{
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": "你好"
+  },
+  "uuid": "59019f61-b0ae-491a-8f1b-fe62a79f17d3",
+  "parentUuid": "e9b77d7e-68ed-4a46-9ef4-66d3fdbbe7b3",
+  "timestamp": "2026-04-18T11:29:44.107Z",
+  "permissionMode": "default",
+  "cwd": "E:\\claude-code",
+  "sessionId": "d1f05de5-99e5-4018-b3ce-c4c389aeb794"
+}
+```
+
+关键点：transcript 里有 `uuid/parentUuid/timestamp/cwd/sessionId` 等持久化元数据；最终发给模型 API 时通常只剩规范化后的 `role/content`，这些 transcript 元数据不会原样发送。
+
+### 20.2 恢复链是什么
+
+恢复链就是根据 `parentUuid` 从叶子消息一路向前回溯，重建当前可见对话分支。
+
+它解决的问题是：transcript 文件是 append-only JSONL，里面可能有 UI 进度、metadata、legacy progress、并行 tool result、sidechain 等记录；resume 时不能简单“全文件顺序塞回 messages”，而要找到当前 conversation branch。
+
+核心流程：
+
+```text
+loadTranscriptFile(file)
+  -> 读取 JSONL
+  -> 过滤出 TranscriptMessage
+  -> 建立 uuid -> message 映射
+  -> 选择最近 user/assistant leaf
+  -> buildConversationChain(messages, leaf)
+  -> 从 leaf 沿 parentUuid 回溯到 root
+  -> reverse()
+  -> 得到恢复后的 messages
+```
+
+源码入口：
+
+- [sessionStorage.ts](E:/claude-code-transparent/src/utils/sessionStorage.ts:2074): `buildConversationChain(...)`。
+- [sessionStorage.ts](E:/claude-code-transparent/src/utils/sessionStorage.ts:2290): `loadLogFromFile(...)` 路径。
+- [sessionStorage.ts](E:/claude-code-transparent/src/utils/sessionStorage.ts:3470): 加载 transcript 全量消息、summary 和 file history snapshot。
+- [sessionStorage.ts](E:/claude-code-transparent/src/utils/sessionStorage.ts:3904): 从 last message 构建 transcript chain。
+
+恢复链的本质不是 compact，也不是 prompt cache。它只是“从持久化日志里恢复一条对话分支”。恢复出来的 messages 后续还会再经过 queryLoop 的 compact boundary、budget、attachment、normalize 等处理，才会进入 API。
+
+### 20.3 readFileState 是什么
+
+`readFileState` 是工具运行时里的文件读取缓存，不是 API 请求字段。
+
+它属于 `ToolUseContext`，定义和缓存结构在：
+
+- [Tool.ts](E:/claude-code-transparent/src/Tool.ts:183): `ToolUseContext.readFileState`。
+- [fileStateCache.ts](E:/claude-code-transparent/src/utils/fileStateCache.ts:30): `FileStateCache`。
+- [queryContext.ts](E:/claude-code-transparent/src/utils/queryContext.ts:93): query context 里传递 `readFileState`。
+
+缓存值大致是：
+
+```ts
+type FileStateCacheEntry = {
+  content: string
+  timestamp: number
+  offset?: number
+  limit?: number
+  isPartialView?: boolean
+}
+```
+
+它的用途：
+
+1. `Read` 后记住文件内容和 mtime。
+2. `Edit/Write` 前校验文件是否在读取后被外部修改。
+3. compact 后把“已读文件状态”作为 attachment 恢复给模型，避免压缩后模型忘了已经读过哪些文件。
+4. 记录 changed files，让后续 query 可以带上“文件已变更”的运行时上下文。
+
+full compact 时会专门处理它：
+
+- [compact.ts](E:/claude-code-transparent/src/services/compact/compact.ts:525): `cacheToObject(context.readFileState)`。
+- [compact.ts](E:/claude-code-transparent/src/services/compact/compact.ts:1428): compact 后清理并重注入相关 attachment。
+
+所以 `readFileState` 的位置是：
+
+```text
+ToolUseContext.readFileState
+  -> 被 Read/Edit/Write/compact 使用
+  -> 需要时转成 attachment
+  -> attachment 再在下一次 API 前 normalize 成 user/meta 内容
+```
+
+它不会作为 HTTP body 的顶层字段出现。
+
+### 20.4 attachment 在哪里
+
+内部 message 里，attachment 是独立消息类型：
+
+```ts
+{
+  type: "attachment",
+  uuid: "...",
+  timestamp: "...",
+  attachment: {
+    type: "skill_listing",
+    content: "...",
+    isInitial: true
+  }
+}
+```
+
+生成入口：
+
+- [attachments.ts](E:/claude-code-transparent/src/utils/attachments.ts:743): `getAttachments(...)` 汇总 runtime attachments。
+- [attachments.ts](E:/claude-code-transparent/src/utils/attachments.ts:2938): `getAttachmentMessages(...)`。
+- [attachments.ts](E:/claude-code-transparent/src/utils/attachments.ts:3202): `createAttachmentMessage(...)`。
+
+进入 API 前，attachment 不会作为 `attachments: [...]` 顶层字段发送，而是先经过：
+
+- [messages.ts](E:/claude-code-transparent/src/utils/messages.ts:1507): `reorderAttachmentsForAPI(...)`。
+- [messages.ts](E:/claude-code-transparent/src/utils/messages.ts:2018): `normalizeMessagesForAPI(...)`。
+- [messages.ts](E:/claude-code-transparent/src/utils/messages.ts:2304): attachment 分支。
+- [messages.ts](E:/claude-code-transparent/src/utils/messages.ts:3503): `normalizeAttachmentForAPI(...)`。
+
+处理后通常变成 user/meta message，或者某些情况下变成合成 tool_use/tool_result。
+
+因此 attachment 的生命周期是：
+
+```text
+runtime event / context
+  -> Attachment object
+  -> internal Message { type: "attachment" }
+  -> transcript 可持久化
+  -> queryLoop messages 可携带
+  -> normalizeMessagesForAPI()
+  -> API messages 里的 user/meta 内容
+```
+
+你提供的 [单次发送所有内容.txt](E:/claude-code-transparent/docs/单次发送所有内容.txt:1) 里能看到：
+
+```json
+{
+  "attachment": {
+    "type": "skill_listing",
+    "content": "...",
+    "skillCount": 9,
+    "isInitial": true
+  },
+  "type": "attachment",
+  "uuid": "...",
+  "timestamp": "..."
+}
+```
+
+这说明 snapshot 记录的是“API 层规范化之前”的内部消息状态。
+
+### 20.5 toolUseContext 和 attachment 的关系
+
+`toolUseContext` 是工具执行上下文；attachment 是从上下文、后台任务、hooks、memory、skill discovery、queued command 等来源提取出来的“模型可读补充材料”。
+
+可以把关系理解成：
+
+```text
+toolUseContext
+  contains:
+    readFileState
+    options.tools
+    hooks
+    agentId
+    queryTracking
+    getAppState/setAppState
+    abortController
+    permission context
+
+getAttachmentMessages(toolUseContext, ...)
+  reads runtime state
+  emits Message { type: "attachment" }
+```
+
+所以 attachment 不是 toolUseContext 本身；它是 toolUseContext 和 AppState 中部分运行时状态的“消息化投影”。
+
+### 20.6 pendingToolUseSummary 上一轮异步任务本轮完成怎么办
+
+`pendingToolUseSummary` 是 `State` 中跨 turn 携带的 promise：
+
+```ts
+pendingToolUseSummary: Promise<ToolUseSummaryMessage | null> | undefined
+```
+
+它通常在一轮工具执行后启动，用来异步生成工具摘要。因为摘要可能比主循环慢，所以 queryLoop 不会为了它阻塞上一轮收尾，而是把 promise 放进下一轮 state。
+
+源码位置：
+
+- [query.ts](E:/claude-code-transparent/src/query.ts:1875): 下一轮开头检查/消费 pending summary。
+- [query.ts](E:/claude-code-transparent/src/query.ts:2379): 工具执行后创建下一轮 pending summary。
+- [query.ts](E:/claude-code-transparent/src/query.ts:2701): 放入 next state。
+- [QueryEngine.ts](E:/claude-code-transparent/src/QueryEngine.ts:1015): QueryEngine 转发 SDK event。
+
+如果上一轮的异步摘要在本轮完成，处理方式是：
+
+1. 本轮 queryLoop 在合适时机 await 或检查这个 promise。
+2. 如果完成并有内容，yield 一个 `tool_use_summary` 事件。
+3. 这个 summary 主要是 UI/SDK side-channel，不是直接塞进模型上下文的普通 user message。
+4. 完成后 next state 不再携带旧 promise，或者替换成新一轮工具执行产生的新 promise。
+
+也就是说，它不是“上一轮 tool_result 晚到后再补发给模型”。tool_result 已经在上一轮工具执行路径里进入 messages；`pendingToolUseSummary` 是额外摘要事件。
+
+### 20.7 reactive compact 是什么
+
+`reactive compact` 是“API 已经报 prompt too long / media too large 之后”的响应式压缩。
+
+它和 autocompact 的区别：
+
+| 机制 | 触发时机 | 目的 |
+|------|----------|------|
+| autocompact | API 调用前，token 估算超过阈值 | 提前压缩，避免打到上限 |
+| reactive compact | API 返回 prompt-too-long/media 错误后 | 出错后立即压缩并重试 |
+
+源码位置：
+
+- [query.ts](E:/claude-code-transparent/src/query.ts:1957): 捕获 prompt-too-long 后尝试 reactive compact。
+- [query.ts](E:/claude-code-transparent/src/query.ts:1985): compact 成功后构造 post-compact messages。
+- [services/compact/reactiveCompact.ts](E:/claude-code-transparent/src/services/compact/reactiveCompact.ts:1): reactive compact 服务入口。
+
+流程：
+
+```text
+callModel()
+  -> API 报 prompt too long
+  -> 暂扣错误，不立刻 yield 给用户
+  -> reactiveCompact.tryReactiveCompact(...)
+  -> 成功：构造 compact boundary + summary + attachments
+  -> state.transition = reactive_compact_retry
+  -> continue，重新发起下一轮 API
+  -> 失败：释放之前暂扣的错误，结束 query
+```
+
+`hasAttemptedReactiveCompact` 防止这条恢复路径无限循环。
+
+### 20.8 一次 API 请求到底包含哪些内容
+
+要区分三层：
+
+```text
+层 1: query params
+  QueryEngine/queryLoop 内部传参：messages, systemPrompt, userContext, systemContext, toolUseContext...
+
+层 2: request snapshot
+  storeHarnessSnapshot('request', ...) 记录的可观测快照：provider, model, systemPrompt, messages, thinkingConfig, toolNames...
+
+层 3: HTTP body
+  claude.ts 最终调用 SDK/API 时发送的 messages.create 参数。
+```
+
+你的 [单次发送所有内容.txt](E:/claude-code-transparent/docs/单次发送所有内容.txt:1) 是层 2，不是最终 HTTP body。
+
+真正 HTTP body 在 [claude.ts](E:/claude-code-transparent/src/services/api/claude.ts:1843) 附近调用：
+
+```ts
+anthropic.beta.messages.create(
+  {
+    model,
+    messages,
+    system,
+    tools,
+    tool_choice,
+    betas,
+    metadata,
+    max_tokens,
+    thinking,
+    temperature,
+    context_management,
+    output_config,
+    speed,
+    stream: true,
+    ...extraBodyParams
+  },
+  { signal, headers }
+)
+```
+
+其中：
+
+- `model`: 当前主模型或 fallback 后模型。
+- `messages`: `normalizeMessagesForAPI()` 后只剩 API 可接受的 user/assistant 消息。
+- `system`: `buildSystemPromptBlocks()` 生成的 system blocks，可能带 prompt cache control。
+- `tools`: 由 `toolToAPISchema()` 展开的完整工具 schema，不是 snapshot 里的 `toolNames` 字符串数组。
+- `thinking`: 由 `thinkingConfig`、模型能力、预算等共同决定。
+- `betas`: prompt cache、computer use、tool runner、cache editing 等能力开关。
+- `metadata`: querySource、session、usage 相关可观测元信息。
+- `context_management/cache_edits`: cached microcompact 之类 API 侧上下文管理参数。
+- `signal/headers`: SDK 调用选项，不是 JSON body 的业务字段。
+
+几个不会作为 HTTP 顶层字段出现的东西：
+
+| 内部概念 | 是否是 API 顶层字段 | 最终去向 |
+|----------|---------------------|----------|
+| `transcript` | 否 | 本地 JSONL 持久化，resume/UI/memory 使用 |
+| `readFileState` | 否 | 工具上下文缓存；必要时转 attachment |
+| `attachment` | 否 | normalize 后进入 `messages` |
+| `toolUseContext` | 否 | 本地执行上下文，只影响工具、权限、hooks、attachments |
+| `pendingToolUseSummary` | 否 | SDK/UI side-channel event |
+| `queryTracking` | 否 | 可观测/日志/链路追踪 |
+| `toolNames` | 否 | snapshot 简化字段；HTTP body 用 `tools` schema |
+
+结合你的 snapshot，字段对应关系是：
+
+```text
+provider/querySource/model
+  -> 影响 API provider、model、metadata，不一定原样入 body
+
+systemPrompt[]
+  -> appendSystemContext 后进入 API system blocks
+
+messages[]
+  -> 先包含 user/assistant/system/attachment 等内部结构
+  -> normalizeMessagesForAPI()
+  -> API messages
+
+thinkingConfig
+  -> API thinking 参数或被模型能力过滤
+
+toolNames[]
+  -> 观测字段
+  -> API 层重新根据 ToolDef 生成 tools schema
+```
+
+### 20.9 临时打开“单次发送全量内容”debug 抓包
+
+源码里现在有一个临时开关：
+
+```powershell
+$env:CLAUDE_CODE_QUERY_SEND_DEBUG = "1"
+```
+
+打开后，下一次 query 会额外写两类 raw snapshot：
+
+| snapshot label | 位置 | 记录内容 |
+|----------------|------|----------|
+| `query-send-debug-pre-normalize` | [query.ts](E:/claude-code-transparent/src/query.ts:1407) | normalize 前的完整 query 侧视图：transcript、toolUseContext 摘要、readFileState、systemPrompt/systemContext/userContext、messagesBeforePrepend、requestMessages、attachment 内部消息等 |
+| `query-send-debug-post-normalize-api-request` | [claude.ts](E:/claude-code-transparent/src/services/api/claude.ts:1869) | normalize 后、SDK `messages.create()` 前的最终 API 请求视图：`params`、`stream: true`、retry context、client request id header 摘要等 |
+
+事件索引仍写到：
+
+```text
+.observability/events-YYYYMMDD.jsonl
+```
+
+大对象写到：
+
+```text
+.observability/snapshots/*query-send-debug-pre-normalize.json
+.observability/snapshots/*query-send-debug-post-normalize-api-request.json
+```
+
+这两个 snapshot 的分工是：
+
+- pre-normalize 用来看“Claude Code 本地准备发送什么”：这里能看到 `transcript` 文件内容、`readFileState` 长什么样、`toolUseContext` 里有哪些工具/权限/app state 摘要、attachment 在内部 `messages` 中的位置。
+- post-normalize 用来看“API 最终收到什么形状”：这里的 `params.messages` 已经是 API 可接受的 user/assistant 消息，内部 `attachment` 已经被转换，`readFileState` 和 `toolUseContext` 不再作为 API 字段出现。
+
+关闭方式：
+
+```powershell
+Remove-Item Env:CLAUDE_CODE_QUERY_SEND_DEBUG
+```
+
+注意：这个开关写的是 raw snapshot，会包含 transcript、用户输入、文件片段、工具结果和路径信息，只适合本地短期开启，抓完就关。
+
+## 21. 深挖：不同智能体之间如何传递消息
+
+子 agent 不是主线程里的一个普通函数调用。它本质上是新开一条隔离的 `query()`，有自己的 `agentId`、tool context、消息历史、transcript 和输出文件。
+
+### 21.1 父 agent 怎么开子 agent
+
+常见入口是模型调用 `Agent` 工具：
+
+```text
+父模型输出 tool_use: Agent({ prompt, ... })
+  -> AgentTool.call()
+  -> runAgent()
+  -> createSubagentContext()
+  -> child query()
+```
+
+源码入口：
+
+- [AgentTool.tsx](E:/claude-code-transparent/packages/builtin-tools/src/tools/AgentTool/AgentTool.tsx:1027): AgentTool 启动 async/local agent 相关逻辑。
+- [runAgent.ts](E:/claude-code-transparent/packages/builtin-tools/src/tools/AgentTool/runAgent.ts:733): 子 agent 内部运行 `query()`。
+- [forkedAgent.ts](E:/claude-code-transparent/src/utils/forkedAgent.ts:354): `createSubagentContext(...)`。
+- [forkedAgent.ts](E:/claude-code-transparent/src/utils/forkedAgent.ts:499): `runForkedAgent(...)`。
+
+创建子 agent 时会做几件事：
+
+1. 分配 `agentId`。
+2. 构造子 agent 的 `ToolUseContext`。
+3. 决定是否继承/裁剪父上下文。
+4. 设置子 agent transcript 路径。
+5. 设置输出文件路径。
+6. 在子 agent 内部重新进入 `query()` 主循环。
+
+### 21.2 同步子 agent：父等待结果
+
+同步模式下，父 agent 的 `Agent` tool_use 不会立刻完成，而是等待子 agent 跑完。
+
+流程：
+
+```text
+Parent assistant tool_use Agent
+  -> AgentTool.call()
+  -> child query loop runs
+  -> collect child assistant/tool messages
+  -> finalizeAgentTool()
+  -> return tool_result to parent
+  -> parent next turn sees child result
+```
+
+关键位置：
+
+- [agentToolUtils.ts](E:/claude-code-transparent/packages/builtin-tools/src/tools/AgentTool/agentToolUtils.ts:279): `finalizeAgentTool(...)` 提取最终文本、token、工具统计。
+- [AgentTool.tsx](E:/claude-code-transparent/packages/builtin-tools/src/tools/AgentTool/AgentTool.tsx:1638): 返回 `{ status: 'completed', ...agentResult }`。
+- [AgentTool.tsx](E:/claude-code-transparent/packages/builtin-tools/src/tools/AgentTool/AgentTool.tsx:1768): 映射成父 agent 可见的 `tool_result`。
+
+父 agent 得到的不是“直接共享子 agent 全部上下文”，而是一条 tool_result。子 agent 的完整 transcript 仍在自己的 transcript 文件里。
+
+### 21.3 异步子 agent：父先继续，结果后通知
+
+异步模式下，`Agent` 工具会先返回一个“已启动”的 tool_result，父 agent 可以继续工作。
+
+```text
+Parent tool_use Agent(async)
+  -> register local_agent task
+  -> immediate tool_result: async_launched
+  -> child continues in background
+  -> child completes
+  -> enqueueAgentNotification()
+  -> next parent query gets queued_command attachment
+```
+
+源码入口：
+
+- [AgentTool.tsx](E:/claude-code-transparent/packages/builtin-tools/src/tools/AgentTool/AgentTool.tsx:1399): async launched 返回结构。
+- [AgentTool.tsx](E:/claude-code-transparent/packages/builtin-tools/src/tools/AgentTool/AgentTool.tsx:1745): async launched 映射为 parent tool_result。
+- [LocalAgentTask.tsx](E:/claude-code-transparent/src/tasks/LocalAgentTask/LocalAgentTask.tsx:513): `completeAsyncAgent(...)`。
+- [LocalAgentTask.tsx](E:/claude-code-transparent/src/tasks/LocalAgentTask/LocalAgentTask.tsx:294): `enqueueAgentNotification(...)`。
+- [attachments.ts](E:/claude-code-transparent/src/utils/attachments.ts:1026): `getQueuedCommandAttachments(...)` 把通知变成 attachment。
+
+异步完成通知长得像 XML 风格的 meta 内容：
+
+```xml
+<task-notification>
+  <agent-id>agent_...</agent-id>
+  <status>completed</status>
+  <result>...</result>
+</task-notification>
+```
+
+它不是凭空插进父模型上下文，而是先进队列，再通过 queued command attachment 在下一轮 query 中被模型看到。
+
+### 21.4 父 agent 主动取子 agent 结果
+
+如果父 agent 需要异步子 agent 的完整结果，有两条路径：
+
+1. 读取 async launch 返回的 `outputFile`。
+2. 使用 `TaskOutput` 工具等待/读取任务输出。
+
+源码入口：
+
+- [TaskOutputTool.tsx](E:/claude-code-transparent/packages/builtin-tools/src/tools/TaskOutputTool/TaskOutputTool.tsx:241): `TaskOutput` 工具。
+- [task/diskOutput.ts](E:/claude-code-transparent/src/utils/task/diskOutput.ts:1): task output path 相关工具。
+
+这意味着“父需要子结果”不是共享内存直接读，而是：
+
+```text
+同步 agent:
+  child final result -> parent tool_result
+
+异步 agent:
+  child final result -> outputFile/task notification
+  parent 用 attachment 通知或 TaskOutput/Read 获取
+```
+
+### 21.5 父给正在运行的子 agent 发消息
+
+父 agent 可以通过 `SendMessage` 给 running local agent 发消息。
+
+流程：
+
+```text
+Parent tool_use SendMessage(agentId, message)
+  -> queuePendingMessage(agentId, message)
+  -> child next attachment phase drains pendingMessages
+  -> child query sees queued_command attachment
+```
+
+源码入口：
+
+- [LocalAgentTask.tsx](E:/claude-code-transparent/src/tasks/LocalAgentTask/LocalAgentTask.tsx:224): `queuePendingMessage(...)`。
+- [attachments.ts](E:/claude-code-transparent/src/utils/attachments.ts:1091): `getAgentPendingMessageAttachments(...)`。
+- [SendMessageTool.ts](E:/claude-code-transparent/packages/builtin-tools/src/tools/SendMessageTool/SendMessageTool.ts:874): stopped agent 时尝试 resume。
+
+所以 agent 间通信主要不是“直接调用对方函数”，而是围绕 task registry、transcript、output file、queued attachment、tool_result 这些边界对象传递。
+
+## 22. 深挖：Shell 沙箱怎么工作
+
+CC 的沙箱不是权限系统的替代品，而是 shell 子进程的 OS 级能力边界。
+
+```text
+权限系统：决定这次工具调用 allow / ask / deny
+沙箱：即使命令执行了，也限制它能写哪些路径、访问哪些网络目标
+```
+
+适配层在：
+
+- [sandbox-adapter.ts](E:/claude-code-transparent/src/utils/sandbox/sandbox-adapter.ts:1): 连接 CC settings/permissions 和 `@anthropic-ai/sandbox-runtime`。
+- [shouldUseSandbox.ts](E:/claude-code-transparent/packages/builtin-tools/src/tools/BashTool/shouldUseSandbox.ts:130): 判断 Bash 本次是否进沙箱。
+- [Shell.ts](E:/claude-code-transparent/src/utils/Shell.ts:260): 真正调用 `SandboxManager.wrapWithSandbox(...)`。
+
+底层 runtime：
+
+- macOS: `sandbox-exec`。
+- Linux / WSL2: `bubblewrap + seccomp`。
+- Windows 原生: 不支持这套 POSIX shell 沙箱。
+
+### 22.1 沙箱配置从哪里来
+
+schema 在 [sandboxTypes.ts](E:/claude-code-transparent/src/entrypoints/sandboxTypes.ts:91)：
+
+```ts
+sandbox: {
+  enabled?: boolean
+  failIfUnavailable?: boolean
+  autoAllowBashIfSandboxed?: boolean
+  allowUnsandboxedCommands?: boolean
+  excludedCommands?: string[]
+  network?: {
+    allowedDomains?: string[]
+    allowManagedDomainsOnly?: boolean
+    allowUnixSockets?: string[]
+    allowAllUnixSockets?: boolean
+    allowLocalBinding?: boolean
+    httpProxyPort?: number
+    socksProxyPort?: number
+  }
+  filesystem?: {
+    allowWrite?: string[]
+    denyWrite?: string[]
+    denyRead?: string[]
+    allowRead?: string[]
+  }
+}
+```
+
+CC 会把 settings 和 permission rules 转成 runtime config：
+
+- [sandbox-adapter.ts](E:/claude-code-transparent/src/utils/sandbox/sandbox-adapter.ts:172): `convertToSandboxRuntimeConfig(...)`。
+
+默认写白名单只有：
+
+```ts
+const allowWrite = ['.', getClaudeTempDir()]
+```
+
+也就是当前工作目录和 Claude 临时目录，见 [sandbox-adapter.ts](E:/claude-code-transparent/src/utils/sandbox/sandbox-adapter.ts:225)。
+
+然后额外叠加：
+
+- `sandbox.filesystem.allowWrite`。
+- `Edit(...)` allow 规则推导出的路径。
+- `/add-dir` / `--add-dir` 增加的目录。
+- git worktree 主仓库路径。
+
+强制 deny 的路径包括：
+
+- settings 文件，防止命令改配置逃逸：[sandbox-adapter.ts](E:/claude-code-transparent/src/utils/sandbox/sandbox-adapter.ts:230)。
+- `.claude/skills`，防止命令植入高权限 skill：[sandbox-adapter.ts](E:/claude-code-transparent/src/utils/sandbox/sandbox-adapter.ts:247)。
+- bare git repo 相关路径，防止通过伪造 git 结构影响后续命令：[sandbox-adapter.ts](E:/claude-code-transparent/src/utils/sandbox/sandbox-adapter.ts:257)。
+
+网络白名单来自：
+
+- `sandbox.network.allowedDomains`。
+- 权限规则里的 `WebFetch(domain:...)`。
+
+对应位置在 [sandbox-adapter.ts](E:/claude-code-transparent/src/utils/sandbox/sandbox-adapter.ts:178)。
+
+### 22.2 什么情况下会进沙箱
+
+`shouldUseSandbox()` 的判断是：
+
+```ts
+if (!SandboxManager.isSandboxingEnabled()) return false
+if (input.dangerouslyDisableSandbox && SandboxManager.areUnsandboxedCommandsAllowed()) return false
+if (!input.command) return false
+if (containsExcludedCommand(input.command)) return false
+return true
+```
+
+对应 [shouldUseSandbox.ts](E:/claude-code-transparent/packages/builtin-tools/src/tools/BashTool/shouldUseSandbox.ts:130)。
+
+所以一条 Bash 命令进沙箱需要：
+
+1. 平台支持。
+2. 依赖齐全。
+3. `sandbox.enabled` 开启。
+4. 当前平台在 `enabledPlatforms` 范围内。
+5. 命令未命中 `sandbox.excludedCommands`。
+6. 没有被允许用 `dangerouslyDisableSandbox` 绕过。
+
+`isSandboxingEnabled()` 会检查平台、依赖、enabledPlatforms 和 settings：[sandbox-adapter.ts](E:/claude-code-transparent/src/utils/sandbox/sandbox-adapter.ts:532)。
+
+如果用户显式启用沙箱但不可用，`getSandboxUnavailableReason()` 会给出原因；如果 `failIfUnavailable` 为 true，会拒绝启动而不是静默降级：[sandbox-adapter.ts](E:/claude-code-transparent/src/utils/sandbox/sandbox-adapter.ts:562)。
+
+### 22.3 执行链路
+
+```text
+BashTool.checkPermissions()
+  -> shouldUseSandbox(input)
+  -> Shell.exec(command, { shouldUseSandbox })
+  -> provider.buildExecCommand(...)
+  -> SandboxManager.wrapWithSandbox(...)
+  -> spawn(wrapped command)
+  -> command.result.then(...)
+  -> SandboxManager.cleanupAfterCommand()
+```
+
+关键点：
+
+- [Shell.ts](E:/claude-code-transparent/src/utils/Shell.ts:260): spawn 前把命令包进 sandbox runtime。
+- [Shell.ts](E:/claude-code-transparent/src/utils/Shell.ts:316): spawn 实际子进程。
+- [Shell.ts](E:/claude-code-transparent/src/utils/Shell.ts:392): 沙箱命令结束后清理 runtime 残留。
+
+PowerShell 也复用这个路径，但 Windows 原生无法使用 POSIX 沙箱。如果企业策略要求必须 sandbox 且不允许 unsandboxed，Windows 原生 PowerShell 会被拒绝执行：[PowerShellTool.tsx](E:/claude-code-transparent/packages/builtin-tools/src/tools/PowerShellTool/PowerShellTool.tsx:251)。
+
+### 22.4 autoAllowBashIfSandboxed
+
+`autoAllowBashIfSandboxed` 的含义不是“无条件信任 Bash”，而是：
+
+> 如果命令确定会被 OS 级沙箱约束，就可以减少应用层弹窗。
+
+源码位置：
+
+- [bashPermissions.ts](E:/claude-code-transparent/packages/builtin-tools/src/tools/BashTool/bashPermissions.ts:1833): Bash 权限检查里的 sandbox auto allow。
+- [permissions.ts](E:/claude-code-transparent/src/utils/permissions/permissions.ts:1192): tool-wide ask 规则和 sandbox auto allow 的交互。
+
+它只对真正会进沙箱的命令生效。命中以下情况仍然不能直接走 shortcut：
+
+- explicit deny。
+- 不能 sandbox。
+- `excludedCommands`。
+- `dangerouslyDisableSandbox`。
+- 平台不支持沙箱。
+
+### 22.5 Hook 的 network-only sandbox
+
+Hook 不完全复用 BashTool 的完整文件系统沙箱。shell hook 会套一层 network-only sandbox：
+
+- [hooks.ts](E:/claude-code-transparent/src/utils/hooks.ts:1041): hook sandbox 说明。
+
+原因是 hook 常用于 formatter、linter、typecheck，需要读写项目文件；主要风险是外联泄露或下载 payload。因此 hook 的 custom config 是：
+
+```ts
+network: {
+  allowedDomains: [],
+  deniedDomains: []
+},
+filesystem: {
+  allowWrite: ['/'],
+  denyWrite: [],
+  allowRead: [],
+  denyRead: []
+}
+```
+
+### 22.6 沙箱不保护什么
+
+沙箱主要保护 shell 子进程及其子进程：
+
+- BashTool。
+- 支持平台上的 PowerShellTool。
+- shell 启动的子进程。
+- shell 的文件系统写入范围。
+- shell 的网络访问范围。
+
+它不直接包住 `FileEditTool` / `FileWriteTool`，因为这些工具不是通过 `Shell.exec()` 执行外部进程，而是在应用层直接做文件 I/O。文件工具走的是权限系统、路径安全检查和 `readFileState` 校验。
+
+所以：
+
+```text
+shell 改 /etc/hosts
+  -> 通常由 OS 沙箱拦
+
+FileEdit 改 /etc/hosts
+  -> 通常由应用层权限系统/路径校验拦
+```
+
+## 23. 最后的时序流程图
 
 ```mermaid
 sequenceDiagram
@@ -1820,7 +2538,7 @@ sequenceDiagram
 
 ---
 
-## 21. 有向无环图版
+## 24. 有向无环图版
 
 ```mermaid
 flowchart TD
@@ -1878,7 +2596,7 @@ flowchart TD
 
 ---
 
-## 22. 最短但准确的总结
+## 25. 最短但准确的总结
 
 一次 query 请求的本质不是“拼一个 prompt 发出去”，而是：
 
@@ -1890,6 +2608,9 @@ flowchart TD
 6. 如果有 tool_use，执行工具、生成 tool_result、补 attachments，构造下一轮 State。
 7. 如果没有 tool_use，进入 recovery、stop hooks、后台 memory/prompt/dream 分支，最后决定结束或继续。
 8. 子 agent 的本质是 `runForkedAgent()` 再开一条隔离的 `query()`，而不是主线程中的普通函数调用。
+9. transcript 是本地持久化日志，恢复链靠 `parentUuid` 重建当前分支；它们不是 API messages 本身。
+10. `readFileState` 是本地工具缓存，attachment 是运行时状态的消息化投影；最终只有 normalize 后的内容进入 API `messages`。
+11. Shell 沙箱是权限系统之后的 OS 级防线，主要约束 Bash/PowerShell 子进程的文件系统和网络能力。
 
 这套实现方式的核心思想是：
 
@@ -1899,4 +2620,6 @@ flowchart TD
 - 用 attachments 恢复非对话型运行时状态。
 - 用 hooks 扩展生命周期而不污染主逻辑。
 - 用 forked agent 把后台总结、记忆、建议、旁路问题从主上下文隔离出去。
+- 用 transcript/parentUuid 支持会话恢复，同时避免把持久化元数据误认为 API payload。
+- 用沙箱把 shell 的运行时副作用限制在工作区、白名单和允许的网络目标内。
 - 用 prompt cache/cache editing 保护重复前缀，降低延迟和成本。

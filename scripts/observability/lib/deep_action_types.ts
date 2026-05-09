@@ -260,3 +260,33 @@ export type TurnSnapshotBundle = {
   relatedSnapshots: SnapshotRecord[]
   afterTurnSnapshots: SnapshotRecord[]
 }
+
+export type GraphProfile = "overview" | "rich" | "debug" | "artifact" | "full"
+
+export type GraphStats = {
+  size_bytes: number
+  line_count: number
+  node_count: number
+  edge_count: number
+  subgraph_count: number
+}
+
+export type GraphChunkManifest = {
+  file_name: string
+  profile: GraphProfile
+  phase_range: string
+  stats: GraphStats
+  renderable: boolean
+}
+
+export type GraphManifest = {
+  user_action_id: string
+  generated_at: string
+  phase_count: number
+  tool_count: number
+  artifact_count: number
+  repair_chain_count: number
+  chunks: GraphChunkManifest[]
+  full_graph_too_large: boolean
+  recommended_entry: string
+}
