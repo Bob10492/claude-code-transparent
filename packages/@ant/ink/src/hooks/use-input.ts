@@ -13,6 +13,15 @@ type Options = {
    * @default true
    */
   isActive?: boolean
+
+  /**
+   * Register this input handler before existing handlers.
+   * Useful for modal overlays that must consume navigation keys before
+   * background inputs, such as Select prompts over the main REPL input.
+   *
+   * @default false
+   */
+  priority?: boolean
 }
 
 /**
@@ -55,15 +64,7 @@ const useInput = (inputHandler: Handler, options: Options = {}) => {
     setRawMode(true)
 
     return () => {
-      // Defer raw-mode release until after the current React commit settles.
-      // During query -> permission prompt/select transitions, React can run
-      // layout-effect cleanup for an old input owner while the replacement
-      // input owner is still mounting. Synchronously disabling raw mode in
-      // that window can leave stdin in cooked mode: Enter still reaches the
-      // prompt, but arrow-key escape sequences no longer parse as up/down.
-      setTimeout(() => {
-        setRawMode(false)
-      }, 0)
+      setRawMode(false)
     }
   }, [options.isActive, setRawMode])
 
@@ -89,12 +90,16 @@ const useInput = (inputHandler: Handler, options: Options = {}) => {
   })
 
   useEffect(() => {
-    internal_eventEmitter?.on('input', handleData)
+    if (options.priority) {
+      internal_eventEmitter?.prependListener('input', handleData)
+    } else {
+      internal_eventEmitter?.on('input', handleData)
+    }
 
     return () => {
       internal_eventEmitter?.removeListener('input', handleData)
     }
-  }, [internal_eventEmitter, handleData])
+  }, [internal_eventEmitter, handleData, options.priority])
 }
 
 export default useInput
