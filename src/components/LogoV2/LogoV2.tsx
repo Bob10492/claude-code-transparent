@@ -80,6 +80,8 @@ import { useMainLoopModel } from '../../hooks/useMainLoopModel.js'
 import { renderModelSetting } from '../../utils/model/model.js'
 
 const LEFT_PANEL_MAX_WIDTH = 50
+const PRODUCT_DISPLAY_NAME = 'Claude Code Transparent'
+const PRODUCT_DISPLAY_VERSION = '2.5'
 
 export function LogoV2(): React.ReactNode {
   const activities = getRecentActivitySync()
@@ -163,7 +165,6 @@ export function LogoV2(): React.ReactNode {
   const model = useMainLoopModel()
   const fullModelDisplayName = renderModelSetting(model)
   const {
-    version,
     cwd,
     billingType,
     agentName: agentNameFromSettings,
@@ -251,8 +252,8 @@ export function LogoV2(): React.ReactNode {
   const layoutMode = getLayoutMode(columns)
 
   const userTheme = resolveThemeSetting(getGlobalConfig().theme)
-  const borderTitle = ` ${color('claude', userTheme)('Claude Code')} ${color('inactive', userTheme)(`v${version}`)} `
-  const compactBorderTitle = color('claude', userTheme)(' Claude Code ')
+  const borderTitle = ` ${color('claude', userTheme)(PRODUCT_DISPLAY_NAME)} ${color('inactive', userTheme)(`v${PRODUCT_DISPLAY_VERSION}`)} `
+  const compactBorderTitle = color('claude', userTheme)(` ${PRODUCT_DISPLAY_NAME} `)
 
   // Early return for compact mode
   if (layoutMode === 'compact') {
