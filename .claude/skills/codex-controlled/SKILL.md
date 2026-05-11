@@ -88,6 +88,7 @@ Requires full Project Hygiene Gate and, when applicable, Data / Observability Hy
 
 Not every task needs every phase.
 Choose the minimum phase depth that matches the control level.
+Phases may be lightweight, but they must not be invisible.
 
 | Phase | Purpose | Primary sub-skill |
 |---|---|---|
@@ -100,6 +101,29 @@ Choose the minimum phase depth that matches the control level.
 | Phase 6 Verification | Produce real evidence before any completion claim | `verification-before-completion` |
 | Phase 7 Acceptance Review | Produce checkpoint review and wait for approval | `skills/06_acceptance_review.md` |
 | Phase 8 Finishing | Wrap up branch/PR choices after approval | `finishing-a-development-branch` |
+
+## Phase Transition Rules
+
+Always state the current phase by name when moving the task forward.
+
+Use labels in this form:
+
+- `Phase 0 Framing`
+- `Phase 1 Discussion`
+- `Phase 2 Layered Explanation`
+- `Phase 3 Project Hygiene Gate`
+- `Phase 4 Planning`
+- `Phase 5 Controlled Execution`
+- `Phase 6 Verification`
+- `Phase 7 Acceptance Review`
+- `Phase 8 Finishing`
+
+Rules:
+
+1. Phases may be lightweight, but they must not be invisible.
+2. If a phase is skipped or compressed, state why.
+3. Do not imply a silent jump from one phase to another.
+4. If the task moves from framing toward implementation, state what produced the execution contract.
 
 ### Required phase depth by level
 
@@ -118,6 +142,21 @@ It has two layers:
 2. `Data / Observability Hygiene`
 
 Run the second layer only when the task involves logs, metrics, ETL, dashboards, runners, scorers, gates, schemas, data cleaning, or experiments.
+For Level 1 tasks, Project Hygiene may be a two-line check unless the workspace or truth source is actually unclear.
+
+## Spec Bundle Minimum
+
+Before `Phase 4 Planning`, ensure there is a Spec Bundle containing:
+
+- Goal
+- Constraints
+- Non-goals
+- Approved scope
+- Acceptance bar
+- Checkpoint behavior
+- Hygiene status
+
+The Spec Bundle may be assembled from Requirement Framing, Brainstorming output, Discussion decisions, and Project Hygiene results, but it must be stated as an execution contract before planning.
 
 ## Superpowers Routing Matrix
 
@@ -160,6 +199,7 @@ When `codex-controlled` and Superpowers rules overlap or conflict:
 
 - Use `skills/01_requirement_framing.md` to compress goals, boundaries, non-goals, and control level.
 - Use `brainstorming` only for design exploration. Its output must flow back into the Spec Bundle before planning or execution.
+- `using-superpowers` may recommend a skill, but `codex-controlled` decides whether the recommendation is allowed in the current phase.
 - If the user expresses confusion, disagreement, or asks why, suspend execution-oriented Superpowers skills and use `skills/02_discussion_mode.md` or `skills/03_layered_explanation.md`.
 - Use `skills/04_preflight_hygiene.md` before implementation when project state, structure, generated artifacts, truth sources, or blast radius may be unclear.
 - Use `skills/05_controlled_execution.md` to define approved scope, allowed files, forbidden files, minimum closed loop, stop conditions, and evidence requirements.

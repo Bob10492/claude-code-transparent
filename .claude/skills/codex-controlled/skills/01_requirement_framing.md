@@ -21,6 +21,7 @@ It turns a loose request into a bounded task that can later be planned, executed
 - Recommended control level
 - Whether Project Hygiene Gate is needed
 - Whether brainstorming is needed
+- The first draft of the Spec Bundle
 
 ## Requirement Framing vs Brainstorming
 
@@ -35,6 +36,21 @@ Rules:
 2. `brainstorming` output must flow back into the Spec Bundle.
 3. `brainstorming` must not directly trigger code execution.
 4. If the task becomes clear without brainstorming, stay in Requirement Framing.
+
+## Spec Bundle Minimum
+
+Before `Phase 4 Planning`, ensure there is a Spec Bundle containing:
+
+- Goal
+- Constraints
+- Non-goals
+- Approved scope
+- Acceptance bar
+- Checkpoint behavior
+- Hygiene status
+
+Requirement Framing may draft this bundle, but it should not silently treat a loose frame as fully approved planning input.
+If the bundle is incomplete, state what is still missing.
 
 ## Output Template
 

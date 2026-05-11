@@ -14,6 +14,17 @@ Superpowers is the execution capability layer.
 The control plane decides whether execution may proceed.
 The execution layer decides how approved work is performed.
 
+## Phase Transition Rules
+
+Phases may be lightweight, but they must not be invisible.
+
+Rules:
+
+1. Always state the current phase by name when moving the task forward.
+2. If a phase is skipped or compressed, state why.
+3. Do not imply a silent phase jump.
+4. `using-superpowers` may recommend a skill, but `codex-controlled` decides whether the recommendation is allowed in the current phase.
+
 ## Superpowers Routing Matrix
 
 | Phase | Trigger | Superpowers skill | codex-controlled constraint |
@@ -35,7 +46,7 @@ The execution layer decides how approved work is performed.
 |---|---|---|
 | Phase 5 plan-following execution | executing-plans | Execution order does not expand approved scope, file boundaries, or stop conditions |
 | Phase 7 review feedback intake | receiving-code-review | Review feedback is input, not automatic permission for new changes |
-| Cross-phase skill selection help | using-superpowers | Meta-guidance does not bypass control levels, hygiene gates, checkpoints, or evidence rules |
+| Cross-phase skill selection help | using-superpowers | Meta-guidance does not bypass control levels, hygiene gates, checkpoints, or evidence rules; `codex-controlled` still decides whether the recommendation is allowed in the current phase |
 
 ## Conflict Priority
 

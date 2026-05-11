@@ -12,6 +12,7 @@ Use before implementation when project state, structure, generated files, or the
 
 This gate is broader than observability work.
 It applies to normal engineering work when repository state or blast radius is uncertain.
+For Level 1 tasks, Project Hygiene may be a two-line check unless the workspace or truth source is actually unclear.
 
 ## A. General Project Hygiene
 
