@@ -29,6 +29,44 @@ The semantic viewer was upgraded from a static per-query lane view into a more d
 4. Click fork-source nodes with `fork:N` badges to inspect branch focus.
 5. Open the `Dialogue` tab for a node to inspect faithful message blocks.
 
+## Panel Walkthrough
+
+The viewer is easiest to read as `search -> graph -> drawer`.
+
+Panel layout sketch:
+
+```text
++----------------------+--------------------------------------------------------------+
+| Search               | Graph Canvas                                                 |
+|----------------------|--------------------------------------------------------------|
+| action id input      | centered main thread                                         |
+| match list           | background queries branching left and right                  |
+|                      | click node => drawer opens on the right                      |
+|                      | Overview | Dialogue | Tools | Artifacts | Evidence | Risk    |
++----------------------+--------------------------------------------------------------+
+```
+
+What to do first:
+
+1. Search an action id.
+2. Follow the centered main thread from top to bottom.
+3. When you see `fork:N`, treat that node as a branch start.
+4. Click that node to enter branch focus.
+5. Click a child node and read the `Dialogue` tab before the other tabs.
+6. Use `Evidence` when you need to verify where a message block came from.
+
+Branch sketch:
+
+```mermaid
+flowchart TD
+  A["main thread / turn-14"] --> B["main thread / turn-15<br/>fork:2"]
+  B --> C["prompt_suggestion / turn-1"]
+  B --> D["extract_memories / turn-1"]
+  D --> E["compact / turn-1"]
+  C -. possible return .-> F["later parent turn"]
+  E -. possible return .-> F
+```
+
 ## How To Read Dialogue
 
 Read `Dialogue` from top to bottom, but do **not** assume it is a simple human chat transcript.

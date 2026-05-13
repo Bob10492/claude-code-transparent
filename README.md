@@ -45,6 +45,59 @@
 - 简单样例：[ObservrityTask/action-reports/deep/user_action_semantic_simple/semantic_viewer.html](ObservrityTask/action-reports/deep/user_action_semantic_simple/semantic_viewer.html)
 - 配套说明：[ObservrityTask/action-reports/deep/README.md](ObservrityTask/action-reports/deep/README.md)
 
+### 面板怎么用
+
+建议第一次使用直接按下面的顺序：
+
+1. 打开 `semantic_viewer_app.html`
+2. 在左侧输入 `action id`，例如 `c6602631`
+3. 在右侧大画布先找居中的 `repl_main_thread`
+4. 顺着主线程自上而下看时间顺序
+5. 遇到带 `fork:N` 的节点，说明这里有分叉
+6. 点击节点，查看右侧详情抽屉
+7. 优先读 `Dialogue` 和 `Evidence`
+8. 如果只想看某个分支，点击 fork 起点后使用 `Clear Focus`
+
+面板布局示意图：
+
+```text
++----------------------+--------------------------------------------------------------+
+| Search               | Semantic Action Viewer                                       |
+|----------------------|--------------------------------------------------------------|
+| action id input      |                repl_main_thread                              |
+| c6602631             |                     |                                        |
+|                      |                  turn-14                                     |
+| matched actions      |                     |                                        |
+| - c6602631...        |      prompt_suggestion <- fork:2 -> extract_memories         |
+| - 04638a09...        |             |                              |               |
+|                      |          turn-1                        turn-1                 |
+|                      |                                                              |
+|                      | [click node] -> right drawer opens                           |
+|                      | Overview | Dialogue | Tools | Artifacts | Evidence | Risk    |
++----------------------+--------------------------------------------------------------+
+```
+
+分叉阅读示意图：
+
+```mermaid
+flowchart TD
+  A["repl_main_thread / turn-14"] --> B["repl_main_thread / turn-15<br/>fork:2"]
+  B --> C["prompt_suggestion / turn-1"]
+  B --> D["extract_memories / turn-1"]
+  D --> E["compact / turn-1"]
+  C -. child result .-> F["later parent turn"]
+  D -. child result .-> F
+```
+
+右侧详情抽屉怎么读：
+
+- `Overview`: 先看这个节点属于哪条 query、哪个 turn、耗时和 badge
+- `Dialogue`: 看 user / assistant / tool result 在这个节点附近到底说了什么
+- `Tools`: 看这个节点内真实调用了哪些工具
+- `Artifacts`: 看脚本、输出文件、关键产物
+- `Evidence`: 回到 snapshot / tool result 证据
+- `Risk`: 看 fallback、未验证输出、推断边界
+
 ### 这个面板解决什么问题
 
 传统日志只能回答“最后回复了什么”，这个 viewer 要回答的是：
