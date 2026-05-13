@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process"
-import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs"
+import { dirname, join, resolve } from "node:path"
 import { buildArtifactChain, buildArtifactFlow, enrichToolPaths } from "./lib/artifact_tracker"
 import { writeDeepReport } from "./lib/deep_report_writer"
 import type {
@@ -14,6 +14,8 @@ import type {
   RepairChain,
   RichToolCall,
   SelectionMode,
+  SemanticViewerData,
+  SemanticViewerIndexEntry,
   SnapshotIndexRow,
   SnapshotRecord,
   SubagentRow,
@@ -24,6 +26,7 @@ import type {
 import { buildDebugChainFlow, buildGraphIndex, buildGraphManifest, buildOverviewFlow, buildPhaseChunkFlow, buildRichStageFlow, computeGraphStats } from "./lib/mermaid_rich_graph"
 import { inferPhases } from "./lib/phase_infer"
 import { detectRepairChains } from "./lib/repair_chain_detector"
+import { buildSemanticViewerData, renderSemanticViewerDirectoryAppHtml, renderSemanticViewerHtml } from "./lib/semantic_dialogue_viewer"
 import { SnapshotReader } from "./lib/snapshot_reader"
 import { enrichToolCallsWithResults } from "./lib/tool_result_extractor"
 import { buildRichToolCalls } from "./lib/tool_use_extractor"
@@ -129,6 +132,35 @@ function shortId(value: string | null | undefined): string {
   return value.length <= 8 ? value : value.slice(0, 8)
 }
 
+function buildSemanticViewerIndexEntries(rootDir: string): SemanticViewerIndexEntry[] {
+  if (!existsSync(rootDir)) return []
+  const entries: SemanticViewerIndexEntry[] = []
+  for (const dirent of readdirSync(rootDir, { withFileTypes: true })) {
+    if (!dirent.isDirectory()) continue
+    const outputDirName = dirent.name
+    const dataPath = join(rootDir, outputDirName, "semantic_viewer.data.json")
+    const viewerPath = join(rootDir, outputDirName, "semantic_viewer.html")
+    if (!existsSync(dataPath) || !existsSync(viewerPath)) continue
+    try {
+      const parsed = JSON.parse(readFileSync(dataPath, "utf8")) as SemanticViewerData
+      const generatedAt = statSync(dataPath).mtime.toISOString()
+      entries.push({
+        user_action_id: parsed.action.user_action_id,
+        output_dir_name: outputDirName,
+        relative_viewer_path: `${outputDirName}/semantic_viewer.html`,
+        selected_by: parsed.action.selected_by,
+        terminal_reason: parsed.action.terminal_reason,
+        generated_at: generatedAt,
+        query_count: parsed.action.query_count,
+        tool_call_count: parsed.action.tool_call_count,
+      })
+    } catch {
+      continue
+    }
+  }
+  return entries.sort((left, right) => right.generated_at.localeCompare(left.generated_at))
+}
+
 function pickLatestUserActionId(databasePath: string): string {
   const rows = runDuckDbJson<{ user_action_id: string }>(
     databasePath,
@@ -136,15 +168,6 @@ function pickLatestUserActionId(databasePath: string): string {
   )
   if (rows.length === 0) fail("no user actions found")
   return rows[0]!.user_action_id
-}
-
-function relevantSnapshot(snapshot: SnapshotRecord): boolean {
-  return Boolean(
-    snapshot.category === "response" ||
-      snapshot.category === "state_after_turn" ||
-      snapshot.category === "state_before_turn" ||
-      snapshot.category === "messages_stage",
-  )
 }
 
 function collectTurnSnapshotsByTurn(
@@ -158,6 +181,7 @@ function collectTurnSnapshotsByTurn(
     const key = `${queryId}|${event.turn_id}`
     const bundle =
       bundles.get(key) ?? {
+        requestSnapshots: [],
         responseSnapshots: [],
         relatedSnapshots: [],
         afterTurnSnapshots: [],
@@ -165,12 +189,21 @@ function collectTurnSnapshotsByTurn(
     const refs = (parseJsonValue(event.snapshot_refs_json) as string[] | null) ?? []
     for (const ref of refs) {
       const snapshot = snapshots.get(ref)
-      if (!snapshot || !relevantSnapshot(snapshot)) continue
-      if (!bundle.relatedSnapshots.some(item => item.snapshotRef === snapshot.snapshotRef)) {
-        bundle.relatedSnapshots.push(snapshot)
+      if (!snapshot) continue
+      if (snapshot.category === "request" && !bundle.requestSnapshots.some(item => item.snapshotRef === snapshot.snapshotRef)) {
+        bundle.requestSnapshots.push(snapshot)
       }
       if (snapshot.category === "response" && !bundle.responseSnapshots.some(item => item.snapshotRef === snapshot.snapshotRef)) {
         bundle.responseSnapshots.push(snapshot)
+      }
+      if (
+        (snapshot.category === "response" ||
+          snapshot.category === "state_after_turn" ||
+          snapshot.category === "state_before_turn" ||
+          snapshot.category === "messages_stage") &&
+        !bundle.relatedSnapshots.some(item => item.snapshotRef === snapshot.snapshotRef)
+      ) {
+        bundle.relatedSnapshots.push(snapshot)
       }
       if (snapshot.category === "state_after_turn" && !bundle.afterTurnSnapshots.some(item => item.snapshotRef === snapshot.snapshotRef)) {
         bundle.afterTurnSnapshots.push(snapshot)
@@ -179,7 +212,14 @@ function collectTurnSnapshotsByTurn(
 
     const payload = parseJsonValue(event.payload_json)
     if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      const requestRef = typeof payload.request_snapshot_ref === "string" ? payload.request_snapshot_ref : null
       const responseRef = typeof payload.response_snapshot_ref === "string" ? payload.response_snapshot_ref : null
+      if (requestRef) {
+        const snapshot = snapshots.get(requestRef)
+        if (snapshot && !bundle.requestSnapshots.some(item => item.snapshotRef === snapshot.snapshotRef)) {
+          bundle.requestSnapshots.push(snapshot)
+        }
+      }
       if (responseRef) {
         const snapshot = snapshots.get(responseRef)
         if (snapshot && !bundle.responseSnapshots.some(item => item.snapshotRef === snapshot.snapshotRef)) {
@@ -630,8 +670,46 @@ function main(): void {
     })
     writeFileSync(join(outputDir, "deep_report.md"), report, "utf8")
 
+    const semanticViewerData = buildSemanticViewerData({
+      action,
+      queries,
+      turns,
+      subagents,
+      tools: richTools,
+      phases,
+      artifacts,
+      evidence,
+      turnSnapshotsByKey,
+      selectedBy: args.selectedBy ?? "explicit_user_action_id",
+      terminalReason: terminalReason(queries),
+    })
+    writeFileSync(
+      join(outputDir, "semantic_viewer.data.json"),
+      JSON.stringify(semanticViewerData, null, 2),
+      "utf8",
+    )
+    writeFileSync(
+      join(outputDir, "semantic_viewer.html"),
+      renderSemanticViewerHtml(semanticViewerData),
+      "utf8",
+    )
+    const semanticViewerRoot = dirname(outputDir)
+    const semanticViewerIndex = buildSemanticViewerIndexEntries(semanticViewerRoot)
+    writeFileSync(
+      join(semanticViewerRoot, "semantic_viewer_index.json"),
+      JSON.stringify(semanticViewerIndex, null, 2),
+      "utf8",
+    )
+    writeFileSync(
+      join(semanticViewerRoot, "semantic_viewer_app.html"),
+      renderSemanticViewerDirectoryAppHtml(semanticViewerIndex),
+      "utf8",
+    )
+
     const outputFiles = [
       "deep_report.md",
+      "semantic_viewer.html",
+      "semantic_viewer.data.json",
       "rich_stage_flow.overview.mmd",
       "rich_stage_flow.full.mmd",
       "rich_stage_flow.mmd",

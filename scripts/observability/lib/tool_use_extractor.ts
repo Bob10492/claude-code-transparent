@@ -265,6 +265,7 @@ export function buildRichToolCalls(params: {
     return {
       tool_call_id: tool.tool_call_id,
       query_id: tool.query_id,
+      subagent_id: tool.subagent_id,
       agent_name: agentName,
       turn_id: tool.turn_id,
       tool_name: toolName,

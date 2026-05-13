@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Semantic Viewer Directory</title>
+  <style>
+
+    :root {
+      --bg: #f4f1ea;
+      --panel: #fffaf2;
+      --ink: #1f1c17;
+      --muted: #6f665d;
+      --line: #d3c3ad;
+      --accent: #b75d2d;
+      --accent-soft: #f2ddcf;
+      --warn: #ab3a1c;
+      --fork: #2f6f94;
+      --return: #3a7d44;
+      --shadow: 0 10px 24px rgba(42, 25, 10, 0.08);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: linear-gradient(180deg, #f5f1ea, #eee6dc); color: var(--ink); }
+    #semantic-viewer-app { min-height: 100vh; position: relative; }
+    .graph-pane { padding: 18px 18px 24px; }
+    .summary-card, .lane-card, .inspector-card, .app-card, .viewer-frame-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+    .summary-card, .app-card { padding: 16px; margin-bottom: 16px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .metric { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+    .metric .label { font-size: 12px; color: var(--muted); }
+    .metric .value { font-size: 16px; font-weight: 600; margin-top: 4px; }
+    .warning { margin-top: 12px; color: var(--warn); font-size: 13px; }
+    .graph-viewport { position: relative; min-height: calc(100vh - 180px); background: rgba(255,255,255,0.42); border-radius: 16px; border: 1px solid var(--line); overflow: hidden; cursor: grab; }
+    .graph-viewport.dragging { cursor: grabbing; }
+    .graph-content { position: absolute; inset: 0 auto auto 0; transform-origin: 0 0; will-change: transform; }
+    .graph-shell { position: relative; min-height: 900px; }
+    .graph-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .toolbar-button, .app-button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
+    .toolbar-button:hover, .app-button:hover { border-color: var(--accent); }
+    .lane-header { position: absolute; top: 14px; width: 260px; margin-left: -130px; text-align: center; font-size: 12px; color: var(--muted); border-top: 4px solid var(--lane-accent, var(--line)); padding-top: 6px; }
+    .node { position: absolute; width: 260px; transform: translateX(-130px); border-radius: 14px; border: 1px solid var(--line); border-left: 5px solid var(--lane-accent, var(--line)); background: #fff; box-shadow: var(--shadow); padding: 12px 14px; text-align: left; cursor: pointer; }
+    .node:hover { border-color: var(--accent); }
+    .node.selected { outline: 2px solid var(--accent); }
+    .node.branch-source { border-color: var(--fork); box-shadow: 0 0 0 3px rgba(47,111,148,0.14), var(--shadow); }
+    .node.dimmed { opacity: 0.22; }
+    .node.in-focus { opacity: 1; }
+    .node .title { font-weight: 600; font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; word-break: break-word; }
+    .node .summary { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.45; overflow-wrap: anywhere; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    .node .badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .badge { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 8px; font-size: 11px; }
+    .badge.warn { background: #f6d7cf; color: var(--warn); }
+    .tone-0 { --lane-accent: #b75d2d; background: linear-gradient(180deg, #fff, #fff8f2); }
+    .tone-1 { --lane-accent: #2f6f94; background: linear-gradient(180deg, #fff, #f3f9fd); }
+    .tone-2 { --lane-accent: #3a7d44; background: linear-gradient(180deg, #fff, #f4fbf4); }
+    .tone-3 { --lane-accent: #8b5fbf; background: linear-gradient(180deg, #fff, #faf5ff); }
+    .tone-4 { --lane-accent: #9b6b1a; background: linear-gradient(180deg, #fff, #fff8ef); }
+    .tone-5 { --lane-accent: #a33c54; background: linear-gradient(180deg, #fff, #fff4f7); }
+    .inspector-drawer { position: fixed; top: 0; right: 0; width: min(460px, 92vw); height: 100vh; transform: translateX(104%); transition: transform 160ms ease; z-index: 20; padding: 16px; background: rgba(245, 241, 234, 0.66); backdrop-filter: blur(12px); }
+    .inspector-drawer.drawer-open { transform: translateX(0); }
+    .inspector-card { padding: 16px; height: 100%; overflow: auto; }
+    .inspector-header h2 { margin: 0; font-size: 20px; }
+    .inspector-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .drawer-close { margin-left: auto; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
+    .tab-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+    .tab { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
+    .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .section-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 12px 0 8px; }
+    .dialogue-block { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px; margin-bottom: 10px; }
+    .dialogue-block.role-user { background: #f4fbff; border-color: #9cc6e1; }
+    .dialogue-block.role-assistant { background: #fff8f1; border-color: #e5c8a4; }
+    .dialogue-block.role-tool-result { background: #f4fbf4; border-color: #9fcea8; }
+    .dialogue-block.role-tool-use { background: #faf5ff; border-color: #ccb2ef; }
+    .dialogue-block .block-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .dialogue-block pre, .raw { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 Consolas, "SFMono-Regular", monospace; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .empty { color: var(--muted); font-size: 13px; }
+    .app-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+    .app-input { min-width: 340px; flex: 1; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14px; background: #fff; }
+    .app-hint { margin-top: 10px; color: var(--muted); font-size: 13px; }
+    .app-results { margin-top: 12px; max-height: 220px; overflow: auto; display: grid; gap: 8px; }
+    .result-item { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 12px; cursor: pointer; }
+    .result-item:hover { border-color: var(--accent); }
+    .viewer-frame-card { padding: 0; overflow: hidden; min-height: calc(100vh - 36px); }
+    .viewer-frame { width: 100%; height: calc(100vh - 36px); border: 0; background: #fff; }
+    .viewer-stack { display: grid; gap: 18px; min-height: calc(100vh - 36px); }
+    .app-layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; min-height: calc(100vh - 36px); align-items: stretch; }
+    .app-sidebar { display: grid; align-content: start; gap: 12px; }
+    .app-main { min-width: 0; }
+    .focus-active { color: var(--fork); font-weight: 600; }
+    svg path.dimmed, svg text.dimmed { opacity: 0.14; }
+    svg path.in-focus, svg text.in-focus { opacity: 1; }
+    @media (max-width: 900px) { .graph-viewport { min-height: 72vh; } .inspector-drawer { width: 100vw; padding: 8px; } .viewer-frame { height: 72vh; } .app-layout { grid-template-columns: 1fr; } }
+  
+    body { padding: 18px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="app-sidebar">
+      <section class="app-card">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Semantic Viewer Directory</div>
+        <div style="margin-top:6px;font-size:24px;font-weight:700;">Load by Action ID</div>
+        <div class="app-controls">
+          <input id="action-id-input" class="app-input" placeholder="Enter full or short action id" />
+          <button id="load-action-button" class="app-button" type="button">Load Action</button>
+        </div>
+        <div id="app-status" class="app-hint">Type a full id like <span class="raw">c6602631-d9df-48ae-9288-247151651ab2</span> or a short prefix.</div>
+        <div id="app-results" class="app-results"></div>
+      </section>
+    </aside>
+    <main class="app-main">
+      <section class="viewer-frame-card">
+        <iframe id="semantic-viewer-frame" class="viewer-frame" title="semantic viewer"></iframe>
+      </section>
+    </main>
+  </div>
+  <script>
+    const entries = [{"user_action_id":"c6602631-d9df-48ae-9288-247151651ab2","output_dir_name":"user_action_semantic_complex","relative_viewer_path":"user_action_semantic_complex/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-05-13T14:07:38.079Z","query_count":4,"tool_call_count":24},{"user_action_id":"04638a09-f5cd-40ff-be26-a91e5b1e89fc","output_dir_name":"user_action_semantic_simple","relative_viewer_path":"user_action_semantic_simple/semantic_viewer.html","selected_by":"latest","terminal_reason":"unknown","generated_at":"2026-05-13T13:53:55.742Z","query_count":1,"tool_call_count":3},{"user_action_id":"c6602631-d9df-48ae-9288-247151651ab2","output_dir_name":"user_action_semantic_complex_v2","relative_viewer_path":"user_action_semantic_complex_v2/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-05-12T12:58:45.591Z","query_count":4,"tool_call_count":24}];
+    const input = document.getElementById("action-id-input");
+    const button = document.getElementById("load-action-button");
+    const status = document.getElementById("app-status");
+    const results = document.getElementById("app-results");
+    const frame = document.getElementById("semantic-viewer-frame");
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function renderResults(matches) {
+      if (!matches.length) {
+        results.innerHTML = '<div class="empty">No matching action viewer found.</div>';
+        return;
+      }
+      results.innerHTML = matches.map(entry => {
+        return '<button class="result-item" type="button" data-path="' + escapeHtml(entry.relative_viewer_path) + '" data-action-id="' + escapeHtml(entry.user_action_id) + '">' +
+          '<div style="font-weight:600;">' + escapeHtml(entry.user_action_id) + '</div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-top:4px;">' +
+          escapeHtml(entry.output_dir_name + ' · ' + entry.selected_by + ' · tools=' + entry.tool_call_count + ' · queries=' + entry.query_count) +
+          '</div></button>';
+      }).join("");
+      results.querySelectorAll(".result-item").forEach(item => {
+        item.addEventListener("click", () => {
+          const path = item.getAttribute("data-path");
+          const actionId = item.getAttribute("data-action-id");
+          frame.src = path;
+          status.textContent = "Loaded " + actionId;
+        });
+      });
+    }
+
+    function matchEntries(query) {
+      const normalized = String(query || "").trim().toLowerCase();
+      if (!normalized) return entries.slice(0, 12);
+      return entries.filter(entry => entry.user_action_id.toLowerCase().includes(normalized) || entry.output_dir_name.toLowerCase().includes(normalized)).slice(0, 20);
+    }
+
+    function loadFromInput() {
+      const matches = matchEntries(input.value);
+      renderResults(matches);
+      if (matches.length === 1) {
+        frame.src = matches[0].relative_viewer_path;
+        status.textContent = "Loaded " + matches[0].user_action_id;
+      } else if (matches.length > 1) {
+        status.textContent = "Found " + matches.length + " matching actions. Pick one below.";
+      } else {
+        status.textContent = "No matching action viewer found.";
+      }
+    }
+
+    input.addEventListener("input", () => renderResults(matchEntries(input.value)));
+    input.addEventListener("keydown", event => {
+      if (event.key === "Enter") loadFromInput();
+    });
+    button.addEventListener("click", loadFromInput);
+
+    renderResults(entries.slice(0, 12));
+    if (entries.length > 0) {
+      frame.src = entries[0].relative_viewer_path;
+      status.textContent = "Loaded latest indexed action " + entries[0].user_action_id;
+    }
+  </script>
+</body>
+</html>

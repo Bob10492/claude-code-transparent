@@ -169,6 +169,7 @@ export type ToolResultCandidate = {
 export type RichToolCall = {
   tool_call_id: string
   query_id: string | null
+  subagent_id: string | null
   agent_name: string | null
   turn_id: string | null
   tool_name: string
@@ -256,9 +257,151 @@ export type RepairChain = {
 }
 
 export type TurnSnapshotBundle = {
+  requestSnapshots: SnapshotRecord[]
   responseSnapshots: SnapshotRecord[]
   relatedSnapshots: SnapshotRecord[]
   afterTurnSnapshots: SnapshotRecord[]
+}
+
+export type DialogueBlockRole =
+  | "user"
+  | "assistant"
+  | "tool_use"
+  | "tool_result"
+  | "subagent"
+  | "compact"
+  | "note"
+
+export type DialogueBlockKind =
+  | "user_message"
+  | "assistant_reply"
+  | "assistant_tool_use"
+  | "tool_result"
+  | "subagent_prompt"
+  | "subagent_return"
+  | "compact_event"
+  | "note"
+
+export type SemanticNodeType = "action" | "turn"
+
+export type SemanticEdgeType = "sequential" | "fork" | "return"
+
+export type DialogueBlock = {
+  dialogue_block_id: string
+  node_id: string
+  role: DialogueBlockRole
+  kind: DialogueBlockKind
+  title: string
+  raw_text: string
+  excerpt: string
+  truncated: boolean
+  query_id: string | null
+  turn_id: string | null
+  snapshot_ref: string | null
+  message_uuid: string | null
+  tool_call_id: string | null
+  evidence_ref: string | null
+  warnings: string[]
+}
+
+export type SemanticNodeMetricSummary = {
+  duration_ms: number | null
+  prompt_tokens: number | null
+  output_tokens: number | null
+  billed_tokens: number | null
+  cache_read_tokens: number | null
+  tool_call_count: number
+  subagent_spawn_count: number
+  compact_event_count: number
+}
+
+export type SemanticNode = {
+  node_id: string
+  node_type: SemanticNodeType
+  title: string
+  lane_id: string
+  query_id: string | null
+  turn_id: string | null
+  agent_name: string | null
+  started_at: string | null
+  ended_at: string | null
+  phase_ids: string[]
+  tool_call_ids: string[]
+  artifact_paths: string[]
+  evidence_refs: string[]
+  summary_observed: string
+  summary_interpretation: string
+  badges: string[]
+  metrics: SemanticNodeMetricSummary
+}
+
+export type SemanticEdge = {
+  edge_id: string
+  from: string
+  to: string
+  edge_type: SemanticEdgeType
+  label: string
+}
+
+export type SemanticLane = {
+  lane_id: string
+  query_id: string
+  label: string
+  query_source: string | null
+  agent_name: string | null
+  turn_count: number
+  tool_call_count: number
+  duration_ms: number | null
+  terminal_reason: string | null
+}
+
+export type SemanticActionSummary = {
+  user_action_id: string
+  selected_by: SelectionMode
+  duration_ms: number
+  query_count: number
+  subagent_count: number
+  tool_call_count: number
+  total_billed_tokens: number
+  terminal_reason: string
+  warning: string | null
+}
+
+export type SemanticNodeDetail = {
+  node_id: string
+  overview: {
+    title: string
+    query_label: string
+    turn_label: string
+    reason: string
+    action: string
+    result: string
+    metrics: SemanticNodeMetricSummary
+  }
+  dialogue: DialogueBlock[]
+  tools: RichToolCall[]
+  artifacts: ArtifactRecord[]
+  evidence: EvidenceRecord[]
+  risk_flags: string[]
+}
+
+export type SemanticViewerData = {
+  action: SemanticActionSummary
+  lanes: SemanticLane[]
+  nodes: SemanticNode[]
+  edges: SemanticEdge[]
+  details: Record<string, SemanticNodeDetail>
+}
+
+export type SemanticViewerIndexEntry = {
+  user_action_id: string
+  output_dir_name: string
+  relative_viewer_path: string
+  selected_by: SelectionMode
+  terminal_reason: string
+  generated_at: string
+  query_count: number
+  tool_call_count: number
 }
 
 export type GraphProfile = "overview" | "rich" | "debug" | "artifact" | "full"

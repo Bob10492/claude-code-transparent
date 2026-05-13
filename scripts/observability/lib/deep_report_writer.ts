@@ -82,6 +82,7 @@ export function writeDeepReport(params: {
   }
 
   lines.push("## How To Read", "")
+  lines.push("- `semantic_viewer.html`: interactive local viewer — click graph nodes to inspect faithful dialogue, tools, artifacts, evidence, and risk")
   lines.push("- `graph_index.md`: entry point — lists available graphs, stats, and suggests which to open")
   lines.push("- `rich_stage_flow.overview.mmd`: **start here** — compact phase-level overview, renders in any Mermaid viewer")
   lines.push("- `rich_stage_flow.part_XX.mmd`: **deep dive** — per-phase tool/artifact details, split into renderable chunks")
@@ -157,6 +158,7 @@ export function writeDeepReport(params: {
 
   lines.push("## Graph Outputs", "")
   lines.push("- graph index: `graph_index.md` (recommended entry point)")
+  lines.push("- semantic viewer: `semantic_viewer.html`")
   lines.push("- overview: `rich_stage_flow.overview.mmd`")
   lines.push("- full: `rich_stage_flow.full.mmd`")
   lines.push("- debug chain flow: `debug_chain_flow.mmd`")
