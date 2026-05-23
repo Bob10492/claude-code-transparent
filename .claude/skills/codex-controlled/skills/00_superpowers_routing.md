@@ -1,7 +1,7 @@
 ---
 title: Superpowers Routing and Conflict Policy
 type: reference
-description: Use to decide which Superpowers skill may be called in which phase, and which codex-controlled constraints remain non-bypassable.
+description: Use to decide which Superpowers skill may be called in which phase, which Micro-UI visual state output may be emitted, and which codex-controlled constraints remain non-bypassable.
 ---
 
 # Skill: Superpowers Routing and Conflict Policy
@@ -10,9 +10,11 @@ description: Use to decide which Superpowers skill may be called in which phase,
 
 `codex-controlled` is the control plane.
 Superpowers is the execution capability layer.
+Micro-UI is the optional visual state layer.
 
 The control plane decides whether execution may proceed.
 The execution layer decides how approved work is performed.
+The visual state layer decides how dense state can be shown without changing authority.
 
 ## Phase Transition Rules
 
@@ -24,6 +26,7 @@ Rules:
 2. If a phase is skipped or compressed, state why.
 3. Do not imply a silent phase jump.
 4. `using-superpowers` may recommend a skill, but `codex-controlled` decides whether the recommendation is allowed in the current phase.
+5. Micro-UI may visualize a phase transition, but it must not silently advance phases.
 
 ## Superpowers Routing Matrix
 
@@ -40,6 +43,21 @@ Rules:
 | Phase 7 Review | Before merge/PR or final acceptance | requesting-code-review | Review result feeds checkpoint |
 | Phase 8 Finishing | After verified completion | finishing-a-development-branch | No auto-merge or cleanup without user choice |
 
+## Micro-UI Routing Matrix
+
+| Phase / Context | Suggested component | Constraint |
+|---|---|---|
+| Phase 0 Framing | `decision_panel` or `phase_status_board` | Must show goal, non-goals, control level, and next allowed phase |
+| Phase 3 Project Hygiene | `risk_board` or `file_change_matrix` | Must separate General Project Hygiene from Data / Observability Hygiene |
+| Phase 4 Planning | `execution_timeline` | Must include step IDs, dependencies, file boundaries, and stop conditions |
+| Phase 5 Execution | `execution_timeline` or `file_change_matrix` | Must not hide unplanned file changes or root-cause uncertainty |
+| Phase 6 Verification | `verification_dashboard` | Must include real command output summaries; no output means no pass |
+| Phase 7 Acceptance Review | `checkpoint_card` or `decision_panel` | Must expose user approval as explicit action; no auto-advance |
+| Phase 8 Finishing | `decision_panel` | Must show merge/PR/hold/cleanup as separate explicit choices |
+| Cross-phase dense state | `phase_status_board` or Flipbook-compatible graph | Must include IDs, dependencies, phase labels, and render hints |
+
+See also `skills/08_micro_ui_visual_state.md`.
+
 ## Supporting Superpowers mappings
 
 | Context | Superpowers skill | codex-controlled constraint |
@@ -50,7 +68,7 @@ Rules:
 
 ## Conflict Priority
 
-When `codex-controlled` and Superpowers rules overlap or conflict:
+When `codex-controlled`, Superpowers, and Micro-UI rules overlap or conflict:
 
 1. User explicit instruction wins.
 2. Safety, truthfulness, and current runtime evidence win.
@@ -58,7 +76,8 @@ When `codex-controlled` and Superpowers rules overlap or conflict:
 4. Project Hygiene Gate wins before implementation.
 5. Data / Observability Hygiene wins for logs, metrics, ETL, dashboard, runner, scorer, gate, schema, experiment tasks.
 6. Superpowers decides methodology only inside approved execution boundaries.
-7. Speed and completeness never override user understanding.
+7. Micro-UI decides presentation only; it never changes authority, approval, evidence, or scope.
+8. Speed, completeness, and visual polish never override user understanding.
 
 ## Execution Suspension Rules
 
@@ -71,3 +90,5 @@ Suspend planning or execution-oriented Superpowers skills when:
 - The Project Hygiene Gate has not passed.
 
 Resume only after the decision points are understood and the current checkpoint permits execution.
+
+Micro-UI may be used during suspension to show a decision panel, explanation map, or risk board, but it must not continue execution on behalf of the user.
