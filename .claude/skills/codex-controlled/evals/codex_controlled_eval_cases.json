@@ -1,6 +1,6 @@
 {
   "suite": "codex-controlled.skill-routing.v1",
-  "description": "Layered eval cases for codex-controlled routing, anti-regression, Micro-UI, and neighboring skill non-stealing behavior.",
+  "description": "Layered eval cases for codex-controlled routing, anti-regression, Micro-UI, always-on kernel, and neighboring skill non-stealing behavior.",
   "cases": [
     {
       "id": "pos-codex-controlled-boundary-checkpoint",
@@ -31,11 +31,32 @@
       "reason": "Conflict between Superpowers execution and user understanding should route to codex-controlled."
     },
     {
+      "id": "pos-always-on-l2-repo-change",
+      "kind": "positive",
+      "expected_skill": "codex-controlled",
+      "prompt": "This is an L2 repo change: implement the bugfix with a bounded plan, verification evidence, and a checkpoint before continuing.",
+      "reason": "Always-on kernel should escalate L2 repository changes to full codex-controlled."
+    },
+    {
+      "id": "pos-always-on-l3-skill-change",
+      "kind": "positive",
+      "expected_skill": "codex-controlled",
+      "prompt": "This is an L3 skill modification. Apply skill stability governance before editing the description, gotchas, routing rules, or evals.",
+      "reason": "Always-on kernel should escalate skill changes to strict codex-controlled governance."
+    },
+    {
       "id": "neg-simple-command-explanation",
       "kind": "negative",
       "expected_skill": null,
       "prompt": "What does bun test do?",
       "reason": "Simple conceptual Q&A should not force codex-controlled unless explicit control, checkpoint, or coaching is requested."
+    },
+    {
+      "id": "neg-always-on-l0-direct-answer",
+      "kind": "negative",
+      "expected_skill": null,
+      "prompt": "Explain what git fetch means in one paragraph.",
+      "reason": "Always-on kernel should classify this as L0 direct and avoid full codex-controlled workflow."
     },
     {
       "id": "neg-pure-tdd-request",
