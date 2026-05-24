@@ -1,6 +1,6 @@
 ---
 name: codex-controlled
-description: Use for controlled Codex collaboration workflows: requirement framing, discussion, layered explanation, project hygiene, controlled execution, acceptance review, coaching checkpoints, and optional Micro-UI visual state outputs. Acts as the control plane above Superpowers execution skills.
+description: "Use for controlled Codex collaboration workflows: requirement framing, discussion, layered explanation, project hygiene, controlled execution, acceptance review, coaching checkpoints, and optional Micro-UI visual state outputs. Acts as the control plane above Superpowers execution skills."
 ---
 
 # Skill: Codex-Controlled Superpowers Orchestrator
