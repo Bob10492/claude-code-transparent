@@ -53,6 +53,13 @@ When the state is dense, prefer a compact structured status card, decision panel
 
 Text remains authoritative. Visual output is an aid, not a shortcut.
 
+### Skill changes must be anti-regression governed
+
+When modifying this or any related skill, diagnose the failure type before editing.
+
+Do not use broad description changes to fix execution bugs.
+Use `skills/09_skill_stability_governance.md` and the eval harness before merging skill changes.
+
 ## Non-bypassable Rules
 
 Superpowers skills and Micro-UI outputs are execution and understanding helpers, not permission systems.
@@ -69,6 +76,23 @@ They must not bypass:
 8. Coach Mode when the user asks to understand
 9. Static and safe rendering requirements for HTML Micro-UI
 10. User confirmation for any approval or destructive action
+11. Skill stability governance when changing descriptions, gotchas, or routing rules
+
+## Description Boundary
+
+The frontmatter `description` is for routing only.
+
+It should stay compact and answer when this skill should be selected.
+It should not contain execution gotchas, edge-case patches, or detailed workflow rules.
+
+Execution fixes belong in:
+
+- `Gotchas`
+- `Execution Rules`
+- reference files under `skills/`
+- eval cases under `evals/` or `tests/`
+
+If a skill behavior bug happens after routing succeeded, prefer append-mostly gotchas instead of rewriting the description.
 
 ## Control Levels
 
@@ -119,6 +143,7 @@ If a phase is skipped or compressed, state why.
 | Phase 7 Acceptance Review | Produce checkpoint review and wait for approval | `skills/06_acceptance_review.md` |
 | Phase 8 Finishing | Wrap up branch/PR choices after approval | `finishing-a-development-branch` |
 | Cross-phase Visual State | Render dense state as optional structured Micro-UI | `skills/08_micro_ui_visual_state.md` |
+| Cross-phase Skill Governance | Diagnose skill failures and prevent regressions | `skills/09_skill_stability_governance.md` |
 
 ### Required phase depth by level
 
@@ -174,6 +199,22 @@ Micro-UI may appear as:
 
 Micro-UI must always preserve a readable text summary and must never replace evidence, checkpoints, or user confirmation.
 
+## Skill Stability Governance
+
+Use `skills/09_skill_stability_governance.md` before modifying descriptions, routing rules, gotchas, or execution constraints.
+
+Classify every skill failure before editing:
+
+1. Routing failure: fix `description` narrowly and add positive/negative evals.
+2. Execution failure: keep `description` stable and add append-mostly gotchas or execution rules.
+3. Environment failure: add compatibility guards or environment assumptions.
+
+Run the lightweight eval harness when routing or governance-sensitive text changes:
+
+```bash
+python .claude/skills/codex-controlled/evals/run_skill_eval.py
+```
+
 ## Superpowers Routing Matrix
 
 | Phase | Trigger | Superpowers skill | codex-controlled constraint |
@@ -211,6 +252,7 @@ When `codex-controlled` and Superpowers rules overlap or conflict:
 6. Superpowers decides methodology only inside approved execution boundaries.
 7. Speed and completeness never override user understanding.
 8. Micro-UI improves presentation only; it does not change authority, approval, or evidence requirements.
+9. Anti-regression governance wins over quick prompt rewrites when changing skills.
 
 ## Routing Rules
 
@@ -223,6 +265,7 @@ When `codex-controlled` and Superpowers rules overlap or conflict:
 - Use `skills/06_acceptance_review.md` to produce the checkpoint card. No checkpoint means the task is not complete.
 - Use `skills/07_coach_mode.md` whenever the user wants to understand commands, verification, review logic, or why a specific Superpowers skill was selected.
 - Use `skills/08_micro_ui_visual_state.md` when the state is dense enough that a disposable UI card, structured JSON, or static HTML spec would help the user scan and intervene.
+- Use `skills/09_skill_stability_governance.md` before changing a skill's description, routing policy, gotchas, or execution rules.
 
 ## Minimal Request Template
 
@@ -237,4 +280,17 @@ Preferred control level:
 Need Project Hygiene Gate: yes/no/unsure
 Need explanation before execution: yes/no
 Need Micro-UI visual state: yes/no/unsure
+```
+
+## Skill Change Request Template
+
+```md
+Skill to change:
+Observed failure:
+Failure type: routing / execution / environment / unsure
+Expected behavior:
+Actual behavior:
+Neighbor skills at risk:
+Proposed edit target: description / gotcha / execution_rule / eval / environment guard
+Required eval update:
 ```
