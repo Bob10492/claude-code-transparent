@@ -1,6 +1,6 @@
 ---
 name: codex-controlled
-description: "Use for controlled Codex collaboration workflows: requirement framing, discussion, layered explanation, project hygiene, controlled execution, acceptance review, coaching checkpoints, and optional Micro-UI visual state outputs. Acts as the control plane above Superpowers execution skills."
+description: "Use when a Codex or agent task needs controlled execution, repository changes, L1-L3 control workflow, scope boundaries, checkpoints, user approval, project hygiene, evidence-based completion, Micro-UI visual state, or skill stability governance. Do not use for pure L0 direct answers unless the user asks for coaching, explanation, or a controlled workflow."
 ---
 
 # Skill: Codex-Controlled Superpowers Orchestrator
@@ -21,6 +21,22 @@ Use this skill when the task needs explicit boundaries, user-visible checkpoints
 This skill exists to keep strong execution methods usable without losing control.
 
 Micro-UI exists to make that control easier for humans to scan and understand. It must never weaken checkpoints, evidence, or user agency.
+
+## Always-on Kernel vs Full Skill
+
+The L0/L1/L2/L3 control-level triage should be treated as always-on agent behavior.
+
+The full `codex-controlled` skill should be invoked or followed when the always-on triage result requires a visible control workflow, checkpoints, hygiene, Micro-UI, skill governance, or multi-step execution.
+
+In short:
+
+- Always-on Kernel = lightweight control-level triage for every request.
+- Full `codex-controlled` = expanded control-plane workflow for L1/L2/L3 tasks that need visible control.
+- Superpowers = local engineering methods called inside approved boundaries.
+
+See `ALWAYS_ON_KERNEL.md` for the portable always-on kernel and `AGENTS_ALWAYS_ON_SNIPPET.md` for a snippet that can be copied into project-level or global agent instructions.
+
+Do not solve always-on behavior by making this full skill claim every conversation in its description. That broadens routing and can steal traffic from more specific skills.
 
 ## Core Principles
 
@@ -82,7 +98,7 @@ They must not bypass:
 
 The frontmatter `description` is for routing only.
 
-It should stay compact and answer when this skill should be selected.
+It should stay compact and answer when this full skill should be selected.
 It should not contain execution gotchas, edge-case patches, or detailed workflow rules.
 
 Execution fixes belong in:
@@ -256,6 +272,7 @@ When `codex-controlled` and Superpowers rules overlap or conflict:
 
 ## Routing Rules
 
+- Apply `ALWAYS_ON_KERNEL.md` before deciding whether the full workflow is needed when the runtime supports always-loaded instructions.
 - Use `skills/01_requirement_framing.md` to compress goals, boundaries, non-goals, and control level.
 - Use `brainstorming` only for design exploration. Its output must flow back into the Spec Bundle before planning or execution.
 - If the user expresses confusion, disagreement, or asks why, suspend execution-oriented Superpowers skills and use `skills/02_discussion_mode.md` or `skills/03_layered_explanation.md`.
