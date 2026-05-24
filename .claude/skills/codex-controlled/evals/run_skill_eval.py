@@ -33,7 +33,16 @@ CODEX_CONTROLLED_SIGNALS = {
     "approval",
     "scope",
     "boundary",
+    "bounded plan",
     "control",
+    "l2",
+    "l3",
+    "repo change",
+    "skill modification",
+    "skill stability governance",
+    "gotchas",
+    "routing rules",
+    "evals",
     "hygiene",
     "project hygiene",
     "working tree",
@@ -60,6 +69,7 @@ NEIGHBOR_SIGNALS = {
 }
 
 REQUIRED_MAIN_SECTIONS = [
+    "Always-on Kernel vs Full Skill",
     "Non-bypassable Rules",
     "Control Levels",
     "Project Hygiene Gate",
@@ -73,6 +83,13 @@ REQUIRED_GOVERNANCE_SECTIONS = [
     "Standard Change Checklist",
     "Append-Mostly Policy",
     "Eval Policy",
+]
+
+REQUIRED_KERNEL_SECTIONS = [
+    "Always-on Control Kernel",
+    "Control Levels",
+    "Always-on Rules",
+    "Relationship to full codex-controlled",
 ]
 
 
@@ -144,8 +161,10 @@ def check_required_docs() -> list[EvalFailure]:
     main = SKILL_ROOT / "SKILL.md"
     governance = SKILL_ROOT / "skills" / "09_skill_stability_governance.md"
     micro_ui = SKILL_ROOT / "skills" / "08_micro_ui_visual_state.md"
+    kernel = SKILL_ROOT / "ALWAYS_ON_KERNEL.md"
+    agents_snippet = SKILL_ROOT / "AGENTS_ALWAYS_ON_SNIPPET.md"
 
-    for path in [main, governance, micro_ui]:
+    for path in [main, governance, micro_ui, kernel, agents_snippet]:
         if not path.exists():
             failures.append(EvalFailure("docs", f"missing required file: {path}"))
 
@@ -160,6 +179,17 @@ def check_required_docs() -> list[EvalFailure]:
         for section in REQUIRED_GOVERNANCE_SECTIONS:
             if section not in text:
                 failures.append(EvalFailure("docs", f"governance doc missing section: {section}"))
+
+    if kernel.exists():
+        text = kernel.read_text(encoding="utf-8")
+        for section in REQUIRED_KERNEL_SECTIONS:
+            if section not in text:
+                failures.append(EvalFailure("docs", f"always-on kernel doc missing section: {section}"))
+
+    if agents_snippet.exists():
+        text = agents_snippet.read_text(encoding="utf-8")
+        if "Always-on Control Kernel" not in text:
+            failures.append(EvalFailure("docs", "AGENTS snippet missing Always-on Control Kernel heading"))
 
     if micro_ui.exists():
         text = micro_ui.read_text(encoding="utf-8")
