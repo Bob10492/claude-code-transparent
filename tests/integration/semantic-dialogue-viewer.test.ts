@@ -28,6 +28,28 @@ function requestSnapshot(messages: unknown[]): SnapshotRecord {
   }
 }
 
+function responseSnapshot(content: unknown[]): SnapshotRecord {
+  return {
+    snapshotRef: "response.json",
+    category: "response",
+    exists: true,
+    absolutePath: "response.json",
+    data: {
+      assistantMessages: [
+        {
+          uuid: "assistant-response-1",
+          message: {
+            role: "assistant",
+            content,
+            usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 0 },
+          },
+        },
+      ],
+    },
+    warnings: [],
+  }
+}
+
 describe("semantic dialogue viewer: request windows", () => {
   test("first turn anchors to the user_action message instead of replaying earlier history", () => {
     const snapshot = requestSnapshot([
@@ -63,6 +85,8 @@ describe("semantic dialogue viewer: request windows", () => {
     expect(blocks).toHaveLength(1)
     expect(blocks[0]?.kind).toBe("user_message")
     expect(blocks[0]?.raw_text).toBe("push to origin")
+    expect(blocks[0]?.role_label).toBe("User")
+    expect(blocks[0]?.badges).toContain("token-bearing")
   })
 
   test("later turns preserve appended tool results and follow-up user messages", () => {
@@ -133,8 +157,140 @@ describe("semantic dialogue viewer: request windows", () => {
     expect(blocks).toHaveLength(2)
     expect(blocks[0]?.kind).toBe("tool_result")
     expect(blocks[0]?.raw_text).toContain("Traceback: file missing")
+    expect(blocks[0]?.badges).toContain("feeds next prompt")
     expect(blocks[1]?.kind).toBe("user_message")
     expect(blocks[1]?.raw_text).toBe("try replacing the input path")
+  })
+
+  test("subagent request windows label user messages as internal prompts", () => {
+    const snapshot = requestSnapshot([
+      {
+        type: "user",
+        uuid: "internal-u1",
+        message: { role: "user", content: "Summarize the repository state for the parent agent" },
+      },
+    ])
+
+    const blocks = buildRequestWindowBlocks({
+      currentRequest: snapshot,
+      previousRequest: null,
+      userActionId: "action-123",
+      querySource: "subagent",
+      queryId: "child-q",
+      turnId: "turn-1",
+    })
+
+    expect(blocks[0]?.title).toBe("Internal user prompt")
+    expect(blocks[0]?.role_label).toBe("Internal user prompt")
+    expect(blocks[0]?.badges).toContain("internal prompt")
+  })
+
+  test("response snapshots preserve assistant text then assistant tool use ordering", () => {
+    const action: ActionRow = {
+      user_action_id: "action-123",
+      event_date: "2026-05-12",
+      started_at: "2026-05-12T00:00:00.000Z",
+      started_at_ms: 1000,
+      ended_at: "2026-05-12T00:01:00.000Z",
+      ended_at_ms: 61000,
+      duration_ms: 60000,
+      query_count: 1,
+      subagent_count: 0,
+      tool_call_count: 1,
+      total_prompt_input_tokens: 10,
+      total_billed_tokens: 15,
+      main_thread_total_prompt_input_tokens: 10,
+      subagent_total_prompt_input_tokens: 0,
+    }
+    const queries: QueryRow[] = [
+      {
+        query_id: "main-q",
+        user_action_id: "action-123",
+        query_source: "repl_main_thread",
+        subagent_id: null,
+        subagent_reason: null,
+        subagent_trigger_kind: null,
+        subagent_trigger_detail: null,
+        agent_name: "main",
+        source_group: "main",
+        started_at: "2026-05-12T00:00:00.000Z",
+        started_at_ms: 1000,
+        ended_at: "2026-05-12T00:01:00.000Z",
+        ended_at_ms: 61000,
+        duration_ms: 60000,
+        turn_count: 1,
+        query_max_loop_iter: 1,
+        tool_call_count: 1,
+        terminal_reason: "completed",
+        strict_is_complete: true,
+        inferred_is_complete: true,
+      },
+    ]
+    const turns: TurnRow[] = [
+      {
+        query_id: "main-q",
+        turn_id: "turn-1",
+        agent_name: "main",
+        query_source: "repl_main_thread",
+        started_at: "2026-05-12T00:00:00.000Z",
+        started_at_ms: 1000,
+        ended_at: "2026-05-12T00:01:00.000Z",
+        ended_at_ms: 61000,
+        duration_ms: 60000,
+        loop_iter_start: 1,
+        loop_iter_end: 1,
+        tool_call_count: 1,
+        stop_reason: "tool_use",
+        transition_out: null,
+        termination_reason: null,
+        strict_is_closed: true,
+        inferred_is_closed: true,
+      },
+    ]
+    const turnSnapshotsByKey = new Map([
+      [
+        "main-q|turn-1",
+        {
+          requestSnapshots: [
+            requestSnapshot([
+              {
+                type: "user",
+                uuid: "action-123",
+                message: { role: "user", content: "inspect files" },
+              },
+            ]),
+          ],
+          responseSnapshots: [
+            responseSnapshot([
+              { type: "text", text: "I will inspect the repository first." },
+              { type: "tool_use", id: "tool-1", name: "Bash", input: { command: "rg TODO" } },
+            ]),
+          ],
+          relatedSnapshots: [],
+          afterTurnSnapshots: [],
+        },
+      ],
+    ])
+
+    const viewer = buildSemanticViewerData({
+      action,
+      queries,
+      turns,
+      subagents: [],
+      tools: [],
+      phases: [],
+      artifacts: [],
+      evidence: [],
+      turnSnapshotsByKey,
+      selectedBy: "explicit_user_action_id",
+      terminalReason: "completed",
+    })
+
+    const dialogue = viewer.details["turn_main-q_turn-1"]?.dialogue ?? []
+    expect(dialogue.map(block => block.kind)).toEqual(["user_message", "assistant_reply", "assistant_tool_use"])
+    expect(dialogue[1]?.raw_text).toBe("I will inspect the repository first.")
+    expect(dialogue[2]?.tool_call_id).toBe("tool-1")
+    expect(dialogue[2]?.badges).toContain("Bash")
   })
 })
 
@@ -160,6 +316,7 @@ describe("semantic dialogue viewer: html shell", () => {
 
     expect(html).toContain("semantic-viewer-app")
     expect(html).toContain("data-tab=\"dialogue\"")
+    expect(html).not.toContain("data-tab=\"artifacts\"")
     expect(html).toContain("Action Semantic Viewer")
     expect(html).toContain("graph-viewport")
     expect(html).toContain("pointerdown")
@@ -177,6 +334,10 @@ describe("semantic dialogue viewer: html shell", () => {
     expect(html).toContain(".dialogue-block.role-user")
     expect(html).toContain(".dialogue-block.role-assistant")
     expect(html).toContain(".dialogue-block.role-tool-result")
+    expect(html).toContain("Full Query Identity")
+    expect(html).toContain("role-badge")
+    expect(html).toContain("prompt-badge")
+    expect(html).toContain("recenterViewport")
   })
 
   test("renders directory app with action id lookup input", () => {
@@ -197,6 +358,12 @@ describe("semantic dialogue viewer: html shell", () => {
     expect(html).toContain("Load Action")
     expect(html).toContain("semantic-viewer-frame")
     expect(html).toContain("12345678-aaaa-bbbb-cccc-1234567890ab")
+    expect(html).toContain("Recent 5 User Actions")
+    expect(html).toContain("recent-action-id")
+    expect(html).toContain("recent-action-open")
+    expect(html).toContain("A turn is one observed query-loop iteration")
+    expect(html).toContain("dashed fork edges")
+    expect(html).toContain("Assistant context carried into this turn")
     expect(html).toContain("viewer-stack")
     expect(html).toContain("app-layout")
     expect(html).toContain("app-sidebar")

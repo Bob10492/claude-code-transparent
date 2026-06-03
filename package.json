@@ -57,6 +57,7 @@
     "postinstall": "node scripts/run-parallel.mjs scripts/postinstall.cjs scripts/setup-chrome-mcp.mjs",
     "docs:dev": "npx mintlify dev",
     "typecheck": "tsc --noEmit",
+    "observability:viewer": "bun run scripts/observability/semantic_viewer_server.ts",
     "rcs": "bun run scripts/rcs.ts"
   },
   "dependencies": {

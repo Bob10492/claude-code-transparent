@@ -12,6 +12,7 @@ import type {
   SemanticLane,
   SemanticNode,
   SemanticNodeDetail,
+  SemanticViewerRecentDbAction,
   SemanticViewerData,
   SemanticViewerIndexEntry,
   SnapshotRecord,
@@ -175,6 +176,8 @@ function entryToDialogueBlocks(entry: RequestMessageEntry, params: RequestWindow
         role: "tool_result",
         kind: "tool_result",
         title: `Tool result${entry.tool_use_id ? ` (${entry.tool_use_id})` : ""}`,
+        role_label: "Tool result",
+        badges: ["feeds next prompt"],
         raw_text: entry.text_content,
         excerpt: squashed.excerpt,
         truncated: squashed.truncated,
@@ -191,7 +194,9 @@ function entryToDialogueBlocks(entry: RequestMessageEntry, params: RequestWindow
         dialogue_block_id: `${nodeId}_request_${index}`,
         role: "assistant",
         kind: "assistant_reply",
-        title: "Assistant (carried into this turn)",
+        title: "Assistant context carried into this turn",
+        role_label: "Assistant context",
+        badges: ["token-bearing", "carried context"],
         raw_text: entry.text_content,
         excerpt: squashed.excerpt,
         truncated: squashed.truncated,
@@ -203,12 +208,15 @@ function entryToDialogueBlocks(entry: RequestMessageEntry, params: RequestWindow
 
   if (entry.type === "user" && entry.role === "user") {
     const squashed = squash(entry.text_content, 320)
+    const isMainThread = params.querySource === "repl_main_thread"
     return [
       {
         dialogue_block_id: `${nodeId}_request_${index}`,
         role: "user",
         kind: "user_message",
-        title: "User",
+        title: isMainThread ? "User" : "Internal user prompt",
+        role_label: isMainThread ? "User" : "Internal user prompt",
+        badges: isMainThread ? ["token-bearing"] : ["token-bearing", "internal prompt"],
         raw_text: entry.text_content,
         excerpt: squashed.excerpt,
         truncated: squashed.truncated,
@@ -272,6 +280,7 @@ function extractAssistantResponseBlocks(params: {
   if (!data) return []
   const nodeId = `turn_${params.queryId}_${params.turnId}`
   const blocks: DialogueBlock[] = []
+  const emittedToolUseIds = new Set<string>()
   let blockIndex = 0
 
   for (const assistantMessage of asArray(data.assistantMessages)) {
@@ -279,32 +288,65 @@ function extractAssistantResponseBlocks(params: {
     const messageRecord = asRecord(record?.message as JsonValue)
     for (const content of asArray(messageRecord?.content)) {
       const contentRecord = asRecord(content)
-      if (!contentRecord || contentRecord.type !== "text" || typeof contentRecord.text !== "string") continue
-      const squashed = squash(contentRecord.text, 320)
-      blocks.push({
-        dialogue_block_id: `${nodeId}_response_${blockIndex}`,
-        node_id: nodeId,
-        role: "assistant",
-        kind: "assistant_reply",
-        title: "Assistant",
-        raw_text: contentRecord.text,
-        excerpt: squashed.excerpt,
-        truncated: squashed.truncated,
-        query_id: params.queryId,
-        turn_id: params.turnId,
-        snapshot_ref: snapshot?.snapshotRef ?? null,
-        message_uuid: typeof record?.uuid === "string" ? record.uuid : null,
-        tool_call_id: null,
-        evidence_ref: snapshot?.snapshotRef ?? null,
-        warnings: [],
-      })
-      blockIndex += 1
+      if (!contentRecord) continue
+      if (contentRecord.type === "text" && typeof contentRecord.text === "string") {
+        const squashed = squash(contentRecord.text, 320)
+        blocks.push({
+          dialogue_block_id: `${nodeId}_response_${blockIndex}`,
+          node_id: nodeId,
+          role: "assistant",
+          kind: "assistant_reply",
+          title: "Assistant output",
+          role_label: "Assistant",
+          badges: ["token-bearing"],
+          raw_text: contentRecord.text,
+          excerpt: squashed.excerpt,
+          truncated: squashed.truncated,
+          query_id: params.queryId,
+          turn_id: params.turnId,
+          snapshot_ref: snapshot?.snapshotRef ?? null,
+          message_uuid: typeof record?.uuid === "string" ? record.uuid : null,
+          tool_call_id: null,
+          evidence_ref: snapshot?.snapshotRef ?? null,
+          warnings: [],
+        })
+        blockIndex += 1
+        continue
+      }
+      if (contentRecord.type === "tool_use" && typeof contentRecord.name === "string") {
+        const rawText = `${contentRecord.name}\n${JSON.stringify(contentRecord.input ?? {}, null, 2)}`
+        const squashed = squash(rawText, 320)
+        const toolCallId = typeof contentRecord.id === "string" ? contentRecord.id : null
+        if (toolCallId) emittedToolUseIds.add(toolCallId)
+        blocks.push({
+          dialogue_block_id: `${nodeId}_response_${blockIndex}`,
+          node_id: nodeId,
+          role: "tool_use",
+          kind: "assistant_tool_use",
+          title: `Assistant tool use: ${contentRecord.name}`,
+          role_label: "Assistant tool use",
+          badges: ["token-bearing", contentRecord.name],
+          raw_text: rawText,
+          excerpt: squashed.excerpt,
+          truncated: squashed.truncated,
+          query_id: params.queryId,
+          turn_id: params.turnId,
+          snapshot_ref: snapshot?.snapshotRef ?? null,
+          message_uuid: typeof record?.uuid === "string" ? record.uuid : null,
+          tool_call_id: toolCallId,
+          evidence_ref: snapshot?.snapshotRef ?? null,
+          warnings: [],
+        })
+        blockIndex += 1
+      }
     }
   }
 
   for (const toolUseBlock of asArray(data.toolUseBlocks)) {
     const record = asRecord(toolUseBlock)
     if (!record || typeof record.name !== "string") continue
+    const toolCallId = typeof record.id === "string" ? record.id : null
+    if (toolCallId && emittedToolUseIds.has(toolCallId)) continue
     const rawText = `${record.name}\n${JSON.stringify(record.input ?? {}, null, 2)}`
     const squashed = squash(rawText, 320)
     blocks.push({
@@ -313,6 +355,8 @@ function extractAssistantResponseBlocks(params: {
       role: "tool_use",
       kind: "assistant_tool_use",
       title: `Assistant tool use: ${record.name}`,
+      role_label: "Assistant tool use",
+      badges: ["token-bearing", record.name],
       raw_text: rawText,
       excerpt: squashed.excerpt,
       truncated: squashed.truncated,
@@ -320,7 +364,7 @@ function extractAssistantResponseBlocks(params: {
       turn_id: params.turnId,
       snapshot_ref: snapshot?.snapshotRef ?? null,
       message_uuid: null,
-      tool_call_id: typeof record.id === "string" ? record.id : null,
+      tool_call_id: toolCallId,
       evidence_ref: snapshot?.snapshotRef ?? null,
       warnings: [],
     })
@@ -428,7 +472,13 @@ function findParentTurnAnchor(params: {
   if (!params.query.subagent_id) return null
 
   const explicitAgentTool = params.tools
-    .filter(tool => tool.tool_name === "Agent" && tool.subagent_id === params.query.subagent_id && tool.query_id && tool.turn_id)
+    .filter(
+      tool =>
+        (tool.tool_name === "Agent" || tool.tool_name === "Task") &&
+        tool.subagent_id === params.query.subagent_id &&
+        tool.query_id &&
+        tool.turn_id,
+    )
     .sort((left, right) => Date.parse(left.detected_at ?? left.completed_at ?? new Date(0).toISOString()) - Date.parse(right.detected_at ?? right.completed_at ?? new Date(0).toISOString()))
     .at(0)
 
@@ -508,6 +558,7 @@ function isSelfRunAction(tools: RichToolCall[], toolCallCount: number): boolean 
 function buildNodeDetail(params: {
   node: SemanticNode
   queryLabel: string
+  queryIdentity: string
   phaseReason: string
   phaseAction: string
   phaseResult: string
@@ -530,6 +581,7 @@ function buildNodeDetail(params: {
     overview: {
       title: params.node.title,
       query_label: params.queryLabel,
+      query_identity: params.queryIdentity,
       turn_label: params.node.turn_id ?? "-",
       reason: params.phaseReason,
       action: params.phaseAction,
@@ -644,6 +696,7 @@ export function buildSemanticViewerData(params: {
     overview: {
       title: `Action ${params.action.user_action_id}`,
       query_label: `${params.action.query_count} queries`,
+      query_identity: params.action.user_action_id,
       turn_label: "-",
       reason: params.selectedBy,
       action: actionWarning ?? "semantic dialogue viewer generated from V1 facts",
@@ -744,6 +797,14 @@ export function buildSemanticViewerData(params: {
       details[nodeId] = buildNodeDetail({
         node,
         queryLabel: query.query_source ?? shortId(query.query_id),
+        queryIdentity: [
+          `query_id=${query.query_id}`,
+          query.query_source ? `source=${query.query_source}` : null,
+          query.subagent_id ? `subagent_id=${query.subagent_id}` : null,
+          query.subagent_reason ? `reason=${query.subagent_reason}` : null,
+        ]
+          .filter(Boolean)
+          .join(" | "),
         phaseReason,
         phaseAction,
         phaseResult,
@@ -957,10 +1018,11 @@ function shellStyle(): string {
     .graph-pane { padding: 18px 18px 24px; }
     .summary-card, .lane-card, .inspector-card, .app-card, .viewer-frame-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
     .summary-card, .app-card { padding: 16px; margin-bottom: 16px; }
-    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .summary-grid, .inspector-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .inspector-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .metric { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
     .metric .label { font-size: 12px; color: var(--muted); }
-    .metric .value { font-size: 16px; font-weight: 600; margin-top: 4px; }
+    .metric .value { font-size: 16px; font-weight: 600; margin-top: 4px; overflow-wrap: anywhere; word-break: break-word; }
     .warning { margin-top: 12px; color: var(--warn); font-size: 13px; }
     .graph-viewport { position: relative; min-height: calc(100vh - 180px); background: rgba(255,255,255,0.42); border-radius: 16px; border: 1px solid var(--line); overflow: hidden; cursor: grab; }
     .graph-viewport.dragging { cursor: grabbing; }
@@ -969,8 +1031,8 @@ function shellStyle(): string {
     .graph-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
     .toolbar-button, .app-button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
     .toolbar-button:hover, .app-button:hover { border-color: var(--accent); }
-    .lane-header { position: absolute; top: 14px; width: 260px; margin-left: -130px; text-align: center; font-size: 12px; color: var(--muted); border-top: 4px solid var(--lane-accent, var(--line)); padding-top: 6px; }
-    .node { position: absolute; width: 260px; transform: translateX(-130px); border-radius: 14px; border: 1px solid var(--line); border-left: 5px solid var(--lane-accent, var(--line)); background: #fff; box-shadow: var(--shadow); padding: 12px 14px; text-align: left; cursor: pointer; }
+    .lane-header { position: absolute; top: 14px; width: 300px; margin-left: -150px; text-align: center; font-size: 12px; color: var(--muted); border-top: 4px solid var(--lane-accent, var(--line)); padding-top: 6px; overflow-wrap: anywhere; word-break: break-word; }
+    .node { position: absolute; width: 300px; transform: translateX(-150px); border-radius: 14px; border: 1px solid var(--line); border-left: 5px solid var(--lane-accent, var(--line)); background: #fff; box-shadow: var(--shadow); padding: 12px 14px; text-align: left; cursor: pointer; }
     .node:hover { border-color: var(--accent); }
     .node.selected { outline: 2px solid var(--accent); }
     .node.branch-source { border-color: var(--fork); box-shadow: 0 0 0 3px rgba(47,111,148,0.14), var(--shadow); }
@@ -991,7 +1053,7 @@ function shellStyle(): string {
     .inspector-drawer.drawer-open { transform: translateX(0); }
     .inspector-card { padding: 16px; height: 100%; overflow: auto; }
     .inspector-header h2 { margin: 0; font-size: 20px; }
-    .inspector-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .inspector-sub { color: var(--muted); font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; word-break: break-word; }
     .drawer-close { margin-left: auto; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
     .tab-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
     .tab { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
@@ -1002,10 +1064,17 @@ function shellStyle(): string {
     .dialogue-block.role-assistant { background: #fff8f1; border-color: #e5c8a4; }
     .dialogue-block.role-tool-result { background: #f4fbf4; border-color: #9fcea8; }
     .dialogue-block.role-tool-use { background: #faf5ff; border-color: #ccb2ef; }
-    .dialogue-block .block-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-    .dialogue-block pre, .raw { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 Consolas, "SFMono-Regular", monospace; }
+    .dialogue-block .block-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .role-badge { border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #fff; background: var(--muted); }
+    .role-user .role-badge { background: #2374a6; }
+    .role-assistant .role-badge { background: #b75d2d; }
+    .role-tool-result .role-badge { background: #3a7d44; }
+    .role-tool-use .role-badge { background: #7b56b3; }
+    .prompt-badge { border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--muted); padding: 2px 7px; font-size: 11px; }
+    .prompt-badge.important { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .dialogue-block pre, .raw { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; font: 12px/1.45 Consolas, "SFMono-Regular", monospace; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; overflow-wrap: anywhere; word-break: break-word; }
     th { color: var(--muted); font-weight: 600; }
     svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
     .empty { color: var(--muted); font-size: 13px; }
@@ -1075,13 +1144,12 @@ ${shellStyle()}
             <h2 id="inspector-title" style="margin-right:auto;">Action</h2>
             <button id="drawer-close" class="drawer-close" type="button">Close</button>
           </div>
-          <div id="inspector-sub" class="inspector-sub">Click a node to inspect dialogue, tools, evidence, and artifacts.</div>
+          <div id="inspector-sub" class="inspector-sub">Click a node to inspect faithful dialogue, tools, evidence, and risk signals.</div>
         </div>
         <div class="tab-row">
           <button class="tab active" data-tab="overview">Overview</button>
           <button class="tab" data-tab="dialogue">Dialogue</button>
           <button class="tab" data-tab="tools">Tools</button>
-          <button class="tab" data-tab="artifacts">Artifacts</button>
           <button class="tab" data-tab="evidence">Evidence</button>
           <button class="tab" data-tab="risk">Risk</button>
         </div>
@@ -1115,6 +1183,7 @@ ${shellStyle()}
     let isDragging = false;
     let dragStartX = 0;
     let dragStartY = 0;
+    let centerGraphX = 0;
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -1131,7 +1200,7 @@ ${shellStyle()}
     function renderOverview(detail) {
       return [
         '<div class="section-title">Observed Summary</div>',
-        '<div class="summary-grid">',
+        '<div class="inspector-grid">',
         metricCard("Query", detail.overview.query_label),
         metricCard("Turn", detail.overview.turn_label),
         metricCard("Duration ms", detail.overview.metrics.duration_ms),
@@ -1141,6 +1210,7 @@ ${shellStyle()}
         metricCard("Billed tokens", detail.overview.metrics.billed_tokens),
         metricCard("Compact events", detail.overview.metrics.compact_event_count),
         '</div>',
+        '<div class="section-title">Full Query Identity</div><div class="raw">' + escapeHtml(detail.overview.query_identity || "-") + '</div>',
         '<div class="section-title">Reason</div><div class="raw">' + escapeHtml(detail.overview.reason || "-") + '</div>',
         '<div class="section-title">Action</div><div class="raw">' + escapeHtml(detail.overview.action || "-") + '</div>',
         '<div class="section-title">Result</div><div class="raw">' + escapeHtml(detail.overview.result || "-") + '</div>',
@@ -1160,9 +1230,10 @@ ${shellStyle()}
                 : block.role === "tool_use"
                   ? "role-tool-use"
                   : "";
+        const badges = (block.badges || []).map(badge => '<span class="prompt-badge ' + (badge === "token-bearing" || badge === "feeds next prompt" ? 'important' : '') + '">' + escapeHtml(badge) + '</span>').join("");
         return [
           '<div class="dialogue-block ' + roleClass + '">',
-          '<div class="block-title">' + escapeHtml(block.title) + (block.snapshot_ref ? ' · ' + escapeHtml(block.snapshot_ref) : '') + '</div>',
+          '<div class="block-title"><span class="role-badge">' + escapeHtml(block.role_label || block.role) + '</span><span>' + escapeHtml(block.title) + (block.snapshot_ref ? ' · ' + escapeHtml(block.snapshot_ref) : '') + '</span>' + badges + '</div>',
           '<pre>' + escapeHtml(block.raw_text) + '</pre>',
           block.truncated ? '<div class="block-title" style="margin-top:6px;">Display excerpt was truncated in the graph summary; raw text shown here remains faithful to the extracted block.</div>' : '',
           block.warnings && block.warnings.length ? '<div class="block-title" style="margin-top:6px;color:#ab3a1c;">' + escapeHtml(block.warnings.join(" | ")) + '</div>' : '',
@@ -1184,12 +1255,6 @@ ${shellStyle()}
       return '<table><thead><tr><th>Tool</th><th>Command / Path</th><th>Observed Result</th><th>Problem / Fix</th></tr></thead><tbody>' + rows + '</tbody></table>';
     }
 
-    function renderArtifacts(detail) {
-      if (!detail.artifacts.length) return '<div class="empty">No linked artifacts for this node.</div>';
-      const rows = detail.artifacts.map(artifact => '<tr><td>' + escapeHtml(artifact.artifact_path) + '</td><td>' + escapeHtml(artifact.artifact_type) + '</td><td>' + escapeHtml(artifact.created_by_tool || "-") + '</td></tr>').join("");
-      return '<table><thead><tr><th>Artifact</th><th>Type</th><th>Created By</th></tr></thead><tbody>' + rows + '</tbody></table>';
-    }
-
     function renderEvidence(detail) {
       if (!detail.evidence.length) return '<div class="empty">No evidence rows linked to this node.</div>';
       const rows = detail.evidence.map(item => '<tr><td>' + escapeHtml(item.evidence_id) + '</td><td>' + escapeHtml(item.category || "-") + '</td><td><div class="raw">' + escapeHtml(item.snapshot_ref) + '</div></td><td>' + escapeHtml(item.summary) + '</td></tr>').join("");
@@ -1209,7 +1274,6 @@ ${shellStyle()}
       if (activeTab === "overview") bodyEl.innerHTML = renderOverview(detail);
       if (activeTab === "dialogue") bodyEl.innerHTML = renderDialogue(detail);
       if (activeTab === "tools") bodyEl.innerHTML = renderTools(detail);
-      if (activeTab === "artifacts") bodyEl.innerHTML = renderArtifacts(detail);
       if (activeTab === "evidence") bodyEl.innerHTML = renderEvidence(detail);
       if (activeTab === "risk") bodyEl.innerHTML = renderRisk(detail);
       document.querySelectorAll(".node").forEach(nodeEl => {
@@ -1227,6 +1291,13 @@ ${shellStyle()}
 
     function clampZoom(nextZoom) {
       return Math.max(0.45, Math.min(2.2, nextZoom));
+    }
+
+    function recenterViewport() {
+      const rect = viewport.getBoundingClientRect();
+      offsetX = Math.max(24, rect.width / 2 - centerGraphX * zoom);
+      offsetY = 40;
+      applyViewportTransform();
     }
 
     function computeFocusState(rootNodeId) {
@@ -1286,7 +1357,7 @@ ${shellStyle()}
       const lanes = data.lanes;
       const nodes = data.nodes;
       const maxTurns = Math.max(1, ...lanes.map(lane => nodes.filter(node => node.lane_id === lane.lane_id).length));
-      const laneWidth = 330;
+      const laneWidth = 380;
       const nodeHeight = 168;
       const rowGap = 186;
       const plannedColumns = lanes.map(lane => lanePlan[lane.lane_id] ?? 0);
@@ -1365,20 +1436,36 @@ ${shellStyle()}
       orderedTurnNodes.forEach((node, index) => {
         turnOrder.set(node.node_id, index);
       });
+      const incomingForkByNode = new Map();
+      data.edges.filter(edge => edge.edge_type === "fork").forEach(edge => {
+        incomingForkByNode.set(edge.to, edge);
+      });
       const outgoingForkCounts = new Map();
       data.edges.filter(edge => edge.edge_type === "fork").forEach(edge => {
         outgoingForkCounts.set(edge.from, (outgoingForkCounts.get(edge.from) || 0) + 1);
       });
 
-      lanes.forEach(lane => {
+      const lanesForRender = [...lanes].sort((left, right) => {
+        const leftColumn = lanePlan[left.lane_id] ?? 0;
+        const rightColumn = lanePlan[right.lane_id] ?? 0;
+        return Math.abs(leftColumn) - Math.abs(rightColumn) || leftColumn - rightColumn;
+      });
+
+      lanesForRender.forEach(lane => {
         const laneNodes = nodes.filter(node => node.lane_id === lane.lane_id).sort((left, right) => {
           const leftOrder = turnOrder.get(left.node_id) ?? 0;
           const rightOrder = turnOrder.get(right.node_id) ?? 0;
           return leftOrder - rightOrder;
         });
+        const firstForkEdge = laneNodes.length ? incomingForkByNode.get(laneNodes[0].node_id) : null;
+        const parentPosition = firstForkEdge ? positioned.get(firstForkEdge.from) : null;
+        const firstOrder = laneNodes.length ? (turnOrder.get(laneNodes[0].node_id) ?? 0) : 0;
+        const naturalFirstTop = 170 + firstOrder * rowGap;
+        const anchoredFirstTop = parentPosition ? Math.max(170, parentPosition.y + 58) : naturalFirstTop;
+        const laneYOffset = parentPosition ? anchoredFirstTop - naturalFirstTop : 0;
         laneNodes.forEach(node => {
           const x = laneX.get(lane.lane_id);
-          const y = 170 + (turnOrder.get(node.node_id) ?? 0) * rowGap;
+          const y = 170 + (turnOrder.get(node.node_id) ?? 0) * rowGap + laneYOffset;
           positioned.set(node.node_id, { x, y: y + nodeHeight / 2 });
           const el = document.createElement("button");
           const laneIndex = lanes.findIndex(item => item.lane_id === lane.lane_id);
@@ -1442,7 +1529,9 @@ ${shellStyle()}
         );
       });
 
-      applyViewportTransform();
+      const mainLane = data.lanes.find(lane => lane.query_source === "repl_main_thread") || data.lanes[0];
+      centerGraphX = mainLane ? (laneX.get(mainLane.lane_id) || actionX) : actionX;
+      recenterViewport();
       applyFocusState();
     }
 
@@ -1463,9 +1552,7 @@ ${shellStyle()}
     });
     document.getElementById("zoom-reset").addEventListener("click", () => {
       zoom = 1;
-      offsetX = 90;
-      offsetY = 40;
-      applyViewportTransform();
+      recenterViewport();
     });
     clearFocusButton.addEventListener("click", () => {
       focusRootNodeId = null;
@@ -1517,8 +1604,39 @@ ${shellStyle()}
 </html>`
 }
 
-export function renderSemanticViewerDirectoryAppHtml(entries: SemanticViewerIndexEntry[]): string {
+export function renderSemanticViewerDirectoryAppHtml(
+  entries: SemanticViewerIndexEntry[],
+  options: { recentDbActions?: SemanticViewerRecentDbAction[] } = {},
+): string {
   const sorted = [...entries].sort((left, right) => right.generated_at.localeCompare(left.generated_at))
+  const recentDbActions = options.recentDbActions ?? []
+  const recentRows = sorted.slice(0, 5).map((entry, index) => {
+    const id = escapeForHtml(entry.user_action_id)
+    const path = escapeForHtml(entry.relative_viewer_path)
+    const meta = escapeForHtml(`${entry.output_dir_name} · ${entry.selected_by} · tools=${entry.tool_call_count} · queries=${entry.query_count}`)
+    return `
+          <div class="recent-action-row">
+            <div class="recent-action-rank">#${index + 1}</div>
+            <input class="recent-action-id" value="${id}" readonly aria-label="Recent user action id ${id.slice(0, 8)}" />
+            <button class="recent-action-open" type="button" data-path="${path}" data-action-id="${id}">Open</button>
+            <div class="recent-action-meta">${meta}</div>
+          </div>`
+  }).join("")
+  const recentDbRows = recentDbActions.map((action, index) => {
+    const id = escapeForHtml(action.user_action_id)
+    const viewerPath = escapeForHtml(action.viewer_path ?? "")
+    const meta = escapeForHtml(`${action.started_at || "unknown time"} · tools=${action.tool_call_count} · queries=${action.query_count} · duration_ms=${action.duration_ms ?? "-"}`)
+    const actionButton = action.has_viewer
+      ? `<button class="recent-action-open" type="button" data-path="${viewerPath}" data-action-id="${id}">Open</button>`
+      : `<button class="recent-action-generate" type="button" data-action-id="${id}">Generate</button>`
+    return `
+          <div class="recent-action-row ${action.has_viewer ? "" : "missing-viewer"}">
+            <div class="recent-action-rank">#${index + 1}</div>
+            <input class="recent-action-id" value="${id}" readonly aria-label="Recent database user action id ${id.slice(0, 8)}" />
+            ${actionButton}
+            <div class="recent-action-meta">${meta}</div>
+          </div>`
+  }).join("")
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1670,6 +1788,74 @@ ${shellStyle()}
       text-transform: uppercase;
       color: var(--nb-muted);
     }
+    .recent-action-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .recent-action-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--nb-line);
+      border-radius: 16px;
+      background: #fff;
+      padding: 10px;
+    }
+    .recent-action-rank {
+      color: var(--nb-muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .recent-action-id {
+      min-width: 0;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: var(--nb-ink);
+      font: 12px/1.45 Consolas, "SFMono-Regular", monospace;
+      overflow-wrap: anywhere;
+    }
+    .recent-action-id:focus {
+      outline: 2px solid rgba(47,111,237,0.18);
+      border-radius: 8px;
+    }
+    .recent-action-open, .recent-action-generate {
+      border: 1px solid #c8dafc;
+      background: #f6f9ff;
+      color: var(--nb-accent);
+      border-radius: 999px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .recent-action-open:hover, .recent-action-generate:hover {
+      border-color: #9fc0fb;
+      background: #eef4ff;
+    }
+    .recent-action-generate {
+      border-color: #f2d4a7;
+      background: #fff8ed;
+      color: #a45f10;
+    }
+    .recent-action-row.missing-viewer {
+      background: #fffdf8;
+      border-color: #f0dfc3;
+    }
+    .recent-action-row.active {
+      border-color: #97b7f5;
+      background: linear-gradient(180deg, #ffffff, #f5f9ff);
+      box-shadow: 0 0 0 4px rgba(47,111,237,0.1);
+    }
+    .recent-action-meta {
+      grid-column: 2 / 4;
+      color: var(--nb-muted);
+      font-size: 12px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
     .app-results {
       margin-top: 10px;
       max-height: none;
@@ -1818,6 +2004,19 @@ ${shellStyle()}
           <div class="meta-pill">${sorted.length} indexed actions</div>
           <div class="meta-pill">white notebook shell</div>
         </div>
+        <div class="section-label">Recent 5 DB Actions</div>
+        <div class="notebook-tip">These come from DuckDB \`user_actions\`. If an action has no viewer yet, click Generate. If today's action is missing here, click Refresh DB first.</div>
+        <div class="app-controls" style="margin-top:10px;">
+          <button id="refresh-db-button" class="app-button" type="button">Refresh DB</button>
+          <button id="generate-latest-button" class="app-button" type="button">Generate Latest Viewer</button>
+        </div>
+        <div id="db-refresh-status" class="app-hint">DB actions are read when this page loads.</div>
+        <div id="recent-db-actions" class="recent-action-list">${recentDbRows || '<div class="empty">No DuckDB actions found. Click Refresh DB if recent events were not ingested yet.</div>'}
+        </div>
+        <div class="section-label">Recent 5 User Actions</div>
+        <div class="notebook-tip">These are the latest five indexed actions from the local report root. Click Open to load one immediately, or select an ID field and copy it.</div>
+        <div id="recent-actions" class="recent-action-list">${recentRows || '<div class="empty">No indexed semantic viewers yet.</div>'}
+        </div>
         <div class="section-label">Matches</div>
         <div id="app-results" class="app-results"></div>
       </section>
@@ -1828,6 +2027,12 @@ ${shellStyle()}
         </div>
         <div class="notebook-tip" style="margin-top:10px;">
           In the right-side drawer inside each action viewer, \`Dialogue\` is usually the best first tab. It shows faithful user / assistant / tool-result blocks without dumping full payloads.
+        </div>
+        <div class="notebook-tip" style="margin-top:10px;">
+          A turn is one observed query-loop iteration. Solid edges continue the same lane; dashed fork edges start child lanes from the parent turn; dashed return edges only appear when a later parent turn resumes after child completion.
+        </div>
+        <div class="notebook-tip" style="margin-top:10px;">
+          \`Assistant context carried into this turn\` means prior assistant content is still token-bearing context in the next request window. \`Tool result\` blocks are marked as feeding the next prompt.
         </div>
       </section>
     </aside>
@@ -1854,6 +2059,11 @@ ${shellStyle()}
     const button = document.getElementById("load-action-button");
     const status = document.getElementById("app-status");
     const results = document.getElementById("app-results");
+    const recentActions = document.getElementById("recent-actions");
+    const recentDbActions = document.getElementById("recent-db-actions");
+    const refreshDbButton = document.getElementById("refresh-db-button");
+    const generateLatestButton = document.getElementById("generate-latest-button");
+    const dbRefreshStatus = document.getElementById("db-refresh-status");
     const frame = document.getElementById("semantic-viewer-frame");
     const viewerStatusPill = document.getElementById("viewer-status-pill");
     let activeActionId = null;
@@ -1873,10 +2083,34 @@ ${shellStyle()}
       updateActiveResult();
     }
 
+    function openEntry(entry) {
+      if (!entry) return;
+      frame.src = entry.relative_viewer_path;
+      setLoadedState(entry, "Loaded " + entry.user_action_id);
+    }
+
     function updateActiveResult() {
       results.querySelectorAll(".result-item").forEach(item => {
         item.classList.toggle("active", item.getAttribute("data-action-id") === activeActionId);
       });
+      recentActions.querySelectorAll(".recent-action-row").forEach(item => {
+        item.classList.toggle("active", item.querySelector(".recent-action-open")?.getAttribute("data-action-id") === activeActionId);
+      });
+      recentDbActions.querySelectorAll(".recent-action-row").forEach(item => {
+        const button = item.querySelector(".recent-action-open, .recent-action-generate");
+        item.classList.toggle("active", button?.getAttribute("data-action-id") === activeActionId);
+      });
+    }
+
+    async function postJson(path) {
+      const response = await fetch(path, { method: "POST" });
+      const text = await response.text();
+      let payload = null;
+      try { payload = text ? JSON.parse(text) : null; } catch { payload = { error: text }; }
+      if (!response.ok) {
+        throw new Error(payload?.error || payload?.stderr || payload?.stdout || "request failed");
+      }
+      return payload;
     }
 
     function renderResults(matches) {
@@ -1896,8 +2130,11 @@ ${shellStyle()}
           const path = item.getAttribute("data-path");
           const actionId = item.getAttribute("data-action-id");
           const entry = entries.find(candidate => candidate.user_action_id === actionId);
-          frame.src = path;
-          setLoadedState(entry, "Loaded " + actionId);
+          if (entry) openEntry(entry);
+          else if (path && actionId) {
+            frame.src = path;
+            setLoadedState(null, "Loaded " + actionId);
+          }
         });
       });
       updateActiveResult();
@@ -1913,8 +2150,7 @@ ${shellStyle()}
       const matches = matchEntries(input.value);
       renderResults(matches);
       if (matches.length === 1) {
-        frame.src = matches[0].relative_viewer_path;
-        setLoadedState(matches[0], "Loaded " + matches[0].user_action_id);
+        openEntry(matches[0]);
       } else if (matches.length > 1) {
         setLoadedState(null, "Found " + matches.length + " matching actions. Pick one below.");
       } else {
@@ -1927,10 +2163,72 @@ ${shellStyle()}
       if (event.key === "Enter") loadFromInput();
     });
     button.addEventListener("click", loadFromInput);
+    refreshDbButton.addEventListener("click", async () => {
+      refreshDbButton.disabled = true;
+      dbRefreshStatus.textContent = "Refreshing DuckDB from local observability events...";
+      try {
+        await postJson("/api/refresh-db");
+        dbRefreshStatus.textContent = "DB refreshed. Reloading dashboard...";
+        window.location.reload();
+      } catch (error) {
+        dbRefreshStatus.textContent = "Refresh failed: " + (error?.message || error);
+      } finally {
+        refreshDbButton.disabled = false;
+      }
+    });
+    generateLatestButton.addEventListener("click", async () => {
+      generateLatestButton.disabled = true;
+      dbRefreshStatus.textContent = "Generating viewer for latest DB action...";
+      try {
+        const result = await postJson("/api/generate-latest");
+        dbRefreshStatus.textContent = "Generated " + result.userActionId + ". Reloading dashboard...";
+        window.location.href = "/";
+      } catch (error) {
+        dbRefreshStatus.textContent = "Generate latest failed: " + (error?.message || error);
+      } finally {
+        generateLatestButton.disabled = false;
+      }
+    });
+    recentActions.querySelectorAll(".recent-action-open").forEach(item => {
+      item.addEventListener("click", () => {
+        const actionId = item.getAttribute("data-action-id");
+        const entry = entries.find(candidate => candidate.user_action_id === actionId);
+        openEntry(entry);
+      });
+    });
+    recentDbActions.querySelectorAll(".recent-action-open").forEach(item => {
+      item.addEventListener("click", () => {
+        const path = item.getAttribute("data-path");
+        const actionId = item.getAttribute("data-action-id");
+        const entry = entries.find(candidate => candidate.user_action_id === actionId);
+        if (entry) openEntry(entry);
+        else if (path && actionId) {
+          frame.src = path;
+          setLoadedState(null, "Loaded " + actionId);
+        }
+      });
+    });
+    recentDbActions.querySelectorAll(".recent-action-generate").forEach(item => {
+      item.addEventListener("click", async () => {
+        const actionId = item.getAttribute("data-action-id");
+        if (!actionId) return;
+        item.disabled = true;
+        dbRefreshStatus.textContent = "Generating viewer for " + actionId + "...";
+        try {
+          const result = await postJson("/api/generate/" + encodeURIComponent(actionId));
+          dbRefreshStatus.textContent = "Generated " + result.userActionId + ". Reloading dashboard...";
+          window.location.href = "/";
+        } catch (error) {
+          dbRefreshStatus.textContent = "Generate failed: " + (error?.message || error);
+        } finally {
+          item.disabled = false;
+        }
+      });
+    });
 
     renderResults(entries.slice(0, 12));
     if (entries.length > 0) {
-      frame.src = entries[0].relative_viewer_path;
+      openEntry(entries[0]);
       setLoadedState(entries[0], "Loaded latest indexed action " + entries[0].user_action_id);
     }
   </script>

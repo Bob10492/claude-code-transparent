@@ -292,6 +292,8 @@ export type DialogueBlock = {
   role: DialogueBlockRole
   kind: DialogueBlockKind
   title: string
+  role_label: string
+  badges: string[]
   raw_text: string
   excerpt: string
   truncated: boolean
@@ -372,6 +374,7 @@ export type SemanticNodeDetail = {
   overview: {
     title: string
     query_label: string
+    query_identity: string
     turn_label: string
     reason: string
     action: string
@@ -402,6 +405,16 @@ export type SemanticViewerIndexEntry = {
   generated_at: string
   query_count: number
   tool_call_count: number
+}
+
+export type SemanticViewerRecentDbAction = {
+  user_action_id: string
+  started_at: string
+  duration_ms: number | null
+  query_count: number
+  tool_call_count: number
+  has_viewer: boolean
+  viewer_path: string | null
 }
 
 export type GraphProfile = "overview" | "rich" | "debug" | "artifact" | "full"

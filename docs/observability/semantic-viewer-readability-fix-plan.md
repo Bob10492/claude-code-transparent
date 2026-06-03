@@ -92,6 +92,19 @@ Primary file: `scripts/observability/lib/semantic_dialogue_viewer.ts`
 - Return/merge edges are only shown when a later parent turn exists.
 - The Artifacts tab is no longer shown in the node drawer.
 
+## Implementation audit
+
+Current status: implemented and covered by `tests/integration/semantic-dialogue-viewer.test.ts`.
+
+- Centering / overlap: `renderSemanticViewerHtml()` computes the main lane center and `recenterViewport()` is used on first render and reset.
+- Full query identity: `SemanticNodeDetail.overview.query_identity` is rendered as a wrapping raw block under Overview metrics.
+- Dialogue readability: dialogue blocks carry `role_label` and `badges`; the drawer renders visible role badges for user, internal prompts, assistant context, assistant output, assistant tool use, and tool result.
+- Assistant tool use ordering: response snapshots are read from `assistantMessages[].message.content` in order; fallback `toolUseBlocks` are emitted only when not already emitted by id.
+- Prompt influence markings: user/assistant/tool-use blocks are marked `token-bearing`; tool results are marked `feeds next prompt`.
+- Fork/return semantics: parent anchors prefer explicit `Agent`/`Task` tool calls with matching `subagent_id`, then fall back to spawn-time anchoring; return edges require `findReturnTurnAnchor()` to find a later parent turn.
+- Drawer scope: the Artifacts tab is removed from primary navigation, while artifact data remains in `SemanticNodeDetail`.
+- UI documentation: the searchable dashboard now explains what a turn is, how solid/fork/return edges should be read, and what carried assistant context means.
+
 ## Notes
 
 A previous direct attempt to replace the large generated HTML/TS file was blocked by the platform safety filter because the file embeds a full HTML/JavaScript template. The safest implementation path is to apply the above as a normal local git patch in the repository and run:

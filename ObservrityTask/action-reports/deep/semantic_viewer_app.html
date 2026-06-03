@@ -26,10 +26,11 @@
     .graph-pane { padding: 18px 18px 24px; }
     .summary-card, .lane-card, .inspector-card, .app-card, .viewer-frame-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
     .summary-card, .app-card { padding: 16px; margin-bottom: 16px; }
-    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .summary-grid, .inspector-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .inspector-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .metric { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
     .metric .label { font-size: 12px; color: var(--muted); }
-    .metric .value { font-size: 16px; font-weight: 600; margin-top: 4px; }
+    .metric .value { font-size: 16px; font-weight: 600; margin-top: 4px; overflow-wrap: anywhere; word-break: break-word; }
     .warning { margin-top: 12px; color: var(--warn); font-size: 13px; }
     .graph-viewport { position: relative; min-height: calc(100vh - 180px); background: rgba(255,255,255,0.42); border-radius: 16px; border: 1px solid var(--line); overflow: hidden; cursor: grab; }
     .graph-viewport.dragging { cursor: grabbing; }
@@ -38,8 +39,8 @@
     .graph-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
     .toolbar-button, .app-button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
     .toolbar-button:hover, .app-button:hover { border-color: var(--accent); }
-    .lane-header { position: absolute; top: 14px; width: 260px; margin-left: -130px; text-align: center; font-size: 12px; color: var(--muted); border-top: 4px solid var(--lane-accent, var(--line)); padding-top: 6px; }
-    .node { position: absolute; width: 260px; transform: translateX(-130px); border-radius: 14px; border: 1px solid var(--line); border-left: 5px solid var(--lane-accent, var(--line)); background: #fff; box-shadow: var(--shadow); padding: 12px 14px; text-align: left; cursor: pointer; }
+    .lane-header { position: absolute; top: 14px; width: 300px; margin-left: -150px; text-align: center; font-size: 12px; color: var(--muted); border-top: 4px solid var(--lane-accent, var(--line)); padding-top: 6px; overflow-wrap: anywhere; word-break: break-word; }
+    .node { position: absolute; width: 300px; transform: translateX(-150px); border-radius: 14px; border: 1px solid var(--line); border-left: 5px solid var(--lane-accent, var(--line)); background: #fff; box-shadow: var(--shadow); padding: 12px 14px; text-align: left; cursor: pointer; }
     .node:hover { border-color: var(--accent); }
     .node.selected { outline: 2px solid var(--accent); }
     .node.branch-source { border-color: var(--fork); box-shadow: 0 0 0 3px rgba(47,111,148,0.14), var(--shadow); }
@@ -60,7 +61,7 @@
     .inspector-drawer.drawer-open { transform: translateX(0); }
     .inspector-card { padding: 16px; height: 100%; overflow: auto; }
     .inspector-header h2 { margin: 0; font-size: 20px; }
-    .inspector-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .inspector-sub { color: var(--muted); font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; word-break: break-word; }
     .drawer-close { margin-left: auto; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
     .tab-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
     .tab { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
@@ -71,10 +72,17 @@
     .dialogue-block.role-assistant { background: #fff8f1; border-color: #e5c8a4; }
     .dialogue-block.role-tool-result { background: #f4fbf4; border-color: #9fcea8; }
     .dialogue-block.role-tool-use { background: #faf5ff; border-color: #ccb2ef; }
-    .dialogue-block .block-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-    .dialogue-block pre, .raw { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 Consolas, "SFMono-Regular", monospace; }
+    .dialogue-block .block-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .role-badge { border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #fff; background: var(--muted); }
+    .role-user .role-badge { background: #2374a6; }
+    .role-assistant .role-badge { background: #b75d2d; }
+    .role-tool-result .role-badge { background: #3a7d44; }
+    .role-tool-use .role-badge { background: #7b56b3; }
+    .prompt-badge { border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--muted); padding: 2px 7px; font-size: 11px; }
+    .prompt-badge.important { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .dialogue-block pre, .raw { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; font: 12px/1.45 Consolas, "SFMono-Regular", monospace; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; overflow-wrap: anywhere; word-break: break-word; }
     th { color: var(--muted); font-weight: 600; }
     svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
     .empty { color: var(--muted); font-size: 13px; }
@@ -238,6 +246,74 @@
       text-transform: uppercase;
       color: var(--nb-muted);
     }
+    .recent-action-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .recent-action-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--nb-line);
+      border-radius: 16px;
+      background: #fff;
+      padding: 10px;
+    }
+    .recent-action-rank {
+      color: var(--nb-muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .recent-action-id {
+      min-width: 0;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: var(--nb-ink);
+      font: 12px/1.45 Consolas, "SFMono-Regular", monospace;
+      overflow-wrap: anywhere;
+    }
+    .recent-action-id:focus {
+      outline: 2px solid rgba(47,111,237,0.18);
+      border-radius: 8px;
+    }
+    .recent-action-open, .recent-action-generate {
+      border: 1px solid #c8dafc;
+      background: #f6f9ff;
+      color: var(--nb-accent);
+      border-radius: 999px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .recent-action-open:hover, .recent-action-generate:hover {
+      border-color: #9fc0fb;
+      background: #eef4ff;
+    }
+    .recent-action-generate {
+      border-color: #f2d4a7;
+      background: #fff8ed;
+      color: #a45f10;
+    }
+    .recent-action-row.missing-viewer {
+      background: #fffdf8;
+      border-color: #f0dfc3;
+    }
+    .recent-action-row.active {
+      border-color: #97b7f5;
+      background: linear-gradient(180deg, #ffffff, #f5f9ff);
+      box-shadow: 0 0 0 4px rgba(47,111,237,0.1);
+    }
+    .recent-action-meta {
+      grid-column: 2 / 4;
+      color: var(--nb-muted);
+      font-size: 12px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
     .app-results {
       margin-top: 10px;
       max-height: none;
@@ -381,10 +457,53 @@
           <input id="action-id-input" class="app-input" placeholder="Enter full or short action id" />
           <button id="load-action-button" class="app-button" type="button">Load Action</button>
         </div>
-        <div id="app-status" class="app-hint">Type a full id like <span class="raw">c6602631-d9df-48ae-9288-247151651ab2</span> or a short prefix.</div>
+        <div id="app-status" class="app-hint">Type a full id like <span class="raw">30326b3a-9b93-48cd-aaa8-d16470369448</span> or a short prefix.</div>
         <div class="search-meta">
-          <div class="meta-pill">3 indexed actions</div>
+          <div class="meta-pill">5 indexed actions</div>
           <div class="meta-pill">white notebook shell</div>
+        </div>
+        <div class="section-label">Recent 5 DB Actions</div>
+        <div class="notebook-tip">These come from DuckDB `user_actions`. If an action has no viewer yet, click Generate. If today's action is missing here, click Refresh DB first.</div>
+        <div class="app-controls" style="margin-top:10px;">
+          <button id="refresh-db-button" class="app-button" type="button">Refresh DB</button>
+          <button id="generate-latest-button" class="app-button" type="button">Generate Latest Viewer</button>
+        </div>
+        <div id="db-refresh-status" class="app-hint">DB actions are read when this page loads.</div>
+        <div id="recent-db-actions" class="recent-action-list"><div class="empty">No DuckDB actions found. Click Refresh DB if recent events were not ingested yet.</div>
+        </div>
+        <div class="section-label">Recent 5 User Actions</div>
+        <div class="notebook-tip">These are the latest five indexed actions from the local report root. Click Open to load one immediately, or select an ID field and copy it.</div>
+        <div id="recent-actions" class="recent-action-list">
+          <div class="recent-action-row">
+            <div class="recent-action-rank">#1</div>
+            <input class="recent-action-id" value="30326b3a-9b93-48cd-aaa8-d16470369448" readonly aria-label="Recent user action id 30326b3a" />
+            <button class="recent-action-open" type="button" data-path="user_action_30326b3a/semantic_viewer.html" data-action-id="30326b3a-9b93-48cd-aaa8-d16470369448">Open</button>
+            <div class="recent-action-meta">user_action_30326b3a · explicit_user_action_id · tools=38 · queries=10</div>
+          </div>
+          <div class="recent-action-row">
+            <div class="recent-action-rank">#2</div>
+            <input class="recent-action-id" value="04638a09-f5cd-40ff-be26-a91e5b1e89fc" readonly aria-label="Recent user action id 04638a09" />
+            <button class="recent-action-open" type="button" data-path="user_action_readability_smoke/semantic_viewer.html" data-action-id="04638a09-f5cd-40ff-be26-a91e5b1e89fc">Open</button>
+            <div class="recent-action-meta">user_action_readability_smoke · latest · tools=3 · queries=1</div>
+          </div>
+          <div class="recent-action-row">
+            <div class="recent-action-rank">#3</div>
+            <input class="recent-action-id" value="c6602631-d9df-48ae-9288-247151651ab2" readonly aria-label="Recent user action id c6602631" />
+            <button class="recent-action-open" type="button" data-path="user_action_semantic_complex/semantic_viewer.html" data-action-id="c6602631-d9df-48ae-9288-247151651ab2">Open</button>
+            <div class="recent-action-meta">user_action_semantic_complex · explicit_user_action_id · tools=24 · queries=4</div>
+          </div>
+          <div class="recent-action-row">
+            <div class="recent-action-rank">#4</div>
+            <input class="recent-action-id" value="04638a09-f5cd-40ff-be26-a91e5b1e89fc" readonly aria-label="Recent user action id 04638a09" />
+            <button class="recent-action-open" type="button" data-path="user_action_semantic_simple/semantic_viewer.html" data-action-id="04638a09-f5cd-40ff-be26-a91e5b1e89fc">Open</button>
+            <div class="recent-action-meta">user_action_semantic_simple · latest · tools=3 · queries=1</div>
+          </div>
+          <div class="recent-action-row">
+            <div class="recent-action-rank">#5</div>
+            <input class="recent-action-id" value="c6602631-d9df-48ae-9288-247151651ab2" readonly aria-label="Recent user action id c6602631" />
+            <button class="recent-action-open" type="button" data-path="user_action_semantic_complex_v2/semantic_viewer.html" data-action-id="c6602631-d9df-48ae-9288-247151651ab2">Open</button>
+            <div class="recent-action-meta">user_action_semantic_complex_v2 · explicit_user_action_id · tools=24 · queries=4</div>
+          </div>
         </div>
         <div class="section-label">Matches</div>
         <div id="app-results" class="app-results"></div>
@@ -396,6 +515,12 @@
         </div>
         <div class="notebook-tip" style="margin-top:10px;">
           In the right-side drawer inside each action viewer, `Dialogue` is usually the best first tab. It shows faithful user / assistant / tool-result blocks without dumping full payloads.
+        </div>
+        <div class="notebook-tip" style="margin-top:10px;">
+          A turn is one observed query-loop iteration. Solid edges continue the same lane; dashed fork edges start child lanes from the parent turn; dashed return edges only appear when a later parent turn resumes after child completion.
+        </div>
+        <div class="notebook-tip" style="margin-top:10px;">
+          `Assistant context carried into this turn` means prior assistant content is still token-bearing context in the next request window. `Tool result` blocks are marked as feeding the next prompt.
         </div>
       </section>
     </aside>
@@ -417,11 +542,16 @@
     </main>
   </div>
   <script>
-    const entries = [{"user_action_id":"c6602631-d9df-48ae-9288-247151651ab2","output_dir_name":"user_action_semantic_complex","relative_viewer_path":"user_action_semantic_complex/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-05-15T04:33:55.046Z","query_count":4,"tool_call_count":24},{"user_action_id":"04638a09-f5cd-40ff-be26-a91e5b1e89fc","output_dir_name":"user_action_semantic_simple","relative_viewer_path":"user_action_semantic_simple/semantic_viewer.html","selected_by":"latest","terminal_reason":"unknown","generated_at":"2026-05-15T04:33:48.379Z","query_count":1,"tool_call_count":3},{"user_action_id":"c6602631-d9df-48ae-9288-247151651ab2","output_dir_name":"user_action_semantic_complex_v2","relative_viewer_path":"user_action_semantic_complex_v2/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-05-12T12:58:45.591Z","query_count":4,"tool_call_count":24}];
+    const entries = [{"user_action_id":"30326b3a-9b93-48cd-aaa8-d16470369448","output_dir_name":"user_action_30326b3a","relative_viewer_path":"user_action_30326b3a/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-06-03T14:49:44.567Z","query_count":10,"tool_call_count":38},{"user_action_id":"04638a09-f5cd-40ff-be26-a91e5b1e89fc","output_dir_name":"user_action_readability_smoke","relative_viewer_path":"user_action_readability_smoke/semantic_viewer.html","selected_by":"latest","terminal_reason":"unknown","generated_at":"2026-06-03T13:52:28.076Z","query_count":1,"tool_call_count":3},{"user_action_id":"c6602631-d9df-48ae-9288-247151651ab2","output_dir_name":"user_action_semantic_complex","relative_viewer_path":"user_action_semantic_complex/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-05-15T04:33:55.046Z","query_count":4,"tool_call_count":24},{"user_action_id":"04638a09-f5cd-40ff-be26-a91e5b1e89fc","output_dir_name":"user_action_semantic_simple","relative_viewer_path":"user_action_semantic_simple/semantic_viewer.html","selected_by":"latest","terminal_reason":"unknown","generated_at":"2026-05-15T04:33:48.379Z","query_count":1,"tool_call_count":3},{"user_action_id":"c6602631-d9df-48ae-9288-247151651ab2","output_dir_name":"user_action_semantic_complex_v2","relative_viewer_path":"user_action_semantic_complex_v2/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-05-12T12:58:45.591Z","query_count":4,"tool_call_count":24}];
     const input = document.getElementById("action-id-input");
     const button = document.getElementById("load-action-button");
     const status = document.getElementById("app-status");
     const results = document.getElementById("app-results");
+    const recentActions = document.getElementById("recent-actions");
+    const recentDbActions = document.getElementById("recent-db-actions");
+    const refreshDbButton = document.getElementById("refresh-db-button");
+    const generateLatestButton = document.getElementById("generate-latest-button");
+    const dbRefreshStatus = document.getElementById("db-refresh-status");
     const frame = document.getElementById("semantic-viewer-frame");
     const viewerStatusPill = document.getElementById("viewer-status-pill");
     let activeActionId = null;
@@ -441,10 +571,34 @@
       updateActiveResult();
     }
 
+    function openEntry(entry) {
+      if (!entry) return;
+      frame.src = entry.relative_viewer_path;
+      setLoadedState(entry, "Loaded " + entry.user_action_id);
+    }
+
     function updateActiveResult() {
       results.querySelectorAll(".result-item").forEach(item => {
         item.classList.toggle("active", item.getAttribute("data-action-id") === activeActionId);
       });
+      recentActions.querySelectorAll(".recent-action-row").forEach(item => {
+        item.classList.toggle("active", item.querySelector(".recent-action-open")?.getAttribute("data-action-id") === activeActionId);
+      });
+      recentDbActions.querySelectorAll(".recent-action-row").forEach(item => {
+        const button = item.querySelector(".recent-action-open, .recent-action-generate");
+        item.classList.toggle("active", button?.getAttribute("data-action-id") === activeActionId);
+      });
+    }
+
+    async function postJson(path) {
+      const response = await fetch(path, { method: "POST" });
+      const text = await response.text();
+      let payload = null;
+      try { payload = text ? JSON.parse(text) : null; } catch { payload = { error: text }; }
+      if (!response.ok) {
+        throw new Error(payload?.error || payload?.stderr || payload?.stdout || "request failed");
+      }
+      return payload;
     }
 
     function renderResults(matches) {
@@ -464,8 +618,11 @@
           const path = item.getAttribute("data-path");
           const actionId = item.getAttribute("data-action-id");
           const entry = entries.find(candidate => candidate.user_action_id === actionId);
-          frame.src = path;
-          setLoadedState(entry, "Loaded " + actionId);
+          if (entry) openEntry(entry);
+          else if (path && actionId) {
+            frame.src = path;
+            setLoadedState(null, "Loaded " + actionId);
+          }
         });
       });
       updateActiveResult();
@@ -481,8 +638,7 @@
       const matches = matchEntries(input.value);
       renderResults(matches);
       if (matches.length === 1) {
-        frame.src = matches[0].relative_viewer_path;
-        setLoadedState(matches[0], "Loaded " + matches[0].user_action_id);
+        openEntry(matches[0]);
       } else if (matches.length > 1) {
         setLoadedState(null, "Found " + matches.length + " matching actions. Pick one below.");
       } else {
@@ -495,10 +651,72 @@
       if (event.key === "Enter") loadFromInput();
     });
     button.addEventListener("click", loadFromInput);
+    refreshDbButton.addEventListener("click", async () => {
+      refreshDbButton.disabled = true;
+      dbRefreshStatus.textContent = "Refreshing DuckDB from local observability events...";
+      try {
+        await postJson("/api/refresh-db");
+        dbRefreshStatus.textContent = "DB refreshed. Reloading dashboard...";
+        window.location.reload();
+      } catch (error) {
+        dbRefreshStatus.textContent = "Refresh failed: " + (error?.message || error);
+      } finally {
+        refreshDbButton.disabled = false;
+      }
+    });
+    generateLatestButton.addEventListener("click", async () => {
+      generateLatestButton.disabled = true;
+      dbRefreshStatus.textContent = "Generating viewer for latest DB action...";
+      try {
+        const result = await postJson("/api/generate-latest");
+        dbRefreshStatus.textContent = "Generated " + result.userActionId + ". Reloading dashboard...";
+        window.location.href = "/";
+      } catch (error) {
+        dbRefreshStatus.textContent = "Generate latest failed: " + (error?.message || error);
+      } finally {
+        generateLatestButton.disabled = false;
+      }
+    });
+    recentActions.querySelectorAll(".recent-action-open").forEach(item => {
+      item.addEventListener("click", () => {
+        const actionId = item.getAttribute("data-action-id");
+        const entry = entries.find(candidate => candidate.user_action_id === actionId);
+        openEntry(entry);
+      });
+    });
+    recentDbActions.querySelectorAll(".recent-action-open").forEach(item => {
+      item.addEventListener("click", () => {
+        const path = item.getAttribute("data-path");
+        const actionId = item.getAttribute("data-action-id");
+        const entry = entries.find(candidate => candidate.user_action_id === actionId);
+        if (entry) openEntry(entry);
+        else if (path && actionId) {
+          frame.src = path;
+          setLoadedState(null, "Loaded " + actionId);
+        }
+      });
+    });
+    recentDbActions.querySelectorAll(".recent-action-generate").forEach(item => {
+      item.addEventListener("click", async () => {
+        const actionId = item.getAttribute("data-action-id");
+        if (!actionId) return;
+        item.disabled = true;
+        dbRefreshStatus.textContent = "Generating viewer for " + actionId + "...";
+        try {
+          const result = await postJson("/api/generate/" + encodeURIComponent(actionId));
+          dbRefreshStatus.textContent = "Generated " + result.userActionId + ". Reloading dashboard...";
+          window.location.href = "/";
+        } catch (error) {
+          dbRefreshStatus.textContent = "Generate failed: " + (error?.message || error);
+        } finally {
+          item.disabled = false;
+        }
+      });
+    });
 
     renderResults(entries.slice(0, 12));
     if (entries.length > 0) {
-      frame.src = entries[0].relative_viewer_path;
+      openEntry(entries[0]);
       setLoadedState(entries[0], "Loaded latest indexed action " + entries[0].user_action_id);
     }
   </script>
