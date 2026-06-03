@@ -174,10 +174,10 @@ export const useSelectInput = <T>({
   })
 
   // Remaining keys that stay as useInput: number keys, pageUp/pageDown, tab, space,
-  // and arrow key navigation when in input mode. We also keep direct up/down
-  // handling here as a defensive fallback for permission prompts after a
-  // query/tool cycle: if the keybinding context is temporarily stale during
-  // a modal transition, Select still owns arrow navigation and consumes it.
+  // and arrow key navigation when in input mode. This handler is priority=true
+  // because modal selects must consume navigation before the background REPL
+  // input/history handlers. Otherwise the first arrow can work during mount,
+  // then subsequent arrows are swallowed by TextInput/history after focus churn.
   useInput(
     (input, key, event: InputEvent) => {
       const normalizedInput = normalizeFullWidthDigits(input)
@@ -285,6 +285,6 @@ export const useSelectInput = <T>({
         }
       }
     },
-    { isActive: !isDisabled },
+    { isActive: !isDisabled, priority: true },
   )
 }
