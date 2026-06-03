@@ -95,36 +95,336 @@
     svg path.in-focus, svg text.in-focus { opacity: 1; }
     @media (max-width: 900px) { .graph-viewport { min-height: 72vh; } .inspector-drawer { width: 100vw; padding: 8px; } .viewer-frame { height: 72vh; } .app-layout { grid-template-columns: 1fr; } }
   
-    body { padding: 18px; }
+    :root {
+      --nb-bg: #f7f7f3;
+      --nb-sidebar: #fbfbf8;
+      --nb-paper: #ffffff;
+      --nb-paper-soft: #fcfcfa;
+      --nb-line: #e8e7df;
+      --nb-ink: #1f2937;
+      --nb-muted: #667085;
+      --nb-accent: #2f6fed;
+      --nb-accent-soft: #e9f1ff;
+      --nb-shadow: 0 18px 48px rgba(16, 24, 40, 0.08);
+      --nb-shadow-soft: 0 8px 24px rgba(16, 24, 40, 0.05);
+    }
+    body {
+      padding: 0;
+      background:
+        radial-gradient(circle at top left, rgba(47,111,237,0.05), transparent 22%),
+        linear-gradient(180deg, #fbfbf8 0%, #f6f6f2 100%);
+      color: var(--nb-ink);
+    }
+    .app-layout {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 0;
+      min-height: 100vh;
+      align-items: stretch;
+    }
+    .app-sidebar {
+      background: linear-gradient(180deg, var(--nb-sidebar), #f8f8f4);
+      border-right: 1px solid var(--nb-line);
+      padding: 22px 18px;
+      display: grid;
+      align-content: start;
+      gap: 14px;
+      min-height: 100vh;
+    }
+    .app-main {
+      min-width: 0;
+      padding: 22px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+    .app-card, .viewer-frame-card {
+      background: var(--nb-paper);
+      border: 1px solid var(--nb-line);
+      border-radius: 24px;
+      box-shadow: var(--nb-shadow-soft);
+    }
+    .app-card {
+      padding: 18px;
+      margin-bottom: 0;
+    }
+    .viewer-frame-card {
+      padding: 14px;
+      overflow: hidden;
+      min-height: calc(100vh - 44px);
+      box-shadow: var(--nb-shadow);
+    }
+    .directory-kicker {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--nb-muted);
+    }
+    .directory-title {
+      margin-top: 8px;
+      font-size: 28px;
+      line-height: 1.15;
+      font-weight: 700;
+      color: var(--nb-ink);
+    }
+    .directory-copy {
+      margin-top: 10px;
+      color: var(--nb-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .app-controls {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .app-input {
+      min-width: 0;
+      width: 100%;
+      border: 1px solid var(--nb-line);
+      border-radius: 16px;
+      padding: 13px 14px;
+      font-size: 14px;
+      background: #fff;
+      color: var(--nb-ink);
+      box-shadow: inset 0 1px 2px rgba(16, 24, 40, 0.02);
+    }
+    .app-input:focus {
+      outline: none;
+      border-color: #b6cdf8;
+      box-shadow: 0 0 0 4px rgba(47,111,237,0.12);
+    }
+    .app-button {
+      border: 1px solid #c8dafc;
+      background: linear-gradient(180deg, #ffffff, #f6f9ff);
+      color: var(--nb-accent);
+      border-radius: 999px;
+      padding: 11px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      justify-self: start;
+    }
+    .app-button:hover {
+      border-color: #9fc0fb;
+      background: linear-gradient(180deg, #ffffff, #eef4ff);
+    }
+    .app-hint {
+      margin-top: 12px;
+      color: var(--nb-muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .search-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .meta-pill {
+      border-radius: 999px;
+      border: 1px solid var(--nb-line);
+      background: #fff;
+      color: var(--nb-muted);
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+    .section-label {
+      margin-top: 18px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--nb-muted);
+    }
+    .app-results {
+      margin-top: 10px;
+      max-height: none;
+      overflow: auto;
+      display: grid;
+      gap: 10px;
+    }
+    .result-item {
+      border: 1px solid var(--nb-line);
+      border-radius: 18px;
+      background: #fff;
+      padding: 14px 14px 13px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 120ms ease, background 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.02);
+    }
+    .result-item:hover {
+      border-color: #bed1f7;
+      background: #fbfdff;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(47, 111, 237, 0.08);
+    }
+    .result-item.active {
+      border-color: #97b7f5;
+      background: linear-gradient(180deg, #ffffff, #f5f9ff);
+      box-shadow: 0 0 0 4px rgba(47,111,237,0.1);
+    }
+    .result-id {
+      font-weight: 600;
+      color: var(--nb-ink);
+    }
+    .result-meta {
+      font-size: 12px;
+      color: var(--nb-muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+    .empty {
+      color: var(--nb-muted);
+      font-size: 13px;
+      padding: 16px 4px;
+    }
+    .notebook-tip {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #ffffff, #fcfcfa);
+      border: 1px solid var(--nb-line);
+      color: var(--nb-muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .viewer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 4px 4px 0;
+    }
+    .viewer-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--nb-muted);
+    }
+    .viewer-title {
+      margin-top: 8px;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--nb-ink);
+    }
+    .viewer-subtitle {
+      margin-top: 8px;
+      color: var(--nb-muted);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 720px;
+    }
+    .status-pill {
+      border-radius: 999px;
+      padding: 9px 14px;
+      border: 1px solid var(--nb-line);
+      background: #fff;
+      color: var(--nb-muted);
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(16,24,40,0.03);
+    }
+    .viewer-frame-shell {
+      margin-top: 14px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--nb-line);
+      background: var(--nb-paper-soft);
+    }
+    .viewer-frame {
+      width: 100%;
+      height: calc(100vh - 114px);
+      border: 0;
+      background: #fff;
+      border-radius: 18px;
+    }
+    .viewer-footnote {
+      margin-top: 10px;
+      color: var(--nb-muted);
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 0 4px 2px;
+    }
+    .raw {
+      background: var(--nb-accent-soft);
+      color: var(--nb-accent);
+      border-radius: 8px;
+      padding: 2px 6px;
+      font: 12px/1.45 Consolas, "SFMono-Regular", monospace;
+    }
+    @media (max-width: 1100px) {
+      .app-layout { grid-template-columns: 300px minmax(0, 1fr); }
+      .viewer-frame { height: calc(100vh - 128px); }
+    }
+    @media (max-width: 900px) {
+      .app-layout { grid-template-columns: 1fr; }
+      .app-sidebar { min-height: auto; border-right: 0; border-bottom: 1px solid var(--nb-line); }
+      .app-main { padding-top: 0; }
+      .viewer-frame-card { min-height: auto; }
+      .viewer-header { flex-direction: column; }
+      .viewer-frame { height: 72vh; }
+    }
   </style>
 </head>
 <body>
   <div class="app-layout">
     <aside class="app-sidebar">
       <section class="app-card">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Semantic Viewer Directory</div>
-        <div style="margin-top:6px;font-size:24px;font-weight:700;">Load by Action ID</div>
+        <div class="directory-kicker">Semantic Viewer</div>
+        <div class="directory-title">Search By Action ID</div>
+        <div class="directory-copy">Open one `user_action` like a notebook page: search on the left, inspect the graph on the right, then drill into `Dialogue`, `Tools`, and `Evidence`.</div>
         <div class="app-controls">
           <input id="action-id-input" class="app-input" placeholder="Enter full or short action id" />
           <button id="load-action-button" class="app-button" type="button">Load Action</button>
         </div>
         <div id="app-status" class="app-hint">Type a full id like <span class="raw">c6602631-d9df-48ae-9288-247151651ab2</span> or a short prefix.</div>
+        <div class="search-meta">
+          <div class="meta-pill">3 indexed actions</div>
+          <div class="meta-pill">white notebook shell</div>
+        </div>
+        <div class="section-label">Matches</div>
         <div id="app-results" class="app-results"></div>
+      </section>
+      <section class="app-card">
+        <div class="section-label" style="margin-top:0;">Reading Flow</div>
+        <div class="notebook-tip">
+          Start from the centered main thread, follow time downward, then click `fork:N` nodes to inspect branches.
+        </div>
+        <div class="notebook-tip" style="margin-top:10px;">
+          In the right-side drawer inside each action viewer, `Dialogue` is usually the best first tab. It shows faithful user / assistant / tool-result blocks without dumping full payloads.
+        </div>
       </section>
     </aside>
     <main class="app-main">
+      <div class="viewer-header">
+        <div>
+          <div class="viewer-eyebrow">Action Workspace</div>
+          <div class="viewer-title">Semantic Action Viewer</div>
+          <div class="viewer-subtitle">This page is intentionally quiet: use search to switch actions, keep the graph visible, and treat the opened viewer like a research notebook for one runtime trace.</div>
+        </div>
+        <div id="viewer-status-pill" class="status-pill">Loading latest indexed action...</div>
+      </div>
       <section class="viewer-frame-card">
-        <iframe id="semantic-viewer-frame" class="viewer-frame" title="semantic viewer"></iframe>
+        <div class="viewer-frame-shell">
+          <iframe id="semantic-viewer-frame" class="viewer-frame" title="semantic viewer"></iframe>
+        </div>
+        <div class="viewer-footnote">Tip: drag inside the graph viewport to pan, use the mouse wheel to zoom, and click a node to open the detail drawer.</div>
       </section>
     </main>
   </div>
   <script>
-    const entries = [{"user_action_id":"c6602631-d9df-48ae-9288-247151651ab2","output_dir_name":"user_action_semantic_complex","relative_viewer_path":"user_action_semantic_complex/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-05-13T14:07:38.079Z","query_count":4,"tool_call_count":24},{"user_action_id":"04638a09-f5cd-40ff-be26-a91e5b1e89fc","output_dir_name":"user_action_semantic_simple","relative_viewer_path":"user_action_semantic_simple/semantic_viewer.html","selected_by":"latest","terminal_reason":"unknown","generated_at":"2026-05-13T13:53:55.742Z","query_count":1,"tool_call_count":3},{"user_action_id":"c6602631-d9df-48ae-9288-247151651ab2","output_dir_name":"user_action_semantic_complex_v2","relative_viewer_path":"user_action_semantic_complex_v2/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-05-12T12:58:45.591Z","query_count":4,"tool_call_count":24}];
+    const entries = [{"user_action_id":"c6602631-d9df-48ae-9288-247151651ab2","output_dir_name":"user_action_semantic_complex","relative_viewer_path":"user_action_semantic_complex/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-05-15T04:33:55.046Z","query_count":4,"tool_call_count":24},{"user_action_id":"04638a09-f5cd-40ff-be26-a91e5b1e89fc","output_dir_name":"user_action_semantic_simple","relative_viewer_path":"user_action_semantic_simple/semantic_viewer.html","selected_by":"latest","terminal_reason":"unknown","generated_at":"2026-05-15T04:33:48.379Z","query_count":1,"tool_call_count":3},{"user_action_id":"c6602631-d9df-48ae-9288-247151651ab2","output_dir_name":"user_action_semantic_complex_v2","relative_viewer_path":"user_action_semantic_complex_v2/semantic_viewer.html","selected_by":"explicit_user_action_id","terminal_reason":"completed","generated_at":"2026-05-12T12:58:45.591Z","query_count":4,"tool_call_count":24}];
     const input = document.getElementById("action-id-input");
     const button = document.getElementById("load-action-button");
     const status = document.getElementById("app-status");
     const results = document.getElementById("app-results");
     const frame = document.getElementById("semantic-viewer-frame");
+    const viewerStatusPill = document.getElementById("viewer-status-pill");
+    let activeActionId = null;
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -134,6 +434,19 @@
         .replaceAll('"', "&quot;");
     }
 
+    function setLoadedState(entry, message) {
+      activeActionId = entry ? entry.user_action_id : null;
+      status.textContent = message;
+      viewerStatusPill.textContent = message;
+      updateActiveResult();
+    }
+
+    function updateActiveResult() {
+      results.querySelectorAll(".result-item").forEach(item => {
+        item.classList.toggle("active", item.getAttribute("data-action-id") === activeActionId);
+      });
+    }
+
     function renderResults(matches) {
       if (!matches.length) {
         results.innerHTML = '<div class="empty">No matching action viewer found.</div>';
@@ -141,8 +454,8 @@
       }
       results.innerHTML = matches.map(entry => {
         return '<button class="result-item" type="button" data-path="' + escapeHtml(entry.relative_viewer_path) + '" data-action-id="' + escapeHtml(entry.user_action_id) + '">' +
-          '<div style="font-weight:600;">' + escapeHtml(entry.user_action_id) + '</div>' +
-          '<div style="font-size:12px;color:var(--muted);margin-top:4px;">' +
+          '<div class="result-id">' + escapeHtml(entry.user_action_id) + '</div>' +
+          '<div class="result-meta">' +
           escapeHtml(entry.output_dir_name + ' · ' + entry.selected_by + ' · tools=' + entry.tool_call_count + ' · queries=' + entry.query_count) +
           '</div></button>';
       }).join("");
@@ -150,10 +463,12 @@
         item.addEventListener("click", () => {
           const path = item.getAttribute("data-path");
           const actionId = item.getAttribute("data-action-id");
+          const entry = entries.find(candidate => candidate.user_action_id === actionId);
           frame.src = path;
-          status.textContent = "Loaded " + actionId;
+          setLoadedState(entry, "Loaded " + actionId);
         });
       });
+      updateActiveResult();
     }
 
     function matchEntries(query) {
@@ -167,11 +482,11 @@
       renderResults(matches);
       if (matches.length === 1) {
         frame.src = matches[0].relative_viewer_path;
-        status.textContent = "Loaded " + matches[0].user_action_id;
+        setLoadedState(matches[0], "Loaded " + matches[0].user_action_id);
       } else if (matches.length > 1) {
-        status.textContent = "Found " + matches.length + " matching actions. Pick one below.";
+        setLoadedState(null, "Found " + matches.length + " matching actions. Pick one below.");
       } else {
-        status.textContent = "No matching action viewer found.";
+        setLoadedState(null, "No matching action viewer found.");
       }
     }
 
@@ -184,7 +499,7 @@
     renderResults(entries.slice(0, 12));
     if (entries.length > 0) {
       frame.src = entries[0].relative_viewer_path;
-      status.textContent = "Loaded latest indexed action " + entries[0].user_action_id;
+      setLoadedState(entries[0], "Loaded latest indexed action " + entries[0].user_action_id);
     }
   </script>
 </body>

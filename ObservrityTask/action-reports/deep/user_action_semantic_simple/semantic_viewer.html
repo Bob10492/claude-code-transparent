@@ -67,6 +67,10 @@
     .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .section-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 12px 0 8px; }
     .dialogue-block { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px; margin-bottom: 10px; }
+    .dialogue-block.role-user { background: #f4fbff; border-color: #9cc6e1; }
+    .dialogue-block.role-assistant { background: #fff8f1; border-color: #e5c8a4; }
+    .dialogue-block.role-tool-result { background: #f4fbf4; border-color: #9fcea8; }
+    .dialogue-block.role-tool-use { background: #faf5ff; border-color: #ccb2ef; }
     .dialogue-block .block-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
     .dialogue-block pre, .raw { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 Consolas, "SFMono-Regular", monospace; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -203,8 +207,18 @@
     function renderDialogue(detail) {
       if (!detail.dialogue.length) return '<div class="empty">No faithful dialogue blocks were extracted for this node.</div>';
       return detail.dialogue.map(block => {
+        const roleClass =
+          block.role === "user"
+            ? "role-user"
+            : block.role === "assistant"
+              ? "role-assistant"
+              : block.role === "tool_result"
+                ? "role-tool-result"
+                : block.role === "tool_use"
+                  ? "role-tool-use"
+                  : "";
         return [
-          '<div class="dialogue-block">',
+          '<div class="dialogue-block ' + roleClass + '">',
           '<div class="block-title">' + escapeHtml(block.title) + (block.snapshot_ref ? ' · ' + escapeHtml(block.snapshot_ref) : '') + '</div>',
           '<pre>' + escapeHtml(block.raw_text) + '</pre>',
           block.truncated ? '<div class="block-title" style="margin-top:6px;">Display excerpt was truncated in the graph summary; raw text shown here remains faithful to the extracted block.</div>' : '',
