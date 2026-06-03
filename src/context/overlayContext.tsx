@@ -12,7 +12,7 @@
  * The hook automatically registers on mount and unregisters on unmount,
  * so no manual cleanup or state management is needed.
  */
-import { useContext, useEffect, useLayoutEffect } from 'react'
+import { useContext, useLayoutEffect } from 'react'
 import { instances } from '@anthropic/ink'
 import { AppStoreContext, useAppState } from '../state/AppState.js'
 
@@ -39,7 +39,12 @@ export function useRegisterOverlay(id: string, enabled = true): void {
   // (e.g., in isolated component tests that don't need the full app state tree).
   const store = useContext(AppStoreContext)
   const setAppState = store?.setState
-  useEffect(() => {
+
+  // Register in a layout effect so modal focus is visible to sibling/parent
+  // layout effects in the same commit. Passive registration leaves a one-frame
+  // window where PromptInput still thinks no modal exists, keeps TextInput
+  // focused, and can consume arrow keys before a newly opened Select does.
+  useLayoutEffect(() => {
     if (!enabled || !setAppState) return
     setAppState(prev => {
       if (prev.activeOverlays.has(id)) return prev
