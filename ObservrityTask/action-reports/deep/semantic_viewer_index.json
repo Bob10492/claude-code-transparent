@@ -1,11 +1,31 @@
 [
   {
+    "user_action_id": "954bc73a-63a0-4254-be81-ef83def36531",
+    "output_dir_name": "user_action_954bc73a",
+    "relative_viewer_path": "user_action_954bc73a/semantic_viewer.html",
+    "selected_by": "explicit_user_action_id",
+    "terminal_reason": "aborted_streaming",
+    "generated_at": "2026-06-04T09:30:40.307Z",
+    "query_count": 2,
+    "tool_call_count": 0
+  },
+  {
+    "user_action_id": "1af8578b-7a90-407f-90a6-056c3cac484d",
+    "output_dir_name": "user_action_1af8578b",
+    "relative_viewer_path": "user_action_1af8578b/semantic_viewer.html",
+    "selected_by": "explicit_user_action_id",
+    "terminal_reason": "completed",
+    "generated_at": "2026-06-03T17:37:50.094Z",
+    "query_count": 7,
+    "tool_call_count": 34
+  },
+  {
     "user_action_id": "30326b3a-9b93-48cd-aaa8-d16470369448",
     "output_dir_name": "user_action_30326b3a",
     "relative_viewer_path": "user_action_30326b3a/semantic_viewer.html",
-    "selected_by": "explicit_user_action_id",
+    "selected_by": "latest",
     "terminal_reason": "completed",
-    "generated_at": "2026-06-03T14:49:44.567Z",
+    "generated_at": "2026-06-03T17:36:18.478Z",
     "query_count": 10,
     "tool_call_count": 38
   },
