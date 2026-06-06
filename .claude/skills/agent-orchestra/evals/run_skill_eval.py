@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-DEFAULT_CASES = Path(__file__).with_name("codex_controlled_eval_cases.json")
+DEFAULT_CASES = Path(__file__).with_name("agent_orchestra_eval_cases.json")
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REPO_CLAUDE = SKILL_ROOT.parents[1]
 
