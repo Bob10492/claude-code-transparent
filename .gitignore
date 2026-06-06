@@ -32,6 +32,7 @@ logs
 
 #Observable data
 .observability/
+ObservrityTask/action-reports/deep/user_action_*/
 data
 .omc
 .codex/*
