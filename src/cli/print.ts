@@ -379,9 +379,6 @@ const cronJitterConfigModule =
   require('../utils/cronJitterConfig.js') as typeof import('../utils/cronJitterConfig.js')
 const cronGate =
   require('@claude-code-best/builtin-tools/tools/ScheduleCronTool/prompt.js') as typeof import('@claude-code-best/builtin-tools/tools/ScheduleCronTool/prompt.js')
-const extractMemoriesModule = feature('EXTRACT_MEMORIES')
-  ? (require('../services/extractMemories/extractMemories.js') as typeof import('../services/extractMemories/extractMemories.js'))
-  : null
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const SHUTDOWN_TEAM_PROMPT = `<system-reminder>
@@ -973,7 +970,22 @@ export async function runHeadless(
   // the forked agent mid-flight. Gated by isExtractModeActive so the
   // tengu_slate_thimble flag controls non-interactive extraction end-to-end.
   if (feature('EXTRACT_MEMORIES') && isExtractModeActive()) {
-    await extractMemoriesModule!.drainPendingExtraction()
+    try {
+      const extractMemoriesModule = await import(
+        '../services/extractMemories/extractMemories.js'
+      )
+      if (typeof extractMemoriesModule.drainPendingExtraction === 'function') {
+        await extractMemoriesModule.drainPendingExtraction()
+      } else {
+        logForDebugging(
+          '[print] drainPendingExtraction export missing; skipping auto-memory extraction drain',
+        )
+      }
+    } catch (error) {
+      logForDebugging(
+        `[print] failed to load extractMemories for drain: ${String(error)}`,
+      )
+    }
   }
 
   gracefulShutdownSync(

@@ -29,11 +29,19 @@ const CS = [
 
 type Rgb = `rgb(${number},${number},${number})`
 
-// ORION inline renderer for the welcome screen
-function OrionInline(): React.ReactNode {
+type OrionInlineProps = {
+  prefix?: string
+}
+
+// ORION inline renderer for the welcome screen. Keep this as Text-only output:
+// WelcomeV2 is itself composed from Text rows, and Ink disallows Box in Text.
+function OrionInline({
+  prefix = '',
+}: OrionInlineProps): React.ReactNode {
   return (
-    <Box flexDirection="column">
+    <>
       <Text>
+        {prefix}
         <Text color={CH[0] as Rgb}>▄█▄</Text>
         <Text> </Text>
         <Text color={CH[1] as Rgb}>▄█▄</Text>
@@ -45,6 +53,7 @@ function OrionInline(): React.ReactNode {
         <Text color={CH[4] as Rgb}>▄█▄</Text>
       </Text>
       <Text>
+        {prefix}
         <Text color={C[0] as Rgb}>█</Text>
         <Text> </Text>
         <Text color={C[0] as Rgb}>█</Text>
@@ -64,6 +73,7 @@ function OrionInline(): React.ReactNode {
         <Text color={C[4] as Rgb}>██</Text>
       </Text>
       <Text>
+        {prefix}
         <Text color={C[0] as Rgb}>█</Text>
         <Text> </Text>
         <Text color={C[0] as Rgb}>█</Text>
@@ -83,6 +93,7 @@ function OrionInline(): React.ReactNode {
         <Text color={C[4] as Rgb}>█</Text>
       </Text>
       <Text>
+        {prefix}
         <Text color={C[0] as Rgb}>█</Text>
         <Text> </Text>
         <Text color={C[0] as Rgb}>█</Text>
@@ -102,6 +113,7 @@ function OrionInline(): React.ReactNode {
         <Text color={C[4] as Rgb}> ██</Text>
       </Text>
       <Text>
+        {prefix}
         <Text color={CS[0] as Rgb}>▀█▀</Text>
         <Text> </Text>
         <Text color={CS[1] as Rgb}>▀</Text>
@@ -116,7 +128,7 @@ function OrionInline(): React.ReactNode {
         <Text> </Text>
         <Text color={CS[4] as Rgb}>█</Text>
       </Text>
-    </Box>
+    </>
   )
 }
 
@@ -133,7 +145,7 @@ export function WelcomeV2(): React.ReactNode {
   if (['light', 'light-daltonized', 'light-ansi'].includes(theme)) {
     return (
       <Box width={WELCOME_V2_WIDTH}>
-        <Text>
+        <Box flexDirection="column">
           <Text>
             <Text color="claude">{welcomeMessage} </Text>
             <Text dimColor>v{MACRO.VERSION} </Text>
@@ -176,25 +188,21 @@ export function WelcomeV2(): React.ReactNode {
           <Text>
             {'                                          ▒▒░░▒▒      ▒ ▒▒'}
           </Text>
-          <Text>
-            {'      '}
-            <OrionInline />
-            {'                           ▒▒         ▒▒ '}
-          </Text>
+          <OrionInline prefix="      " />
           <Text>
             {'                           ░          ▒   '}
           </Text>
           <Text>
             {'………………………………………………………………………………………………………………░…………………………▒…………'}
           </Text>
-        </Text>
+        </Box>
       </Box>
     )
   }
 
   return (
     <Box width={WELCOME_V2_WIDTH}>
-      <Text>
+      <Box flexDirection="column">
         <Text>
           <Text color="claude">{welcomeMessage} </Text>
           <Text dimColor>v{MACRO.VERSION} </Text>
@@ -234,20 +242,14 @@ export function WelcomeV2(): React.ReactNode {
         <Text dimColor>
           {'                               ░░░░░░░░░░░░░░░░           '}
         </Text>
-        <Text>
-          {'      '}
-          <OrionInline />
-          {'                                       '}
-          <Text dimColor>*</Text>
-          <Text> </Text>
-        </Text>
+        <OrionInline prefix="      " />
         <Text>
           {'     *                                   '}
         </Text>
         <Text>
           {'………………………………………………………………………………………………………………'}
         </Text>
-      </Text>
+      </Box>
     </Box>
   )
 }
@@ -268,7 +270,7 @@ function AppleTerminalWelcomeV2({
   if (isLightTheme) {
     return (
       <Box width={WELCOME_V2_WIDTH}>
-        <Text>
+        <Box flexDirection="column">
           <Text>
             <Text color="claude">{welcomeMessage} </Text>
             <Text dimColor>v{MACRO.VERSION} </Text>
@@ -311,25 +313,21 @@ function AppleTerminalWelcomeV2({
           <Text>
             {'                                          ▒▒░░▒▒      ▒ ▒▒'}
           </Text>
-          <Text>
-            {'      '}
-            <OrionInline />
-            {'                           ▒▒         ▒▒ '}
-          </Text>
+          <OrionInline prefix="      " />
           <Text>
             {'                           ░          ▒   '}
           </Text>
           <Text>
             {'………………………………………………………………………………………………………………░…………………………▒…………'}
           </Text>
-        </Text>
+        </Box>
       </Box>
     )
   }
 
   return (
     <Box width={WELCOME_V2_WIDTH}>
-      <Text>
+      <Box flexDirection="column">
         <Text>
           <Text color="claude">{welcomeMessage} </Text>
           <Text dimColor>v{MACRO.VERSION} </Text>
@@ -374,20 +372,14 @@ function AppleTerminalWelcomeV2({
           <Text dimColor>*</Text>
           <Text> </Text>
         </Text>
-        <Text>
-          {'        '}
-          <OrionInline />
-          <Text>{'                       '}</Text>
-          <Text bold>*</Text>
-          <Text>{'                '}</Text>
-        </Text>
+        <OrionInline prefix="        " />
         <Text>
           {'      *                                   '}
         </Text>
         <Text>
           {'………………………………………………………………………………………………………………'}
         </Text>
-      </Text>
+      </Box>
     </Box>
   )
 }

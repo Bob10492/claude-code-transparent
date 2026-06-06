@@ -333,7 +333,12 @@ const reconciler = createReconciler<
     internalHandle?: unknown,
   ): DOMElement {
     if (hostContext.isInsideText && originalType === 'ink-box') {
-      throw new Error(`<Box> can't be nested inside <Text> component`)
+      const ownerChain = getOwnerChain(internalHandle)
+      const ownerHint =
+        ownerChain.length > 0 ? `\nOwner chain: ${ownerChain.join(' > ')}` : ''
+      throw new Error(
+        `<Box> can't be nested inside <Text> component${ownerHint}`,
+      )
     }
 
     const type =

@@ -2,11 +2,9 @@ import { feature } from 'bun:bundle'
 import { initAutoDream } from '../services/autoDream/autoDream.js'
 import { initMagicDocs } from '../services/MagicDocs/magicDocs.js'
 import { initSkillImprovement } from './hooks/skillImprovement.js'
+import { logForDebugging } from './debug.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const extractMemoriesModule = feature('EXTRACT_MEMORIES')
-  ? (require('../services/extractMemories/extractMemories.js') as typeof import('../services/extractMemories/extractMemories.js'))
-  : null
 const registerProtocolModule = feature('LODESTONE')
   ? (require('./deepLink/registerProtocol.js') as typeof import('./deepLink/registerProtocol.js'))
   : null
@@ -28,11 +26,30 @@ const RECURRING_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000
 // 10 minutes after start.
 const DELAY_VERY_SLOW_OPERATIONS_THAT_HAPPEN_EVERY_SESSION = 10 * 60 * 1000
 
+async function initExtractMemoriesInBackground(): Promise<void> {
+  try {
+    const extractMemoriesModule = await import(
+      '../services/extractMemories/extractMemories.js'
+    )
+    if (typeof extractMemoriesModule.initExtractMemories !== 'function') {
+      logForDebugging(
+        '[backgroundHousekeeping] initExtractMemories export missing; skipping auto-memory extraction initialization',
+      )
+      return
+    }
+    extractMemoriesModule.initExtractMemories()
+  } catch (error) {
+    logForDebugging(
+      `[backgroundHousekeeping] failed to initialize extractMemories: ${String(error)}`,
+    )
+  }
+}
+
 export function startBackgroundHousekeeping(): void {
   void initMagicDocs()
   void initSkillImprovement()
   if (feature('EXTRACT_MEMORIES')) {
-    extractMemoriesModule!.initExtractMemories()
+    void initExtractMemoriesInBackground()
   }
   initAutoDream()
   void autoUpdateMarketplacesAndPluginsInBackground()

@@ -40,9 +40,6 @@ import { getTaskListId, listTasks } from '../utils/tasks.js'
 import { getAgentName, getTeamName, isTeammate } from '../utils/teammate.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const extractMemoriesModule = feature('EXTRACT_MEMORIES')
-  ? (require('../services/extractMemories/extractMemories.js') as typeof import('../services/extractMemories/extractMemories.js'))
-  : null
 const jobClassifierModule = feature('TEMPLATES')
   ? (require('../jobs/classifier.js') as typeof import('../jobs/classifier.js'))
   : null
@@ -169,10 +166,24 @@ export async function* handleStopHooks(
       // Fire-and-forget in both interactive and non-interactive. For -p/SDK,
       // print.ts drains the in-flight promise after flushing the response
       // but before gracefulShutdownSync (see drainPendingExtraction).
-      void extractMemoriesModule!.executeExtractMemories(
-        stopHookContext,
-        toolUseContext.appendSystemMessage as ((msg: import('../types/message.js').SystemMessage) => void) | undefined,
-      )
+      void import('../services/extractMemories/extractMemories.js')
+        .then(extractMemoriesModule => {
+          if (typeof extractMemoriesModule.executeExtractMemories !== 'function') {
+            logForDebugging(
+              '[stopHooks] executeExtractMemories export missing; skipping auto-memory extraction',
+            )
+            return
+          }
+          void extractMemoriesModule.executeExtractMemories(
+            stopHookContext,
+            toolUseContext.appendSystemMessage as ((msg: import('../types/message.js').SystemMessage) => void) | undefined,
+          )
+        })
+        .catch(error => {
+          logForDebugging(
+            `[stopHooks] failed to load extractMemories: ${String(error)}`,
+          )
+        })
     }
     if (!toolUseContext.agentId && !poorMode) {
       void executeAutoDream(stopHookContext, toolUseContext.appendSystemMessage)
