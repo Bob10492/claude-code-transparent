@@ -1,8 +1,0 @@
-{
-    "export_dir":  "D:\\user_action_0e05fe1b_export_20260508_013549",
-    "main_thread_response_count":  80,
-    "subagent_turn1_req_resp_count":  4,
-    "response_contains_tool_use_count":  124,
-    "after_write_edit_bash_count":  87,
-    "total_unique_files":  213
-}
