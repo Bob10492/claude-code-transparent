@@ -1,26 +1,40 @@
 ---
-name: codex-controlled
-description: Use for controlled Codex collaboration workflows: requirement framing, discussion, layered explanation, project hygiene, controlled execution, acceptance review, coaching checkpoints, and optional Micro-UI visual state outputs. Acts as the control plane above Superpowers execution skills.
+name: agent-orchestra
+description: "Use when an agent or Codex task needs controlled execution, repository changes, L1-L3 control workflow, scope boundaries, checkpoints, user approval, project hygiene, evidence-based completion, Micro-UI visual state, or skill stability governance. Do not use for pure L0 direct answers unless the user asks for coaching, explanation, or a controlled workflow."
 ---
 
-# Skill: Codex-Controlled Superpowers Orchestrator
+# Skill: Agent Orchestra
 
-`codex-controlled` is the control plane for transparent, checkpointed agent collaboration.
+`agent-orchestra` is the control plane for transparent, checkpointed agent collaboration.
 
-It does not replace Superpowers.
-It routes, constrains, explains, and visualizes Superpowers usage.
+It does not replace focused engineering skills.
+It routes, constrains, explains, and visualizes their usage.
 
-- `codex-controlled` controls: phase, scope, evidence, user understanding, checkpoints, project hygiene, and visual state contracts.
-- `Superpowers` provides: planning, TDD, debugging, subagents, worktrees, verification, code review, branch finishing.
-- `Micro-UI` provides: optional disposable visual state cards, structured decision panels, and future Flipbook-compatible state data.
+- `agent-orchestra` controls: phase, scope, evidence, user understanding, checkpoints, project hygiene, visual state contracts, and skill-governance safety.
+- Focused engineering skills provide: brainstorming, planning, TDD, debugging, worktrees, subagents, verification, review, and finishing.
+- Micro-UI provides: optional disposable visual state cards, structured decision panels, and future Flipbook-compatible state data.
 
 ## Positioning
 
-Use this skill when the task needs explicit boundaries, user-visible checkpoints, explanation discipline, project hygiene checks before implementation, or a higher-bandwidth control panel view.
+Use this skill when the task needs explicit boundaries, user-visible checkpoints, explanation discipline, project hygiene checks before implementation, skill stability governance, or a higher-bandwidth control panel view.
 
 This skill exists to keep strong execution methods usable without losing control.
 
-Micro-UI exists to make that control easier for humans to scan and understand. It must never weaken checkpoints, evidence, or user agency.
+## Always-on Kernel vs Full Skill
+
+The L0/L1/L2/L3 control-level triage should be treated as always-on agent behavior.
+
+The full `agent-orchestra` skill should be invoked or followed when the always-on triage result requires a visible control workflow, checkpoints, hygiene, Micro-UI, skill governance, or multi-step execution.
+
+In short:
+
+- Always-on Kernel = lightweight control-level triage for every request.
+- Full `agent-orchestra` = expanded control-plane workflow for L1/L2/L3 tasks that need visible control.
+- Focused skills = local engineering methods called inside approved boundaries.
+
+See `ALWAYS_ON_KERNEL.md` for the portable always-on kernel and `AGENTS_ALWAYS_ON_SNIPPET.md` for a snippet that can be copied into project-level or global agent instructions.
+
+Do not solve always-on behavior by making this full skill claim every conversation in its description. That broadens routing and can steal traffic from more specific skills.
 
 ## Core Principles
 
@@ -62,27 +76,27 @@ Use `skills/09_skill_stability_governance.md` and the eval harness before mergin
 
 ## Non-bypassable Rules
 
-Superpowers skills and Micro-UI outputs are execution and understanding helpers, not permission systems.
+Focused engineering skills and Micro-UI outputs are execution and understanding helpers, not permission systems.
 
 They must not bypass:
 
-1. User explicit constraints
-2. Current source/runtime evidence priority
-3. Project Hygiene Gate
-4. Checkpoint approval
-5. Scope boundaries
-6. Fact / inference / uncertainty separation
-7. Evidence-before-completion
-8. Coach Mode when the user asks to understand
-9. Static and safe rendering requirements for HTML Micro-UI
-10. User confirmation for any approval or destructive action
-11. Skill stability governance when changing descriptions, gotchas, or routing rules
+1. User explicit constraints.
+2. Current source/runtime evidence priority.
+3. Project Hygiene Gate.
+4. Checkpoint approval.
+5. Scope boundaries.
+6. Fact / inference / uncertainty separation.
+7. Evidence-before-completion.
+8. Coach Mode when the user asks to understand.
+9. Static and safe rendering requirements for HTML Micro-UI.
+10. User confirmation for any approval or destructive action.
+11. Skill stability governance when changing descriptions, gotchas, or routing rules.
 
 ## Description Boundary
 
 The frontmatter `description` is for routing only.
 
-It should stay compact and answer when this skill should be selected.
+It should stay compact and answer when this full skill should be selected.
 It should not contain execution gotchas, edge-case patches, or detailed workflow rules.
 
 Execution fixes belong in:
@@ -119,7 +133,7 @@ Micro-UI is recommended when the plan, verification, or review state has multipl
 
 ### Level 3: Strict Control
 
-For architecture changes, observability, metrics, ETL, dashboards, runners, scorers, gates, schemas, data cleaning, and experiment systems.
+For architecture changes, observability, metrics, ETL, dashboards, runners, scorers, gates, schemas, data cleaning, experiment systems, skill modifications, or high-risk tasks.
 Requires full Project Hygiene Gate and, when applicable, Data / Observability Hygiene.
 Micro-UI is recommended for phase status, dependency graphs, file matrices, verification dashboards, and risk boards.
 
@@ -131,13 +145,13 @@ Choose the minimum phase depth that matches the control level.
 Phases may be lightweight, but they must not be invisible.
 If a phase is skipped or compressed, state why.
 
-| Phase | Purpose | Primary sub-skill |
+| Phase | Purpose | Primary reference |
 |---|---|---|
 | Phase 0 Framing | Compress the request into a bounded task | `skills/01_requirement_framing.md` |
 | Phase 1 Discussion | Align on decision points and tradeoffs | `skills/02_discussion_mode.md` |
-| Phase 2 Layered Explanation | Explain concepts, code, or rationale in user-fit language | `skills/03_layered_explanation.md` |
+| Phase 2 Layered Explanation | Explain concepts, code, UI, or rationale in user-fit language | `skills/03_layered_explanation.md` |
 | Phase 3 Project Hygiene Gate | Check project state before implementation | `skills/04_preflight_hygiene.md` |
-| Phase 4 Planning | Produce a bounded execution plan from the Spec Bundle | `skills/00_superpowers_routing.md` and `writing-plans` |
+| Phase 4 Planning | Produce a bounded execution plan from the Spec Bundle | `skills/00_orchestration_routing.md` and `writing-plans` |
 | Phase 5 Controlled Execution | Implement one approved minimal loop | `skills/05_controlled_execution.md` |
 | Phase 6 Verification | Produce real evidence before any completion claim | `verification-before-completion` |
 | Phase 7 Acceptance Review | Produce checkpoint review and wait for approval | `skills/06_acceptance_review.md` |
@@ -212,58 +226,20 @@ Classify every skill failure before editing:
 Run the lightweight eval harness when routing or governance-sensitive text changes:
 
 ```bash
-python .claude/skills/codex-controlled/evals/run_skill_eval.py
+python .claude/skills/agent-orchestra/evals/run_skill_eval.py
 ```
-
-## Superpowers Routing Matrix
-
-| Phase | Trigger | Superpowers skill | codex-controlled constraint |
-|---|---|---|---|
-| Phase 0 Framing | New feature, architecture, UI/UX, visualization, unclear design | brainstorming | Output is only design input, not execution permission |
-| Phase 4 Planning | Spec Bundle exists and user wants implementation | writing-plans | Plan must include non-goals, file boundaries, minimal loop, stop conditions |
-| Phase 5 Execution | New feature or bugfix | test-driven-development | Only within approved scope |
-| Phase 5 Debugging | Bug, failing test, abnormal behavior | systematic-debugging | No fix before root cause evidence |
-| Phase 5 Parallel | 2+ independent subtasks | dispatching-parallel-agents | Only if tasks have no shared mutable state |
-| Phase 5 Isolation | Dirty/risky workspace | using-git-worktrees | Worktree does not remove checkpoint requirements |
-| Phase 5 Complex | Multi-step implementation | subagent-driven-development | Main agent remains responsible for scope and final review |
-| Phase 6 Verification | Before claiming completion | verification-before-completion | No real output means no completion claim |
-| Phase 7 Review | Before merge/PR or final acceptance | requesting-code-review | Review result feeds checkpoint |
-| Phase 8 Finishing | After verified completion | finishing-a-development-branch | No auto-merge or cleanup without user choice |
-
-See also `skills/00_superpowers_routing.md`.
-
-### Supporting Superpowers mappings
-
-| Context | Superpowers skill | codex-controlled constraint |
-|---|---|---|
-| Phase 5 plan-following execution | executing-plans | Execution order does not expand approved scope, file boundaries, or stop conditions |
-| Phase 7 review feedback intake | receiving-code-review | Review feedback is input, not automatic permission for new changes |
-| Cross-phase skill selection help | using-superpowers | Meta-guidance does not bypass control levels, hygiene gates, checkpoints, or evidence rules |
-
-## Conflict Priority
-
-When `codex-controlled` and Superpowers rules overlap or conflict:
-
-1. User explicit instruction wins.
-2. Safety, truthfulness, and current runtime evidence win.
-3. `codex-controlled` checkpoints win.
-4. Project Hygiene Gate wins before implementation.
-5. Data / Observability Hygiene wins for logs, metrics, ETL, dashboard, runner, scorer, gate, schema, experiment tasks.
-6. Superpowers decides methodology only inside approved execution boundaries.
-7. Speed and completeness never override user understanding.
-8. Micro-UI improves presentation only; it does not change authority, approval, or evidence requirements.
-9. Anti-regression governance wins over quick prompt rewrites when changing skills.
 
 ## Routing Rules
 
+- Apply `.claude/AGENTS.md` or `ALWAYS_ON_KERNEL.md` before deciding whether the full workflow is needed when the runtime supports always-loaded instructions.
 - Use `skills/01_requirement_framing.md` to compress goals, boundaries, non-goals, and control level.
 - Use `brainstorming` only for design exploration. Its output must flow back into the Spec Bundle before planning or execution.
-- If the user expresses confusion, disagreement, or asks why, suspend execution-oriented Superpowers skills and use `skills/02_discussion_mode.md` or `skills/03_layered_explanation.md`.
+- If the user expresses confusion, disagreement, or asks why, suspend execution-oriented skills and use `skills/02_discussion_mode.md` or `skills/03_layered_explanation.md`.
 - Use `skills/04_preflight_hygiene.md` before implementation when project state, structure, generated artifacts, truth sources, or blast radius may be unclear.
 - Use `skills/05_controlled_execution.md` to define approved scope, allowed files, forbidden files, minimum closed loop, stop conditions, and evidence requirements.
 - Use `verification-before-completion` before any completion claim.
 - Use `skills/06_acceptance_review.md` to produce the checkpoint card. No checkpoint means the task is not complete.
-- Use `skills/07_coach_mode.md` whenever the user wants to understand commands, verification, review logic, or why a specific Superpowers skill was selected.
+- Use `skills/07_coach_mode.md` whenever the user wants to understand commands, verification, review logic, or why a specific focused skill was selected.
 - Use `skills/08_micro_ui_visual_state.md` when the state is dense enough that a disposable UI card, structured JSON, or static HTML spec would help the user scan and intervene.
 - Use `skills/09_skill_stability_governance.md` before changing a skill's description, routing policy, gotchas, or execution rules.
 

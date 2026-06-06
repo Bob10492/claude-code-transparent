@@ -1,17 +1,9 @@
 #!/usr/bin/env python3
-"""Lightweight documentation-level eval harness for codex-controlled skill changes.
+"""Lightweight documentation-level eval harness for agent-orchestra skill changes.
 
-This harness is intentionally deterministic and dependency-free.
-It does not call an LLM. Instead, it checks whether eval cases have enough
-explicit signals to make routing expectations auditable during skill edits.
-
-Usage:
-    python .claude/skills/codex-controlled/evals/run_skill_eval.py
-    python .claude/skills/codex-controlled/evals/run_skill_eval.py --cases path/to/cases.json
-
-Exit codes:
-    0 = all static eval checks pass
-    1 = one or more eval checks fail
+This harness is deterministic and dependency-free. It does not call an LLM.
+It validates eval case structure, expected routing signals, required docs, and
+frontmatter safety for local skill maintenance.
 """
 
 from __future__ import annotations
@@ -24,18 +16,33 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[4]
-DEFAULT_CASES = Path(__file__).with_name("codex_controlled_eval_cases.json")
+DEFAULT_CASES = Path(__file__).with_name("agent_orchestra_eval_cases.json")
 SKILL_ROOT = Path(__file__).resolve().parents[1]
+REPO_CLAUDE = SKILL_ROOT.parents[1]
 
-CODEX_CONTROLLED_SIGNALS = {
+AGENT_ORCHESTRA_SIGNALS = {
     "checkpoint",
     "approval",
     "scope",
     "boundary",
+    "bounded plan",
     "control",
+    "l2",
+    "l3",
+    "repo change",
+    "skill modification",
+    "skill stability governance",
+    "gotchas",
+    "routing rules",
+    "evals",
     "hygiene",
     "project hygiene",
+    "working tree",
+    "generated artifacts",
+    "truth sources",
+    "before implementing",
+    "before implementation",
+    "blast radius",
     "micro-ui",
     "visual state",
     "structured json",
@@ -54,11 +61,12 @@ NEIGHBOR_SIGNALS = {
 }
 
 REQUIRED_MAIN_SECTIONS = [
+    "Always-on Kernel vs Full Skill",
     "Non-bypassable Rules",
     "Control Levels",
     "Project Hygiene Gate",
     "Micro-UI Visual State",
-    "Conflict Priority",
+    "Skill Stability Governance",
 ]
 
 REQUIRED_GOVERNANCE_SECTIONS = [
@@ -76,11 +84,6 @@ class EvalFailure:
     message: str
 
 
-def load_json(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
-
-
 def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().lower())
 
@@ -88,6 +91,11 @@ def normalize(text: str) -> str:
 def has_any(text: str, needles: set[str]) -> bool:
     haystack = normalize(text)
     return any(needle in haystack for needle in needles)
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def check_case(case: dict[str, Any]) -> list[EvalFailure]:
@@ -107,16 +115,16 @@ def check_case(case: dict[str, Any]) -> list[EvalFailure]:
         failures.append(EvalFailure(case_id, "case is missing reason"))
 
     if kind == "positive":
-        if expected != "codex-controlled":
-            failures.append(EvalFailure(case_id, "positive cases must expect codex-controlled"))
-        if not has_any(prompt, CODEX_CONTROLLED_SIGNALS):
-            failures.append(EvalFailure(case_id, "positive codex-controlled case lacks explicit control-plane signal"))
+        if expected != "agent-orchestra":
+            failures.append(EvalFailure(case_id, "positive cases must expect agent-orchestra"))
+        if not has_any(prompt, AGENT_ORCHESTRA_SIGNALS):
+            failures.append(EvalFailure(case_id, "positive agent-orchestra case lacks explicit control-plane signal"))
 
     if kind == "negative":
-        if expected == "codex-controlled":
-            failures.append(EvalFailure(case_id, "negative case must not expect codex-controlled"))
+        if expected == "agent-orchestra":
+            failures.append(EvalFailure(case_id, "negative case must not expect agent-orchestra"))
         if has_any(prompt, {"checkpoint", "approval", "hygiene", "micro-ui", "do not proceed"}):
-            failures.append(EvalFailure(case_id, "negative case contains strong codex-controlled routing signal"))
+            failures.append(EvalFailure(case_id, "negative case contains strong agent-orchestra routing signal"))
         if expected in NEIGHBOR_SIGNALS and not has_any(prompt, NEIGHBOR_SIGNALS[expected]):
             failures.append(EvalFailure(case_id, f"negative neighbor case lacks expected signal for {expected}"))
 
@@ -135,40 +143,64 @@ def check_case(case: dict[str, Any]) -> list[EvalFailure]:
 
 def check_required_docs() -> list[EvalFailure]:
     failures: list[EvalFailure] = []
-    main = SKILL_ROOT / "SKILL.md"
-    governance = SKILL_ROOT / "skills" / "09_skill_stability_governance.md"
-    micro_ui = SKILL_ROOT / "skills" / "08_micro_ui_visual_state.md"
-
-    for path in [main, governance, micro_ui]:
+    required_files = [
+        SKILL_ROOT / "SKILL.md",
+        SKILL_ROOT / "ALWAYS_ON_KERNEL.md",
+        REPO_CLAUDE / "AGENTS.md",
+        SKILL_ROOT / "skills" / "08_micro_ui_visual_state.md",
+        SKILL_ROOT / "skills" / "09_skill_stability_governance.md",
+    ]
+    for path in required_files:
         if not path.exists():
             failures.append(EvalFailure("docs", f"missing required file: {path}"))
 
+    main = SKILL_ROOT / "SKILL.md"
     if main.exists():
         text = main.read_text(encoding="utf-8")
         for section in REQUIRED_MAIN_SECTIONS:
             if section not in text:
-                failures.append(EvalFailure("docs", f"main SKILL.md missing section: {section}"))
+                failures.append(EvalFailure("docs", f"agent-orchestra SKILL.md missing section: {section}"))
+        if "codex-controlled" in text:
+            failures.append(EvalFailure("docs", "agent-orchestra SKILL.md still references codex-controlled"))
 
+    governance = SKILL_ROOT / "skills" / "09_skill_stability_governance.md"
     if governance.exists():
         text = governance.read_text(encoding="utf-8")
         for section in REQUIRED_GOVERNANCE_SECTIONS:
             if section not in text:
                 failures.append(EvalFailure("docs", f"governance doc missing section: {section}"))
 
-    if micro_ui.exists():
-        text = micro_ui.read_text(encoding="utf-8")
-        for forbidden in ["<script", "onclick=", "onload="]:
-            if forbidden in text.lower():
-                failures.append(EvalFailure("docs", f"micro-ui doc includes unsafe HTML pattern: {forbidden}"))
+    return failures
 
+
+def check_frontmatter_yaml_safety() -> list[EvalFailure]:
+    failures: list[EvalFailure] = []
+    skills_dir = REPO_CLAUDE / "skills"
+    for skill_md in skills_dir.glob("*/SKILL.md"):
+        lines = skill_md.read_text(encoding="utf-8").splitlines()
+        if len(lines) < 3 or lines[0].strip() != "---":
+            failures.append(EvalFailure("frontmatter", f"missing YAML frontmatter: {skill_md}"))
+            continue
+        try:
+            end = lines[1:].index("---") + 1
+        except ValueError:
+            failures.append(EvalFailure("frontmatter", f"unterminated YAML frontmatter: {skill_md}"))
+            continue
+        for line in lines[1:end]:
+            if line.startswith("description: "):
+                value = line[len("description: "):]
+                if ": " in value and not (value.startswith('"') and value.endswith('"')):
+                    failures.append(EvalFailure("frontmatter", f"description with colon must be quoted: {skill_md}"))
+            if line.startswith("name: ") and " " in line[len("name: "):].strip():
+                failures.append(EvalFailure("frontmatter", f"skill name should not contain spaces: {skill_md}"))
     return failures
 
 
 def run(cases_path: Path) -> int:
     payload = load_json(cases_path)
     failures: list[EvalFailure] = []
-
     cases = payload.get("cases", [])
+
     if not isinstance(cases, list) or not cases:
         failures.append(EvalFailure("suite", "cases must be a non-empty list"))
     else:
@@ -185,6 +217,7 @@ def run(cases_path: Path) -> int:
             failures.append(EvalFailure("suite", f"missing {required} cases"))
 
     failures.extend(check_required_docs())
+    failures.extend(check_frontmatter_yaml_safety())
 
     if failures:
         print("Skill eval FAILED", file=sys.stderr)

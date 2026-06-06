@@ -1,55 +1,62 @@
 {
-  "suite": "codex-controlled.skill-routing.v1",
-  "description": "Layered eval cases for codex-controlled routing, anti-regression, Micro-UI, and neighboring skill non-stealing behavior.",
+  "suite": "agent-orchestra.skill-routing.v1",
+  "description": "Layered eval cases for agent-orchestra routing, anti-regression, Micro-UI, always-on kernel, and neighboring skill non-stealing behavior.",
   "cases": [
     {
-      "id": "pos-codex-controlled-boundary-checkpoint",
+      "id": "pos-agent-orchestra-boundary-checkpoint",
       "kind": "positive",
-      "expected_skill": "codex-controlled",
+      "expected_skill": "agent-orchestra",
       "prompt": "Please modify this repo, but first define the scope boundary, wait for my checkpoint approval, and do not auto-continue.",
-      "reason": "Explicit checkpointed controlled collaboration should recall codex-controlled."
+      "reason": "Explicit checkpointed controlled collaboration should recall agent-orchestra."
     },
     {
-      "id": "pos-codex-controlled-project-hygiene",
+      "id": "pos-agent-orchestra-project-hygiene",
       "kind": "positive",
-      "expected_skill": "codex-controlled",
+      "expected_skill": "agent-orchestra",
       "prompt": "Before implementing this runner change, check whether the working tree, generated artifacts, and truth sources are clean.",
-      "reason": "Project Hygiene Gate is a codex-controlled control-plane responsibility."
+      "reason": "Project Hygiene Gate is an agent-orchestra control-plane responsibility."
     },
     {
-      "id": "pos-codex-controlled-micro-ui-checkpoint",
+      "id": "pos-agent-orchestra-micro-ui-checkpoint",
       "kind": "positive",
-      "expected_skill": "codex-controlled",
+      "expected_skill": "agent-orchestra",
       "prompt": "Show this checkpoint as a structured JSON visual state card with explicit approval actions, but do not proceed until I approve.",
-      "reason": "Micro-UI checkpoint state belongs to codex-controlled."
+      "reason": "Micro-UI checkpoint state belongs to agent-orchestra."
     },
     {
-      "id": "pos-codex-controlled-superpowers-conflict",
+      "id": "pos-always-on-l2-repo-change",
       "kind": "positive",
-      "expected_skill": "codex-controlled",
-      "prompt": "Use TDD if appropriate, but if I do not understand the plan, pause execution and explain before continuing.",
-      "reason": "Conflict between Superpowers execution and user understanding should route to codex-controlled."
+      "expected_skill": "agent-orchestra",
+      "prompt": "This is an L2 repo change: implement the bugfix with a bounded plan, verification evidence, and a checkpoint before continuing.",
+      "reason": "Always-on kernel should escalate L2 repository changes to full agent-orchestra."
     },
     {
-      "id": "neg-simple-command-explanation",
+      "id": "pos-always-on-l3-skill-change",
+      "kind": "positive",
+      "expected_skill": "agent-orchestra",
+      "prompt": "This is an L3 skill modification. Apply skill stability governance before editing the description, gotchas, routing rules, or evals.",
+      "reason": "Always-on kernel should escalate skill changes to strict agent-orchestra governance."
+    },
+    {
+      "id": "neg-always-on-l0-direct-answer",
       "kind": "negative",
       "expected_skill": null,
-      "prompt": "What does bun test do?",
-      "reason": "Simple conceptual Q&A should not force codex-controlled unless explicit control, checkpoint, or coaching is requested."
+      "prompt": "Explain what git fetch means in one paragraph.",
+      "reason": "Always-on kernel should classify this as L0 direct and avoid full agent-orchestra workflow."
     },
     {
       "id": "neg-pure-tdd-request",
       "kind": "negative",
       "expected_skill": "test-driven-development",
       "prompt": "Use test-driven development to implement this small parser behavior.",
-      "reason": "Pure TDD request should not be stolen by codex-controlled unless checkpoint/control-plane constraints are present."
+      "reason": "Pure TDD request should not be stolen by agent-orchestra unless checkpoint/control-plane constraints are present."
     },
     {
       "id": "neg-pure-debugging-request",
       "kind": "negative",
       "expected_skill": "systematic-debugging",
       "prompt": "The unit test fails with this stack trace. Please systematically debug the root cause.",
-      "reason": "Pure debugging request should route to debugging skill unless codex-controlled boundaries/checkpoints are requested."
+      "reason": "Pure debugging request should route to debugging skill unless agent-orchestra boundaries/checkpoints are requested."
     },
     {
       "id": "neg-pure-branch-finishing",
@@ -75,7 +82,7 @@
     {
       "id": "env-tool-unavailable",
       "kind": "environment",
-      "expected_skill": "codex-controlled",
+      "expected_skill": "agent-orchestra",
       "prompt": "Run the verification command if available; if the tool is unavailable, explain the limitation and do not claim completion.",
       "reason": "Environment/tool availability issue should preserve evidence-before-completion behavior."
     }
